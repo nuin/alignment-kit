@@ -1,0 +1,4835 @@
+{
+  "date": "2026-10-27T21:24:54.895Z",
+  "method": {
+    "exactMinimumTokens": 12,
+    "normalizedMinimumTokens": 40,
+    "normalization": "Remove whitespace/comments; replace identifiers and string/number literals for normalized JS comparison. Preserve operators and keyword/token kinds. CSS comparison is literal-token only. Svelte script only; markup excluded. JSON palettes assessed separately.",
+    "positiveControls": "Exact copy and renamed identifiers detected; negative control rejected.",
+    "limitations": "Contiguous lexical matches only, not AST/semantic similarity. No template-string interpolation parsing. No claim of global originality or legal clearance."
+  },
+  "local": {
+    "files": 22,
+    "tokens": 16484,
+    "inventory": [
+      {
+        "path": "src/analysis.ts",
+        "sha256": "a4dc7e2d03b01077a7ac61e7528d43a56666820d41895ce028a06b79b95db103",
+        "tokens": 989
+      },
+      {
+        "path": "src/annotations.ts",
+        "sha256": "1e86b29332f0b1e617bc5845b60d6128f9272d4f0913203144df184bd42c7bd8",
+        "tokens": 573
+      },
+      {
+        "path": "src/colors.ts",
+        "sha256": "5107b36efd0af332cb07e9b9e69c72b1a6ae7a4cb7df06474b5643701f21aa34",
+        "tokens": 566
+      },
+      {
+        "path": "src/controls.ts",
+        "sha256": "2b9a16843f05eae4a29f9fd48146fc08c1c55cedcab353822938aa0eed321b24",
+        "tokens": 1146
+      },
+      {
+        "path": "src/export.ts",
+        "sha256": "506ef21484d7b438462ed8240f47894588c8b79d11374e9af3f7305371fa1deb",
+        "tokens": 739
+      },
+      {
+        "path": "src/fonts.css",
+        "sha256": "9a31798c2677f4234a40443040a663c00c2f292f9e29aabc67b9c81ac65d27a2",
+        "tokens": 60
+      },
+      {
+        "path": "src/index.ts",
+        "sha256": "f2a8f161ebe883ea1897f6f5dd9e1d6996611261ba1f1e262fd75c86ada143e9",
+        "tokens": 89
+      },
+      {
+        "path": "src/inspector.ts",
+        "sha256": "9290b1990873e31bf99abff6080725072fbd11c2c193bf8b91bae663b38e0af3",
+        "tokens": 1441
+      },
+      {
+        "path": "src/integration.ts",
+        "sha256": "30b5ca63e7c9606672415957b90401e013e65ac82aed8f4d0231e6c80f38089a",
+        "tokens": 346
+      },
+      {
+        "path": "src/model.ts",
+        "sha256": "16f59740c6179d7009e2037129fbbadd8f09f61e035e764f7b24b33fd404c5eb",
+        "tokens": 356
+      },
+      {
+        "path": "src/parsers.ts",
+        "sha256": "35f0a90c8168dbe0e16eb4c840676d055cf08e11bb5f058b99e21a97a38cb567",
+        "tokens": 352
+      },
+      {
+        "path": "src/pavi.ts",
+        "sha256": "d3b7b8c39429f0ac4f9b983215e21f6e520b46b88f1fd0ae8cc1914678f5f889",
+        "tokens": 338
+      },
+      {
+        "path": "src/react.tsx",
+        "sha256": "82999d3e26883e4debfbee429115d2aba699cea5b463882ef7e4a796d510710b",
+        "tokens": 244
+      },
+      {
+        "path": "src/renderer.ts",
+        "sha256": "cd5df50fd5948000e01e9cdc531e136979cf9e28a87f9b5c41dcf75aa1f77806",
+        "tokens": 544
+      },
+      {
+        "path": "src/style.css",
+        "sha256": "c4fd6f6397b4f22dae67d6a0e929e0fdbd0f0306c7fb58d8b4713e61cb0434cc",
+        "tokens": 2979
+      },
+      {
+        "path": "src/svelte.ts",
+        "sha256": "2890b9df91ec3dd3df979fecf45e18a0a41f9540bf3c14924d4096f89d8f2762",
+        "tokens": 93
+      },
+      {
+        "path": "src/svelte/AlignmentViewer.svelte",
+        "sha256": "fa6110bd8a774666f04a76b3db39bdd144a4a4c522905f0e5f5a1f2f8f9d1563",
+        "tokens": 61
+      },
+      {
+        "path": "src/svelte/AlignmentViewer.svelte.d.ts",
+        "sha256": "25d340ec613775c4043c76894fb1098e22a039e0cc1dd146c80a5f7f69d7a9a1",
+        "tokens": 46
+      },
+      {
+        "path": "src/types.ts",
+        "sha256": "6ca9990ddd7d95192393dac9abd95fda8669710ee50f3efcf131bff11e440530",
+        "tokens": 734
+      },
+      {
+        "path": "src/viewer.ts",
+        "sha256": "e149eaf18fa205e5cfb2eb1439b4fcc29ab2f13a0a5db2ad59c3bc2819257405",
+        "tokens": 3798
+      },
+      {
+        "path": "src/worker-client.ts",
+        "sha256": "ed49902b609c0b2cd22bbe9691e078287a201268d8aa18d3d41f0b7ad73914f8",
+        "tokens": 772
+      },
+      {
+        "path": "src/worker.js",
+        "sha256": "2c08c82671d60ee0356e5d17b93d9b85d9b644c410163e34c652148563396404",
+        "tokens": 218
+      }
+    ]
+  },
+  "corpora": [
+    {
+      "name": "Nightingale",
+      "url": "https://github.com/ebi-webcomponents/nightingale",
+      "revision": "913ca037000ac6048afdf2e68075983c7c779a1e",
+      "sourceDirs": [
+        "packages"
+      ],
+      "files": 162,
+      "tokens": 79719,
+      "inventory": [
+        {
+          "path": "packages/nightingale-boxplot-track/src/downsampling.ts",
+          "sha256": "7ef4f56a6679229ed56689e1214807cfa67e56766f692e48d13269f959047652",
+          "tokens": 335
+        },
+        {
+          "path": "packages/nightingale-boxplot-track/src/index.ts",
+          "sha256": "8e1bc5fcc4db3bfce472f43c4209eca9d3ed9800d6616c5768db47a7a97d49aa",
+          "tokens": 15
+        },
+        {
+          "path": "packages/nightingale-boxplot-track/src/nightingale-boxplot-track.ts",
+          "sha256": "78409f595b591a5e1ab8c65ac384d963e7e46c13642fc4413f3e0cab7ccb0812",
+          "tokens": 1039
+        },
+        {
+          "path": "packages/nightingale-boxplot-track/tests/nightingale-distribution-track.test.ts",
+          "sha256": "ea9d1fc019f328acf1a41d60527de9601a016fbb6bfdad79bad01ce25009ef55",
+          "tokens": 659
+        },
+        {
+          "path": "packages/nightingale-colored-sequence/src/index.ts",
+          "sha256": "187341b1bf19fdb8b2d846d195c7814ff35a1356eb36cb9ba3a608106129f761",
+          "tokens": 29
+        },
+        {
+          "path": "packages/nightingale-colored-sequence/src/nightingale-colored-sequence.ts",
+          "sha256": "011bdd195982b61d8075cc5ab10406d5d278da2efaa80e20873bebb5f783954d",
+          "tokens": 1049
+        },
+        {
+          "path": "packages/nightingale-colored-sequence/src/utils/ColorScaleParser.ts",
+          "sha256": "b6e77627936e282ab1a327e1da70b43679ddcbcaeee52a5383d0655eec083863",
+          "tokens": 273
+        },
+        {
+          "path": "packages/nightingale-colored-sequence/src/utils/String2Object.ts",
+          "sha256": "843dea94ff14418abaf1da012a2a910b71003ef75011ad51ef97a414363d9ca0",
+          "tokens": 194
+        },
+        {
+          "path": "packages/nightingale-colored-sequence/tests/ColorScaleParser.test.ts",
+          "sha256": "ac793a2ac17a6eb4285ce71940280e2bbfbff48627a84fee0988369504b86d12",
+          "tokens": 497
+        },
+        {
+          "path": "packages/nightingale-colored-sequence/tests/String2Object.test.ts",
+          "sha256": "bb3f016a25534f5cba9f089fac5d77c8cf8f11c11aee9712859e6e8f3da3db26",
+          "tokens": 424
+        },
+        {
+          "path": "packages/nightingale-colored-sequence/tests/nightingale-coloured-sequence.test.js",
+          "sha256": "f6b6a87c4aee90355e4cd6d90b2d17766be34ebffb531e6bf933cb68aec1714d",
+          "tokens": 72
+        },
+        {
+          "path": "packages/nightingale-conservation-track/src/index.ts",
+          "sha256": "e30c7a9fd59f814ccbad80940e9d1a16fc5a75f0a2e08356d0d32fb0ee956515",
+          "tokens": 15
+        },
+        {
+          "path": "packages/nightingale-conservation-track/src/nightingale-conservation-track.ts",
+          "sha256": "e11532e9d92c18b546abf225aab5008e7b41febd4ab482eb41ea0f4189b13a9d",
+          "tokens": 1658
+        },
+        {
+          "path": "packages/nightingale-conservation-track/tests/nightingale-conservation-track.test.ts",
+          "sha256": "c1f4e005f1cd22904106f47cf4044dbecbbe1a5cc2e8c5f90839c2d8b9153dd5",
+          "tokens": 34
+        },
+        {
+          "path": "packages/nightingale-filter/src/index.ts",
+          "sha256": "37b9ef7acb469ccf6334ba699bc4e899aea034db7e77546c9593802429951aa7",
+          "tokens": 17
+        },
+        {
+          "path": "packages/nightingale-filter/src/nightingale-filter.ts",
+          "sha256": "ae835809b6068f8fd8de22b4f33c7b1f840651c69f5d70f10045296fb968cef4",
+          "tokens": 353
+        },
+        {
+          "path": "packages/nightingale-filter/tests/filterConfig.ts",
+          "sha256": "8586e514d154431a9dfcd1275684d27e23937815621e1ae527c87f670a0adc4a",
+          "tokens": 204
+        },
+        {
+          "path": "packages/nightingale-heatmap/src/index.ts",
+          "sha256": "c81797308584682fe1ea49998a9fefdb9105bf2d50181661205ad50a209e3fdc",
+          "tokens": 19
+        },
+        {
+          "path": "packages/nightingale-heatmap/src/nightingale-heatmap.ts",
+          "sha256": "59cff41541cc037b2e5cdda2d7ee9e1748a5c529b06f9f8fcc04bad6df472a27",
+          "tokens": 741
+        },
+        {
+          "path": "packages/nightingale-heatmap/test/nightingale-heatmap.test.ts",
+          "sha256": "39a29f08f6759437f6d38445e34e687b219a8d2bfbdbf61eb597178815326540",
+          "tokens": 253
+        },
+        {
+          "path": "packages/nightingale-interpro-track/src/InterproEntryLayout.ts",
+          "sha256": "45917ef1ac2930102fd92b423f838c0db2d2e78a1f18a335c85defb3653f8f68",
+          "tokens": 1019
+        },
+        {
+          "path": "packages/nightingale-interpro-track/src/coverage/index.test.js",
+          "sha256": "f16540c451298fc13c101980304511a64257141a34f31f8dc2a4e8cec2655b74",
+          "tokens": 1052
+        },
+        {
+          "path": "packages/nightingale-interpro-track/src/coverage/index.ts",
+          "sha256": "d05062f3ab6b207038b307a723ea2d2b389f9f42ddf6f0fb3a67d0ec7b29bc5b",
+          "tokens": 750
+        },
+        {
+          "path": "packages/nightingale-interpro-track/src/coverage/render.ts",
+          "sha256": "b813b948f8b056b28cce3a0fe5ea4902fa54f403692dd76582f59c9938a555cd",
+          "tokens": 148
+        },
+        {
+          "path": "packages/nightingale-interpro-track/src/index.ts",
+          "sha256": "fe6bb29034f4f0191aa3a285b3d460ece5f14708149e549efd3534e6482a0485",
+          "tokens": 19
+        },
+        {
+          "path": "packages/nightingale-interpro-track/src/nightingale-interpro-track.ts",
+          "sha256": "4cec88f64b99e96e4acbffd5ae5ba3d8a939fbb0d3a5849f9d21bf008044eaff",
+          "tokens": 1499
+        },
+        {
+          "path": "packages/nightingale-interpro-track/src/residues.ts",
+          "sha256": "e54f5df59dd2e7b48d444a2d238bd0dbb1ba38f7d727fd52c4ef6543b5834253",
+          "tokens": 615
+        },
+        {
+          "path": "packages/nightingale-interpro-track/tests/mockData/interpro.js",
+          "sha256": "2989d72c439ed3f8dcb8a2587c692f767cfd60530583b7f3fe6545b6d984a820",
+          "tokens": 1886
+        },
+        {
+          "path": "packages/nightingale-interpro-track/tests/nightingale-interpro-track.test.js",
+          "sha256": "e65f309c88bf4f6287752852bb2e51871fff5368dc64552f21e4a9472c0b6f30",
+          "tokens": 348
+        },
+        {
+          "path": "packages/nightingale-linegraph-track/src/index.ts",
+          "sha256": "e5d626fb22e6047331604f4bd0f71676262fa0fa8d60434c1c27edafa51590b0",
+          "tokens": 19
+        },
+        {
+          "path": "packages/nightingale-linegraph-track/src/nightingale-linegraph-track.ts",
+          "sha256": "2953c73dfc484b5ef5a51665b25695a5754ae1ca265276df3fe739d0aede92f3",
+          "tokens": 1510
+        },
+        {
+          "path": "packages/nightingale-links/src/index.ts",
+          "sha256": "9e74be0aff661484a966e3d2f36ea9bf3f7b62eafc23ec9e939216db0e25e8ad",
+          "tokens": 20
+        },
+        {
+          "path": "packages/nightingale-links/src/links-parser.ts",
+          "sha256": "494b584d19e4095305e247b658453627e4c3c7f8e3e9387da5fec2df8ada6698",
+          "tokens": 890
+        },
+        {
+          "path": "packages/nightingale-links/src/nightingale-links.ts",
+          "sha256": "8627970c3e26b25a7a98f2f7ba628f93a21600e5d8f97161ab11bd6bb67910cf",
+          "tokens": 213
+        },
+        {
+          "path": "packages/nightingale-links/tests/protvista-links.test.ts",
+          "sha256": "e24e0fcc29f3b7621fcea4da219938edfc43d88966a6ae71083274b9ec201125",
+          "tokens": 49
+        },
+        {
+          "path": "packages/nightingale-logo-track/src/index.ts",
+          "sha256": "bcffdd342e580002f5d88c1f63d317325428b3aba5cae09d321acbc236581561",
+          "tokens": 20
+        },
+        {
+          "path": "packages/nightingale-logo-track/src/nightingale-logo-track.ts",
+          "sha256": "c9a2ea2496b071bdeb482658c89b4a09a368e7c0fc8b6d1623dfd34fe6681f0f",
+          "tokens": 1487
+        },
+        {
+          "path": "packages/nightingale-logo-track/tests/nightingale-logo-track.test.js",
+          "sha256": "26ed9aca56a35cc6d1419fdb08567f55e6cb626e7a7d28d3242945bdd2892ad0",
+          "tokens": 131
+        },
+        {
+          "path": "packages/nightingale-manager/src/index.ts",
+          "sha256": "e334f5a49161a41bc95ad22bc0ee0ea655c70a72b6aa3fb2fa0c1f3002f19b22",
+          "tokens": 9
+        },
+        {
+          "path": "packages/nightingale-manager/src/nightingale-manager.ts",
+          "sha256": "6a12d840dc4f41172fb7537a563e14425966294852a22fd1aa729c6e28314306",
+          "tokens": 457
+        },
+        {
+          "path": "packages/nightingale-manager/tests/nightingale-manager.spec.ts",
+          "sha256": "19c587050edb7694fe5622c9dd49c6ef570b7fdff132e091b076c71fa42cf83b",
+          "tokens": 415
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/aliphatic.ts",
+          "sha256": "d9b3991597610f7794170d95deb81f0be2d8780ac6d6ad79bf28087121e0f442",
+          "tokens": 25
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/aromatic.ts",
+          "sha256": "260991afcf463a7b1c6b9f38d1254d2bec2be880abff31c5b6c20900bd3d4dc7",
+          "tokens": 21
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/buried.ts",
+          "sha256": "1b3e280b18bc859b317b31c8c8582bc6d3f6bc216feb5c0efa54322c55ce1519",
+          "tokens": 97
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/charged.ts",
+          "sha256": "7b62326e3d6d1d05a2177e44c4e107858781bfeab70bfa15609528e63dcf070e",
+          "tokens": 25
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/cinema.ts",
+          "sha256": "583bbbc488ee1f1cc62cd7ac2b71010c5d8d7d252b8ff7cf30ee4a7b8aed79ae",
+          "tokens": 113
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/clustal.ts",
+          "sha256": "a246b035babf8670b92c845c98da020fbe14d7599795c6ee8f8fa1a7626b458f",
+          "tokens": 113
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/clustal2.ts",
+          "sha256": "ad1a89da2dae9f233ed5f637616f0f6451a1aa8b01355585fa9f1016a5c6a301",
+          "tokens": 97
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/helix.ts",
+          "sha256": "7298c9c75932ec28d440ef6f841c9f062a32f0e86b0407c43221d853f875bee8",
+          "tokens": 97
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/hydrophobicity.ts",
+          "sha256": "3d436a6425abb45881d523aab87bdd2784b7e0dd443dd22f9a69ce097943291b",
+          "tokens": 109
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/index.ts",
+          "sha256": "cb52d2cc56a727b9cf18e4116a3f7fcbf57117443ed540ca9df5a5fdc7a88684",
+          "tokens": 442
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/lesk.ts",
+          "sha256": "548fca86314582505f11d7429ebadb6907fda24a5e9e973e540960985ec6e6f8",
+          "tokens": 113
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/mae.ts",
+          "sha256": "5921e539a06636575b2ceb82dad4f92685d3501ad91c6a138bde5dd1f03ce36b",
+          "tokens": 113
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/negative.ts",
+          "sha256": "da7483fdad043f18cf05771fc2dda7ebf5a2e9cfb1ee746f5096d57938bfa654",
+          "tokens": 13
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/nucleotide.ts",
+          "sha256": "7be37c12199d4eebc3b6cd6d77f0cb32343e8b3d1b4ba4c6756f3e55581549c8",
+          "tokens": 25
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/pid_colors.ts",
+          "sha256": "74e2fd1b9cca39ee38c9b4e136d28c7ba192245c3701c2613801668917c26e7a",
+          "tokens": 252
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/polar.ts",
+          "sha256": "c48083ec02ac6fd6096061efa5d340a5853511116decad72a021cd3372215d41",
+          "tokens": 49
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/positive.ts",
+          "sha256": "223b2d8eb4e59fabc74f9c1dcd7f2ff9f436ef962dd173ef0c448bdbcf348134",
+          "tokens": 17
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/purine.ts",
+          "sha256": "12354b536d7d6b0768297fea7c5ba86527e43fb0ddd7bbd7dcb12222981aa07d",
+          "tokens": 33
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/schemeclass.ts",
+          "sha256": "a817254d3146277abad6cc34a078174bcbe715855dd04e689579ac2c4df43f37",
+          "tokens": 246
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/serine_threonine.ts",
+          "sha256": "91a2f1019db52b95d728b1c4892a87746adbea2a0419b80dc6188b741011b259",
+          "tokens": 13
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/strand.ts",
+          "sha256": "81740f7a8533153516087868a0317d5f881d29b1360de567017b96f8c2ee42ca",
+          "tokens": 97
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/taylor.ts",
+          "sha256": "dff6cac223abace084a137dc51c65fe0af66a8d73073b6d3e376005f3ef4072e",
+          "tokens": 97
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/turn.ts",
+          "sha256": "1744c96585f10bbec3114308ce673a8ea8e7749423f33e6bc087c6c9a06e507a",
+          "tokens": 97
+        },
+        {
+          "path": "packages/nightingale-msa/src/colorschemes/zappo.ts",
+          "sha256": "54b964b6c72b2c06862e264e06bca49e9909c5913a20c7b597a84789e4e038dc",
+          "tokens": 97
+        },
+        {
+          "path": "packages/nightingale-msa/src/components/Canvas/CanvasCache.ts",
+          "sha256": "9a5b654d4125ab653faa2cd0b512e1345a0f02747cdf721b2894ec60317a7827",
+          "tokens": 363
+        },
+        {
+          "path": "packages/nightingale-msa/src/components/Canvas/CanvasTilingGrid.ts",
+          "sha256": "f57b85492c3a3c25f816715b59e9d88a0fd61dd99298ac90da8c083d2de3c609",
+          "tokens": 303
+        },
+        {
+          "path": "packages/nightingale-msa/src/components/Canvas/DraggingComponent.ts",
+          "sha256": "24c3b972817f3d25d1ad936c65dbdf8085eec2aa504d587a182cb75e60af8a35",
+          "tokens": 383
+        },
+        {
+          "path": "packages/nightingale-msa/src/components/Canvas/FakeScroll.ts",
+          "sha256": "48a597dabb594add1f4a7a683977d3884b238678427fd5cc31e36ebc63e1fb50",
+          "tokens": 714
+        },
+        {
+          "path": "packages/nightingale-msa/src/components/Canvas/SequenceViewer.ts",
+          "sha256": "ce6609496d50cd3e589bcf86266eb0bc4bb7c2fd937f58c73d92ca39214aae00",
+          "tokens": 1160
+        },
+        {
+          "path": "packages/nightingale-msa/src/components/Labels.ts",
+          "sha256": "5e3863da853b7ada572c23e706672f12dff2ee6fe838a45469647956cb05e72c",
+          "tokens": 298
+        },
+        {
+          "path": "packages/nightingale-msa/src/index.ts",
+          "sha256": "6c0af52f4f40f4a5a4ee05418290ec61f4cc0afa7dbe63fc9df265155a04abda",
+          "tokens": 15
+        },
+        {
+          "path": "packages/nightingale-msa/src/nightingale-msa.ts",
+          "sha256": "ab7c4864f988b44f9c9c9c46ffa747cef486adf8a8a3b4b85b3b086c300a02ce",
+          "tokens": 1033
+        },
+        {
+          "path": "packages/nightingale-msa/src/types/types.ts",
+          "sha256": "61514497f75a6ccef5684c92798c7a108b8a4df519e287f74b0327f5d3c9a89d",
+          "tokens": 332
+        },
+        {
+          "path": "packages/nightingale-msa/src/utils/ColorScheme.ts",
+          "sha256": "a281947d545d8c67e411280687ff553af61c445261e47763b105acb4f7e8c481",
+          "tokens": 141
+        },
+        {
+          "path": "packages/nightingale-msa/src/utils/math.ts",
+          "sha256": "81e083e5ade65c5cc8426922a084e2f7fdf996b8b9f5990c386b97b1cadb597b",
+          "tokens": 25
+        },
+        {
+          "path": "packages/nightingale-msa/src/utils/mouse.ts",
+          "sha256": "f7f8553432a58bf8669893890dcc862c78f0bec9414ad8fe7a64e0efff7fbafa",
+          "tokens": 436
+        },
+        {
+          "path": "packages/nightingale-msa/src/utils/object2style.ts",
+          "sha256": "b0cdd11ac72979025a1276b6d4ae8e27c2750aa54e91be8cc8fbe6244d75944d",
+          "tokens": 43
+        },
+        {
+          "path": "packages/nightingale-msa/src/workers/conservation-inline-worker.ts",
+          "sha256": "8184fbe18cbad248176df2b2b5d14d514626a1a2e2508b6134828c97a9757682",
+          "tokens": 322
+        },
+        {
+          "path": "packages/nightingale-navigation/src/index.ts",
+          "sha256": "d45d70b4b814d94a6f071c07693ca9f75f2d5ce10de7ce84f40d534dd5712afc",
+          "tokens": 9
+        },
+        {
+          "path": "packages/nightingale-navigation/src/nightingale-navigation.ts",
+          "sha256": "1aa61acdfd325842f0c3eb8c102708d3059839df5acea10e6140098d11daa3e9",
+          "tokens": 2129
+        },
+        {
+          "path": "packages/nightingale-navigation/tests/nigthingale-navigation.test.ts",
+          "sha256": "b23dbbb75e44332a934ac1bf9446e75420d207e2aea41f5951c9164275bd474f",
+          "tokens": 189
+        },
+        {
+          "path": "packages/nightingale-new-core/src/decorators/customElementOnce.ts",
+          "sha256": "e5e69035c83bd91f35ee48f9b149989e21642d5f744a8fbef2cef9cf766f074e",
+          "tokens": 123
+        },
+        {
+          "path": "packages/nightingale-new-core/src/index.ts",
+          "sha256": "294e724031c9eebc41906191012e619fb015c8542042c30fef0fd476beb1039d",
+          "tokens": 153
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withCanvas/index.ts",
+          "sha256": "7420906daad23aedd4aaaf04e10ff08659ec5c68479c7c4a6d05cf3cf5c0b785",
+          "tokens": 178
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withDimensions/index.ts",
+          "sha256": "f37852554f7e9e0152dfbca428e8f1fa1fbca689245e41fa9d3c876a89558964",
+          "tokens": 128
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withHighlight/SVG/index.ts",
+          "sha256": "97686ea0243e3f2ac000eeae12fe85e226dcdcd3466a80ffe53348b21446284a",
+          "tokens": 327
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withHighlight/index.ts",
+          "sha256": "891148eb3fbaa4387e92f2a9fd4afd2e4ff786bb41cd479e388cfc13f4f92a26",
+          "tokens": 64
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withManager/index.ts",
+          "sha256": "60d1584552c6d6194365bf6f4deb17c1265824fbd611e026905fddcc9d40c1a5",
+          "tokens": 157
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withMargin/index.ts",
+          "sha256": "5972f5d7ce523553aae4c9a3eafde7563d1b42d0fc25fb0ee53ae2da8dc6101d",
+          "tokens": 752
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withPosition/index.ts",
+          "sha256": "6ea535d1754d15e5891417619f956f03157c86d2b1fa46b1230a47b843618088",
+          "tokens": 261
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withResizable/index.ts",
+          "sha256": "eaf260611bcf1b0d556294c5c4e0fd9ede4b463c82b76623dfef462a4d78a9f6",
+          "tokens": 504
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withZoom/index.ts",
+          "sha256": "4d1ce3f5bd1d9c13cc0346746bae6d3e5deb3df2c45c95766006fb5280643d86",
+          "tokens": 1460
+        },
+        {
+          "path": "packages/nightingale-new-core/src/mixins/withZoom/wheel-helper.ts",
+          "sha256": "f0807e13593d12a08b3e32adda974965ecb472c6dfc025fa6e84ad1570ed4c8e",
+          "tokens": 636
+        },
+        {
+          "path": "packages/nightingale-new-core/src/nightingale-base-element.ts",
+          "sha256": "2d38470d2110e80044e0b529031ff3ec2dae25227cf955b77c0a5039e5964f89",
+          "tokens": 76
+        },
+        {
+          "path": "packages/nightingale-new-core/src/utils/Region.ts",
+          "sha256": "9b1b3cec786e6195fd093c21f37f3cf4a45e6aa9662025ecdd407ca0e440f44a",
+          "tokens": 182
+        },
+        {
+          "path": "packages/nightingale-new-core/src/utils/attribute-converters.ts",
+          "sha256": "0afaeecabd51666833b35548e426924f1ad0b6cc580f54ec38b0966b72ba164d",
+          "tokens": 201
+        },
+        {
+          "path": "packages/nightingale-new-core/src/utils/binary-search.ts",
+          "sha256": "bb71f41b4fa0ddf9214c4ea4fc5b6b5514e7e28f9e199a32afabfa859f7b3b7f",
+          "tokens": 252
+        },
+        {
+          "path": "packages/nightingale-new-core/src/utils/bindEvents.ts",
+          "sha256": "59ea3f495a21bcfbecb77128a8a66b234ab852b9aa7a2a1622b5767f13c5478e",
+          "tokens": 442
+        },
+        {
+          "path": "packages/nightingale-new-core/src/utils/colors.ts",
+          "sha256": "f13ea98f249a0946b5855b831515fdf1376b7582594ad611827fe1eefa18c569",
+          "tokens": 144
+        },
+        {
+          "path": "packages/nightingale-new-core/src/utils/refresher.ts",
+          "sha256": "7bc6a930b574965bee4344a0f2f5bf9f7a78397ca2d2129e335d6b4b55d81124",
+          "tokens": 319
+        },
+        {
+          "path": "packages/nightingale-new-core/tests/binary-search.test.ts",
+          "sha256": "1d0b678e9a6ce57b2df3f4b70e61993fd82365dd817926c5ea52d7aa5e515671",
+          "tokens": 2457
+        },
+        {
+          "path": "packages/nightingale-new-core/tests/region.test.js",
+          "sha256": "fa3563255f151f7c7ddecc4671283c7f85fc736539f3177ae183b6efc8dc6f09",
+          "tokens": 1297
+        },
+        {
+          "path": "packages/nightingale-overlay/src/index.ts",
+          "sha256": "5c489a83cf69ae1a3cca71461dcce66fa7cab2c3448914c47b1055bbbe978072",
+          "tokens": 9
+        },
+        {
+          "path": "packages/nightingale-overlay/src/nightingale-overlay.ts",
+          "sha256": "5cd973960d4f1ec9a1d464c743a7ad3d7a66f3a15aaddc617e92cbfdc4adb788",
+          "tokens": 321
+        },
+        {
+          "path": "packages/nightingale-saver/src/index.ts",
+          "sha256": "5c3715f1d23db658c30d75efdfa1b5d2bd3f8de14aae5709063ea4e6c95e02d0",
+          "tokens": 9
+        },
+        {
+          "path": "packages/nightingale-saver/src/nightingale-saver.ts",
+          "sha256": "096db8bfbfffcebb0d0fd36ed247717ca404d6927acb2f20b26e53d2e1993248",
+          "tokens": 517
+        },
+        {
+          "path": "packages/nightingale-scrollbox/src/index.ts",
+          "sha256": "79bc752aec7bd24e1ca2d7bef37b6b0536838214a7bd17eb53a6a175037026fc",
+          "tokens": 14
+        },
+        {
+          "path": "packages/nightingale-scrollbox/src/nightingale-scrollbox-item.ts",
+          "sha256": "72cae2bcb684d62388d3cb29c7d0ebddc461784b045c59cb7904e0eea0b9c645",
+          "tokens": 987
+        },
+        {
+          "path": "packages/nightingale-scrollbox/src/nightingale-scrollbox.ts",
+          "sha256": "0f4f46d88ddcf3c334c539809527ea5ea7e14f96dac0c1d4ab320b97a1356472",
+          "tokens": 411
+        },
+        {
+          "path": "packages/nightingale-sequence-heatmap/src/heatmap-component.css.ts",
+          "sha256": "f4bab1349ab3059de3ccc12fe02a162a4202d261a52ec3c1e55ff4b5ef701085",
+          "tokens": 9
+        },
+        {
+          "path": "packages/nightingale-sequence-heatmap/src/index.ts",
+          "sha256": "4343042c7beaa3ad9b59c82d04cb33cbd5f0c7f7d940c64781902d534f53ef78",
+          "tokens": 9
+        },
+        {
+          "path": "packages/nightingale-sequence-heatmap/src/nightingale-sequence-heatmap.ts",
+          "sha256": "79301a02dba661810c0f83ee4684ee2279443cd913a5d35408101bd199ad2ae6",
+          "tokens": 1143
+        },
+        {
+          "path": "packages/nightingale-sequence-heatmap/tests/mockData/mockdata.js",
+          "sha256": "edb5232af6a07d5a2a3319dcee67b1b4969a6cad412b74f2707c0b7220df8918",
+          "tokens": 2376
+        },
+        {
+          "path": "packages/nightingale-sequence-heatmap/tests/nightingale-sequence-heatmap.test.js",
+          "sha256": "068c288e0f716806dd92aab3f2de2a4b9275bbb3d1a00c64a909eaa83bb901bd",
+          "tokens": 232
+        },
+        {
+          "path": "packages/nightingale-sequence/src/index.ts",
+          "sha256": "96b4c4a38906519ddda058f6d62d1e3358dd87608138f93d1af7f4a7e51284fd",
+          "tokens": 17
+        },
+        {
+          "path": "packages/nightingale-sequence/src/nightingale-sequence.ts",
+          "sha256": "7b00e653492f50990cfab24353b115b8e8d51aa433ea85a0ccbf4fb785c46b07",
+          "tokens": 750
+        },
+        {
+          "path": "packages/nightingale-sequence/tests/nightingale-sequence.test.js",
+          "sha256": "f406e0ceae037f69e03755254c9725a19992b8bb17ad67010c8a4016cdce7f31",
+          "tokens": 375
+        },
+        {
+          "path": "packages/nightingale-structure/src/AlphaMissenseColorTheme.ts",
+          "sha256": "4ff916c8c39d5fd36bf93fd54e64cb5ffbe930ea34c250fd9bc0c205e2aba864",
+          "tokens": 293
+        },
+        {
+          "path": "packages/nightingale-structure/src/af-confidence/behavior.ts",
+          "sha256": "b0037e304758d40a34c0d3973ee67909106651e86ce69c844805bea21608b5c7",
+          "tokens": 270
+        },
+        {
+          "path": "packages/nightingale-structure/src/af-confidence/color.ts",
+          "sha256": "0f6d97df75ad4ca1820616ed3a020f7e30e77ca32202a26b7ce1d2c34ba0c950",
+          "tokens": 693
+        },
+        {
+          "path": "packages/nightingale-structure/src/af-confidence/prop.ts",
+          "sha256": "bccd2d4d9eeda4b1f00175a538df612d333590d57da088cd3520ddf8f627e96d",
+          "tokens": 1246
+        },
+        {
+          "path": "packages/nightingale-structure/src/alpha-missense-parser.ts",
+          "sha256": "5ebbe3cde7e7a0777b0c6e8fd6c1e6e5b155815cfdce7f4e72ba25c5563faa28",
+          "tokens": 167
+        },
+        {
+          "path": "packages/nightingale-structure/src/index.ts",
+          "sha256": "ef3acabbf7c73bdc57351b3f363fa14e25e1ea42ef63ff5090f8503e014b1a17",
+          "tokens": 28
+        },
+        {
+          "path": "packages/nightingale-structure/src/nightingale-structure.ts",
+          "sha256": "af09409dd4d36bd76630ab2df0d432f771c3b21bdd0330f14c70e85bb185eff2",
+          "tokens": 1262
+        },
+        {
+          "path": "packages/nightingale-structure/src/position-mapping.ts",
+          "sha256": "423a9d602ccf0b5ffad059f87aacfa29b06d64a102b3bc777b0ae40ed167e2cc",
+          "tokens": 494
+        },
+        {
+          "path": "packages/nightingale-structure/src/structure-viewer.ts",
+          "sha256": "d0516a2c8966d389ad3dddfce8e5eb5f260e13b684b8541176134fbb623db37b",
+          "tokens": 811
+        },
+        {
+          "path": "packages/nightingale-structure/src/tests/__mocks__/am-data.js",
+          "sha256": "a34f94c4e097f75dfdf37d0eda7849b69c8a5fac1b9c251ab5f8a557aa826695",
+          "tokens": 9
+        },
+        {
+          "path": "packages/nightingale-structure/src/tests/__mocks__/mapping-test-cases.js",
+          "sha256": "888840d7b29aa27247e68a783e2c1d23630fb772bee28cc3075ec536160b2aeb",
+          "tokens": 177
+        },
+        {
+          "path": "packages/nightingale-structure/src/tests/__mocks__/mappings.js",
+          "sha256": "5ecaadf047a106bbbd87e806108bbb86176801f6275b6db36adaea1a41d5cc26",
+          "tokens": 491
+        },
+        {
+          "path": "packages/nightingale-structure/src/tests/alpha-missense-parser.test.js",
+          "sha256": "c125c33437e5e2d9e2d85067f704ee2fbdecb18e9142f1c5a5e610876cb8dc04",
+          "tokens": 78
+        },
+        {
+          "path": "packages/nightingale-structure/src/tests/position-mapping.test.js",
+          "sha256": "ae774a55e94f3fe7f1f58edd87a7522f069fa035eb593b4e2a3670dd231f5eb9",
+          "tokens": 72
+        },
+        {
+          "path": "packages/nightingale-sunburst/src/index.ts",
+          "sha256": "7023f2723c43507340d13a9d2eac5d1daf15834bf18101331cb87c79b526fa48",
+          "tokens": 15
+        },
+        {
+          "path": "packages/nightingale-sunburst/src/nightingale-sunburst.ts",
+          "sha256": "486af2ae87d9f49f7866a726219980cbfb2849bd9cd17f7a095f7c7e30eb788b",
+          "tokens": 1698
+        },
+        {
+          "path": "packages/nightingale-sunburst/test/nightingale-sunburst.test.ts",
+          "sha256": "0d0df108dbb5b45fd6d37cbc26ffcc912c093a81b3ddfbbb01302f12a3a6d2e8",
+          "tokens": 162
+        },
+        {
+          "path": "packages/nightingale-textarea-sequence/src/defaults.ts",
+          "sha256": "f2a90f49bc529e385e9c9356d5b50e2497c7090af686d4bbf97a2da28075d6c4",
+          "tokens": 249
+        },
+        {
+          "path": "packages/nightingale-textarea-sequence/src/index.ts",
+          "sha256": "bcc51c4345b1cfe1258918603167d366d60dc1d07906b5878153ea3f7d4fdd30",
+          "tokens": 23
+        },
+        {
+          "path": "packages/nightingale-textarea-sequence/src/nightingale-textarea-sequence.ts",
+          "sha256": "9e6e253bd1707a28d5d1031925e74b17c5e7e5bdccdb3efaa4e014a82a792bb4",
+          "tokens": 848
+        },
+        {
+          "path": "packages/nightingale-textarea-sequence/tests/quill.test.js",
+          "sha256": "3f55c5849296e2c54c9f0dbd9e4eb281dd17a80650344a6901f8c8fb5023ef05",
+          "tokens": 381
+        },
+        {
+          "path": "packages/nightingale-track-canvas/src/index.ts",
+          "sha256": "65d94aa79c36110717f14fe6c3dd31f6feefa3498bc7b612243b2a02518b5eac",
+          "tokens": 14
+        },
+        {
+          "path": "packages/nightingale-track-canvas/src/nightingale-track-canvas.ts",
+          "sha256": "bd58da3a88129f96c692072dbe54638ca1c20d3d0ac0cd531239e0d383070cf2",
+          "tokens": 2082
+        },
+        {
+          "path": "packages/nightingale-track-canvas/src/utils/draw-shapes.ts",
+          "sha256": "ba13fa20ef051e510deab5f698e723e15cb94fa2ce91889104d26a36e0613403",
+          "tokens": 3380
+        },
+        {
+          "path": "packages/nightingale-track-canvas/src/utils/utils.ts",
+          "sha256": "59e553de8733f39d3e11d06aec74fd893ff7d27497a3eb4922006cc3ce5ad9d1",
+          "tokens": 691
+        },
+        {
+          "path": "packages/nightingale-track-canvas/tests/nightingale-track-canvas.test.ts",
+          "sha256": "c37328d99c273ccb95b57f5e094ddd18a10f3e00895164b76184f0b3510fb861",
+          "tokens": 5317
+        },
+        {
+          "path": "packages/nightingale-track/src/ConfigHelper.ts",
+          "sha256": "57990868edecbf33a32b1f6a2f3cd462b3e7c5e4678ad6c8c28a101e06755a35",
+          "tokens": 198
+        },
+        {
+          "path": "packages/nightingale-track/src/DefaultLayout.ts",
+          "sha256": "c7647cfabdcc8341332d0c725f0336091ff4d0746edb1d242814afaf470938df",
+          "tokens": 296
+        },
+        {
+          "path": "packages/nightingale-track/src/FeatureShape.ts",
+          "sha256": "757101b99cc8032a1ed9876269b28ca8ee79218f201b9d8c0c1395f8f7b1f077",
+          "tokens": 2024
+        },
+        {
+          "path": "packages/nightingale-track/src/NonOverlappingLayout.ts",
+          "sha256": "65cff81e6dae6f67cbdd1ea1ec3d61d1a3c82d3ec5e18722fd701e5460e0dc69",
+          "tokens": 702
+        },
+        {
+          "path": "packages/nightingale-track/src/config.ts",
+          "sha256": "afaebe192f17826a1b3921a16e59d6fc2d0a39ca3bc0871d9446d6e5e630dee2",
+          "tokens": 1132
+        },
+        {
+          "path": "packages/nightingale-track/src/index.ts",
+          "sha256": "efe1bdf4d5b933f2fb56db87dc6a7aac070b5386c47286e3cb18a98dd35b19ec",
+          "tokens": 62
+        },
+        {
+          "path": "packages/nightingale-track/src/nightingale-track.ts",
+          "sha256": "92ef887281ebc178d2e0ebc23406e189e599cc1308882e739b6bedf67b860324",
+          "tokens": 1778
+        },
+        {
+          "path": "packages/nightingale-track/tests/NonOverlappingLayout.test.js",
+          "sha256": "482d69b46bc5e1315d24e55cdd96047b27780e5871e6ea2eff55596e8b49bea5",
+          "tokens": 260
+        },
+        {
+          "path": "packages/nightingale-track/tests/config.test.js",
+          "sha256": "dd3bec90393d91704b3618fb01a82e7dbbc9b87a63de42e10d7ab3c5ac9b10ad",
+          "tokens": 80
+        },
+        {
+          "path": "packages/nightingale-track/tests/nightingale-track.test.js",
+          "sha256": "c8a8fba0138c8659d2065894bb8903bf00057d39d1968fae7cd7c43463c75d7d",
+          "tokens": 460
+        },
+        {
+          "path": "packages/nightingale-variation-canvas/src/index.ts",
+          "sha256": "6ad25af3fe55c0e890784bff0e27b5c3f1dd0cca7578d40d9f88f5210bfa1cb2",
+          "tokens": 14
+        },
+        {
+          "path": "packages/nightingale-variation-canvas/src/nightingale-variation-canvas.ts",
+          "sha256": "712049759b9f820fadfd6ae5d94278a02dde3be3dcec983ce1454594f1335cc8",
+          "tokens": 402
+        },
+        {
+          "path": "packages/nightingale-variation-canvas/tests/nightingale-variation-canvas.test.ts",
+          "sha256": "f7624d6063603890e3f5cf10f9be6fa526632615adac6882e75f8184d34e29c8",
+          "tokens": 969
+        },
+        {
+          "path": "packages/nightingale-variation/src/index.ts",
+          "sha256": "d6114902f1b85860eca4f3c90de981ebc007349259c88e1bf61709e7d01a64aa",
+          "tokens": 27
+        },
+        {
+          "path": "packages/nightingale-variation/src/nightingale-variation.ts",
+          "sha256": "7d9202c07bf7da241dc02dd59a5a9b2f08b521559a11bf1a145d5afcf34562d6",
+          "tokens": 766
+        },
+        {
+          "path": "packages/nightingale-variation/src/processVariants.ts",
+          "sha256": "8f3f8ad7ff10c73f21cf0291d35ef53a594d1667d7aca9b0c2f2111b5dfc6904",
+          "tokens": 195
+        },
+        {
+          "path": "packages/nightingale-variation/src/proteinAPI.ts",
+          "sha256": "00e611909a1fe04175f647e8439dbabcd18d8bf2af48eb2603874945b773c533",
+          "tokens": 956
+        },
+        {
+          "path": "packages/nightingale-variation/src/variationPlot.ts",
+          "sha256": "307d832f3e23a6d33c97c8a707c5c4150fe5f39b7e2fba23ca8b5927ae823061",
+          "tokens": 423
+        }
+      ],
+      "byteIdenticalFiles": [],
+      "exact": [
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/analysis.ts",
+            "startLine": 8,
+            "endLine": 9,
+            "startOffset": 575,
+            "endOffset": 600
+          },
+          "upstream": {
+            "path": "packages/nightingale-track-canvas/src/nightingale-track-canvas.ts",
+            "startLine": 261,
+            "endLine": 262,
+            "startOffset": 10803,
+            "endOffset": 10833
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/types.ts",
+            "startLine": 13,
+            "endLine": 13,
+            "startOffset": 894,
+            "endOffset": 932
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/index.ts",
+            "startLine": 32,
+            "endLine": 32,
+            "startOffset": 876,
+            "endOffset": 916
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/types.ts",
+            "startLine": 42,
+            "endLine": 42,
+            "startOffset": 3222,
+            "endOffset": 3252
+          },
+          "upstream": {
+            "path": "packages/nightingale-interpro-track/src/residues.ts",
+            "startLine": 20,
+            "endLine": 22,
+            "startOffset": 446,
+            "endOffset": 482
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/viewer.ts",
+            "startLine": 215,
+            "endLine": 215,
+            "startOffset": 24451,
+            "endOffset": 24477
+          },
+          "upstream": {
+            "path": "packages/nightingale-colored-sequence/src/utils/ColorScaleParser.ts",
+            "startLine": 25,
+            "endLine": 26,
+            "startOffset": 798,
+            "endOffset": 832
+          }
+        }
+      ],
+      "normalized": [
+        {
+          "tokens": 52,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 9,
+            "endLine": 10,
+            "startOffset": 827,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-logo-track/src/nightingale-logo-track.ts",
+            "startLine": 15,
+            "endLine": 23,
+            "startOffset": 353,
+            "endOffset": 668
+          }
+        },
+        {
+          "tokens": 44,
+          "local": {
+            "path": "src/viewer.ts",
+            "startLine": 1,
+            "endLine": 4,
+            "startOffset": 25,
+            "endOffset": 329
+          },
+          "upstream": {
+            "path": "packages/nightingale-boxplot-track/src/nightingale-boxplot-track.ts",
+            "startLine": 18,
+            "endLine": 21,
+            "startOffset": 350,
+            "endOffset": 579
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/buried.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 175
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/cinema.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 158
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/clustal.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 148
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/clustal2.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 175
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/helix.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 175
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/hydrophobicity.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 172
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/lesk.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 163
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/mae.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 179
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/polar.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 175
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/strand.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 175
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/taylor.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 175
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/turn.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 175
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 865,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "packages/nightingale-msa/src/colorschemes/zappo.ts",
+            "startLine": 1,
+            "endLine": 11,
+            "startOffset": 15,
+            "endOffset": 175
+          }
+        }
+      ]
+    },
+    {
+      "name": "AlignmentViewer 2.0",
+      "url": "https://github.com/sanderlab/AlignmentViewer2.0",
+      "revision": "e59bce84c75e1780b5a73bb8f96041fc4114adac",
+      "sourceDirs": [
+        "src"
+      ],
+      "files": 78,
+      "tokens": 56565,
+      "inventory": [
+        {
+          "path": "src/App.scss",
+          "sha256": "1919cfb5aae0e483c2eb3eb72b5e37e866de7003a562ef81d69aa64ba3189987",
+          "tokens": 1096
+        },
+        {
+          "path": "src/App.tsx",
+          "sha256": "620a33f9e0ef1eb02a5560154829437b187f51649fa057608b852aea861caa13",
+          "tokens": 367
+        },
+        {
+          "path": "src/Test.module.css",
+          "sha256": "33da94e1200a3263508b518aa3c0417e0a096132294762f7fd7fc3de215e0cb7",
+          "tokens": 34
+        },
+        {
+          "path": "src/__tests__/App.test.tsx",
+          "sha256": "38fb1f3dffa7682fb71d43cfa892f329581664972da692bf01feadb73e06451a",
+          "tokens": 247
+        },
+        {
+          "path": "src/common/Alignment.ts",
+          "sha256": "5edde6df5cd5e59f48d045b1756b56585bfa23f0a5cc338313016b6a907f5f06",
+          "tokens": 2889
+        },
+        {
+          "path": "src/common/AlignmentLoader.ts",
+          "sha256": "97e4dbb61cd99017f730cd196fd5103ff726cbd02697ba217fc23d15e4ca015e",
+          "tokens": 164
+        },
+        {
+          "path": "src/common/AlignmentSorter.ts",
+          "sha256": "5e1cd5d792a4d924c99cdc47ce302edd500c10f4fccf47b3c834723e0e8f3afc",
+          "tokens": 852
+        },
+        {
+          "path": "src/common/Annotations.ts",
+          "sha256": "f457b37b69ac93f6a6ff8e8495977c69c35fc9e29bb19671515a6c3a29310288",
+          "tokens": 539
+        },
+        {
+          "path": "src/common/BLOSUM.ts",
+          "sha256": "1d2b33e289b1dcabd3f49fb4ca0de50cbc7564e4981e20225d9c7e8d805cb7c3",
+          "tokens": 4234
+        },
+        {
+          "path": "src/common/FastaAlignment.ts",
+          "sha256": "28e21ae8f5bb7c5ff43e16c926df535458541648981f662e2c756be9421343e8",
+          "tokens": 290
+        },
+        {
+          "path": "src/common/FileExporter.tsx",
+          "sha256": "a0f80caf636b2919322f12aeaf9c20dc31371d630872db0a58c23e93da4e1fbe",
+          "tokens": 925
+        },
+        {
+          "path": "src/common/FontUtils.ts",
+          "sha256": "ae4b7f9e8d487089bb9279fb94ff9282eb808b16182befa21667a3f839532d31",
+          "tokens": 401
+        },
+        {
+          "path": "src/common/GlobalEnumObject.ts",
+          "sha256": "fae4cb65e7e0164397f55996f00cf420eaa1d9c9752bf2484c1816e10951123f",
+          "tokens": 86
+        },
+        {
+          "path": "src/common/MolecularStyles.module.scss",
+          "sha256": "4b6abd7180a2143e904e8798214658dfde602e15ba127cea5951834648f01aea",
+          "tokens": 3367
+        },
+        {
+          "path": "src/common/MolecularStyles.ts",
+          "sha256": "bf39fe799c43fc011ce872610e618f647dfc364e990b2c07658fb023a741d35a",
+          "tokens": 1186
+        },
+        {
+          "path": "src/common/Observable.ts",
+          "sha256": "123b68dcfb4401d5c3d0acc717571f213fa154061107f0eca2b4d18449882510",
+          "tokens": 169
+        },
+        {
+          "path": "src/common/Residues.ts",
+          "sha256": "e5e78dbf231566531eb08b89c9ad898e8c51487a944385dc5d2115e6d31b89c6",
+          "tokens": 1196
+        },
+        {
+          "path": "src/common/SequenceLogoGlyphs.tsx",
+          "sha256": "34c3d297af8b3b416e1f58e1da17998ee503e9d369cae7ecbf76e3420ec5c1be",
+          "tokens": 9371
+        },
+        {
+          "path": "src/common/StockholmAlignment.ts",
+          "sha256": "14b7a0a8c86397835b27ff657cb91de7ec28be0cdc2fb6e81094acdb034e07be",
+          "tokens": 1023
+        },
+        {
+          "path": "src/common/Utils.ts",
+          "sha256": "bd8cd00b9268131cb5eac5a15ec8f81afb1f7140dd41aa62f0de10d001eab1a0",
+          "tokens": 810
+        },
+        {
+          "path": "src/common/__tests__/AceAlignmentMode.test.ts",
+          "sha256": "0539f8a70a8a5ff23054d509115e5c89bb5db2bfe19a5083b20735c67e10fcf0",
+          "tokens": 159
+        },
+        {
+          "path": "src/common/__tests__/Alignment.test.ts",
+          "sha256": "23b6ee0f45cea9eca541ae94bf07d86852892e1843508070e47a4ab4c449911e",
+          "tokens": 484
+        },
+        {
+          "path": "src/common/__tests__/MolecularStyles.test.ts",
+          "sha256": "62337e8539aeaf8c25db012191229aeff7d93ec83baf07ef1ffddad3fb642fa3",
+          "tokens": 618
+        },
+        {
+          "path": "src/common/__tests__/ScrollSync.test.tsx",
+          "sha256": "dfb001701458b801b8e12c7633fddbdf1c65919e849d4dc7b1b1a64038c8d3c4",
+          "tokens": 199
+        },
+        {
+          "path": "src/common/__tests__/SequenceLogoGlyphs.test.tsx",
+          "sha256": "15dc62c01c19bd4e4a83c05050db7257a2fbd13d594814f24dd1b518b0b3da07",
+          "tokens": 145
+        },
+        {
+          "path": "src/common/__tests__/Utils.test.ts",
+          "sha256": "8aacf7e4a6ebce3904750acd8913143ab81a6224e4a316fcd3fd5215121d7812",
+          "tokens": 277
+        },
+        {
+          "path": "src/components/AlignmentFileLoader.scss",
+          "sha256": "9ce5d01d675ad9e963b2e2eb04cfd768c4816bd4b708a094293c490ad3ae9fae",
+          "tokens": 97
+        },
+        {
+          "path": "src/components/AlignmentFileLoaderHook.tsx",
+          "sha256": "cba0b8d53399c35ae88fcb076274bc1f446c579b0292ee9b939b768bb2037ff1",
+          "tokens": 1030
+        },
+        {
+          "path": "src/components/AlignmentViewerHook.tsx",
+          "sha256": "dbe17d1f27357ccf737f8fdc4f24236dfd68999a25c9bb7840a59ed69b488c78",
+          "tokens": 567
+        },
+        {
+          "path": "src/components/PositionalAxis.scss",
+          "sha256": "e44e2d8a18b33b7c00d181569eaffc0a5a0b1acde670155ac07a40ef5fb784ad",
+          "tokens": 49
+        },
+        {
+          "path": "src/components/PositionalAxisHook.tsx",
+          "sha256": "ef942b8e1de95dc660152551fbf02fab3c06932eb10f890d0194078e412d99bb",
+          "tokens": 303
+        },
+        {
+          "path": "src/components/PositionalBarplot.scss",
+          "sha256": "90bc1d61f065ec408aa91eb347d9b8328b04242cfac660caa62dd865aca23f1e",
+          "tokens": 136
+        },
+        {
+          "path": "src/components/PositionalBarplotHook.tsx",
+          "sha256": "4985b0efb7ca34dc48417f4ab139fa00d494fcba1ee1ab6d9712aa3bdb94c53c",
+          "tokens": 1074
+        },
+        {
+          "path": "src/components/ResizeSensor.scss",
+          "sha256": "7b9340b5d5c867289106dd6bbaba46987ea075302a5aa7fb5ef295faf7bc44d2",
+          "tokens": 43
+        },
+        {
+          "path": "src/components/ResizeSensorHook.tsx",
+          "sha256": "ed00fba088f1e0459d6568817fd9c46bc7742c174c1fd5d0627842144857a2c8",
+          "tokens": 281
+        },
+        {
+          "path": "src/components/SequenceLogo.scss",
+          "sha256": "ba91f0db9d3c2bcfa217b355def4e8a6b3d10c7ecde0df734748d81252e8cddd",
+          "tokens": 169
+        },
+        {
+          "path": "src/components/SequenceLogoHook.tsx",
+          "sha256": "ee87e4efe840046aee6b2183d92a2465b1b3b3294bfa0a2e378af1df816dffaf",
+          "tokens": 929
+        },
+        {
+          "path": "src/components/__tests__/AlignmentFileLoaderComponent.test.tsx",
+          "sha256": "3072a4be69443df11aa0b13dc5cd1d0ed24c5502407f89f43985315864855890",
+          "tokens": 168
+        },
+        {
+          "path": "src/components/__tests__/AlignmentViewerComponent.test.tsx",
+          "sha256": "5d9a614e07e5c0a49138725fa3a1809e1207dcd714831a6b60b0e3126a3e1dda",
+          "tokens": 232
+        },
+        {
+          "path": "src/components/__tests__/CanvasAlignmentComponent.test.tsx",
+          "sha256": "60619785bf41da17aebfc2c48eab1230d7cd7ef99c1548af4811abdc4e11ba05",
+          "tokens": 442
+        },
+        {
+          "path": "src/components/__tests__/SequenceBarplotComponent.test.tsx",
+          "sha256": "4fac0d2a30f395cd96fd581fdfa0d23e7eb837723a0d7bf4d4e4654a29dc122c",
+          "tokens": 103
+        },
+        {
+          "path": "src/components/__tests__/SequenceLogoComponent.test.tsx",
+          "sha256": "719f3e74c719f3fdd9721ee5c7e499db4a8840bf4fe4dd0f1aa8aeae900c7adf",
+          "tokens": 383
+        },
+        {
+          "path": "src/components/alignment-metadata/AlignmentSpreadsheet.scss",
+          "sha256": "44b164f390a08a867416df3e1c6f9299dec5fc3e9fa09d5fe877489505f7909e",
+          "tokens": 381
+        },
+        {
+          "path": "src/components/alignment-metadata/AlignmentSpreadsheetHook.tsx",
+          "sha256": "fc7983a2fe9e49db1c7b7c09e604ef8a3f196d1a29a4f237ad8431c28d396916",
+          "tokens": 722
+        },
+        {
+          "path": "src/components/alignment-metadata/AlignmentSpreadsheetTableHook.tsx",
+          "sha256": "9ffae5aa0c2013bd1a6448a585b776b9e69e27082a2f23f2c15b83673209485d",
+          "tokens": 391
+        },
+        {
+          "path": "src/components/layout/AlignmentViewerLayout.scss",
+          "sha256": "3492f2a9114e00d403d796c56129cf193dfc903ad8202169340d5cfc7e62f73d",
+          "tokens": 215
+        },
+        {
+          "path": "src/components/layout/AlignmentViewerLayoutHook.tsx",
+          "sha256": "ec0ce698b7e733e99e4ed19925b4047d79b59db45280e4ab7a3fa01e42ea18ff",
+          "tokens": 1173
+        },
+        {
+          "path": "src/components/layout/ResizeGridHook.tsx",
+          "sha256": "052c23f2f14aa78d15b8bb00c567a542e62368f3672f0a5cf5cac5efd7805b08",
+          "tokens": 159
+        },
+        {
+          "path": "src/components/minimap/MiniMap.scss",
+          "sha256": "31c58969a0a2634aea3d8e2aad761211ceb13a19f187002b40d45802f6fc9321",
+          "tokens": 207
+        },
+        {
+          "path": "src/components/minimap/MiniMapHook.tsx",
+          "sha256": "36632f252bcb28403991c8eb67a12f42e20f565a62a6b33ec5ef0f358dd33797",
+          "tokens": 354
+        },
+        {
+          "path": "src/components/minimap/__tests__/MiniMapHook.test.tsx",
+          "sha256": "3d6ec2f261858c271ef84c12b21ea4f292ed33d38127445493efcaeeba955291",
+          "tokens": 230
+        },
+        {
+          "path": "src/components/msa-blocks-and-letters/MSABlockGenerator.ts",
+          "sha256": "4da73e79d6105bf9799a32f0e92f52845fc64276745b7349d9c665d7cb4ca95f",
+          "tokens": 1091
+        },
+        {
+          "path": "src/components/msa-blocks-and-letters/MSABlocks.tsx",
+          "sha256": "8ac0a6497660358e3ffc26a76829a54ab4a0a528d5cdaaaede15ba99bf7c7c43",
+          "tokens": 1225
+        },
+        {
+          "path": "src/components/msa-blocks-and-letters/MSABlocksAndLetters.scss",
+          "sha256": "e61a7c1a73781f3d5b99c462bd62d63f34b367df699b1bb7b81dd553566145d4",
+          "tokens": 268
+        },
+        {
+          "path": "src/components/msa-blocks-and-letters/MSABlocksAndLetters.tsx",
+          "sha256": "a800b8af101f20bf0e6f4192da12b3e67b17b24647c87515de07170cf94b71a9",
+          "tokens": 424
+        },
+        {
+          "path": "src/components/msa-blocks-and-letters/MSALetters.tsx",
+          "sha256": "17bc2454d668a19b1ab18e3a30a4682a8029c0972c4818a6ab978a3ac5ae98eb",
+          "tokens": 543
+        },
+        {
+          "path": "src/components/search/SearchKeysListenerHook.tsx",
+          "sha256": "71d0dc3f965e1c43b3db2ce91a432bad540394bae5f82ec418347b7799d10eb6",
+          "tokens": 265
+        },
+        {
+          "path": "src/components/search/SequenceSearch.scss",
+          "sha256": "a2329759def600f5635babd68d02d9666b26e48df64c4f60af9fed5714369853",
+          "tokens": 510
+        },
+        {
+          "path": "src/components/search/SequenceSearchHook.tsx",
+          "sha256": "def5662181287eaf35592bcf2414becdd4e22d561114970b90b26a4207cdb42b",
+          "tokens": 938
+        },
+        {
+          "path": "src/components/settings/LocalStorageAndURLManager.tsx",
+          "sha256": "cb1a502ee114a148b76485c28413c79b0d509e7eec2e1b0f46f4dd6389bf4526",
+          "tokens": 194
+        },
+        {
+          "path": "src/components/settings/Settings.scss",
+          "sha256": "6a3f6f413fbda773cd0dfffa246433d0514e063a17a0a684a47bbbb1da4aaa71",
+          "tokens": 640
+        },
+        {
+          "path": "src/components/settings/Settings.tsx",
+          "sha256": "26148c321dc39242c582045d6d450eb0e3fd452d9bb857b55eb294e8298054b4",
+          "tokens": 2049
+        },
+        {
+          "path": "src/components/virtualization/VirtualScrollbarHook.tsx",
+          "sha256": "6d2846e0564960a94eb0011d507c1bbdd0cdb65c9201dfb1cca49d5dd1a216d5",
+          "tokens": 674
+        },
+        {
+          "path": "src/components/virtualization/VirtualScrollbars.scss",
+          "sha256": "370da9735cbf1aed6182c3d0e53cb075694dd1ddcf09b328a8f3860a8674acf5",
+          "tokens": 234
+        },
+        {
+          "path": "src/components/virtualization/VirtualizationTypes.ts",
+          "sha256": "21863c2f827ce03f147943fb361ab1b0e3077226cbda8ef1eb6760320931afa2",
+          "tokens": 368
+        },
+        {
+          "path": "src/components/virtualization/VirtualizedMatrixReduxHook.tsx",
+          "sha256": "3afbdea95fff784932beccf80136d8b27023d92aebb377be29f0848e8ce125a5",
+          "tokens": 686
+        },
+        {
+          "path": "src/components/virtualization/VirtualizedMatrixViewer.scss",
+          "sha256": "b30d6c36ee4b3819fea207e4aaabd58500c27f52f1f160788e7a05010a577fcd",
+          "tokens": 262
+        },
+        {
+          "path": "src/components/virtualization/VirtualizedMatrixViewerHook.tsx",
+          "sha256": "58a9ce4ce29203d699e5b0fb29dd61757ad2f65bcfc0764675aa9b294eef1faf",
+          "tokens": 2470
+        },
+        {
+          "path": "src/index.css",
+          "sha256": "daf22c296c801d3d533083361cc59fbdc22e5bfe528aa4bad1973b54cc5448a4",
+          "tokens": 56
+        },
+        {
+          "path": "src/index.js",
+          "sha256": "a7e610eaf4ab25ee9254230f701682820ff41ba0396ff72311d7112b93a9b889",
+          "tokens": 56
+        },
+        {
+          "path": "src/index.ts",
+          "sha256": "4bf6291be0fb333eb990a553da53f46ca4649a2a96f922ac3c833341685bdd12",
+          "tokens": 190
+        },
+        {
+          "path": "src/react-app-env.d.ts",
+          "sha256": "57eda4c4c04a1dca45c62857326882ce9cc948c4b52973c0e3c3b7e4c3fa3990",
+          "tokens": 0
+        },
+        {
+          "path": "src/redux/ReduxStore.ts",
+          "sha256": "16874a50a436000aa125551ec29f2b889635dffe8e76c1fac6a970b99ddb3026",
+          "tokens": 121
+        },
+        {
+          "path": "src/redux/VirtualizationReducers.ts",
+          "sha256": "d3d3e23faba966f2b24bdfc7290b3ce3f215730e6976118cd345f2f1819d7657",
+          "tokens": 1039
+        },
+        {
+          "path": "src/serviceWorker.js",
+          "sha256": "239526bc48da5a550048ca7d4b632e7f5e7541ba58be6b118c80841f9ef475a3",
+          "tokens": 168
+        },
+        {
+          "path": "src/setupTests.js",
+          "sha256": "d50b14c6b59c17ed603aff5c2b1dbb32428d72a2a7e5ee91c89a49d4f2d060cc",
+          "tokens": 78
+        },
+        {
+          "path": "src/webworkers/MSAGenerationWorker.ts",
+          "sha256": "06d6b30d62fbb5f55154a1f14b06ec2d06bfcf4faad3edecb37f8a5a7eab470f",
+          "tokens": 1014
+        },
+        {
+          "path": "src/webworkers/WebWorkerFactory.ts",
+          "sha256": "6db767b9fc46b26b2ab0f1d77a9c238e29bc9715d82d946528e88dc1b1d282c3",
+          "tokens": 36
+        }
+      ],
+      "byteIdenticalFiles": [],
+      "exact": [
+        {
+          "tokens": 17,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 5458,
+            "endOffset": 5499
+          },
+          "upstream": {
+            "path": "src/components/PositionalBarplot.scss",
+            "startLine": 8,
+            "endLine": 12,
+            "startOffset": 143,
+            "endOffset": 200
+          }
+        },
+        {
+          "tokens": 16,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 5459,
+            "endOffset": 5499
+          },
+          "upstream": {
+            "path": "src/components/PositionalAxis.scss",
+            "startLine": 8,
+            "endLine": 11,
+            "startOffset": 121,
+            "endOffset": 174
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/react.tsx",
+            "startLine": 10,
+            "endLine": 11,
+            "startOffset": 912,
+            "endOffset": 937
+          },
+          "upstream": {
+            "path": "src/components/search/SequenceSearchHook.tsx",
+            "startLine": 96,
+            "endLine": 102,
+            "startOffset": 2769,
+            "endOffset": 2822
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4308,
+            "endOffset": 4340
+          },
+          "upstream": {
+            "path": "src/components/layout/AlignmentViewerLayout.scss",
+            "startLine": 26,
+            "endLine": 29,
+            "startOffset": 432,
+            "endOffset": 482
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4308,
+            "endOffset": 4340
+          },
+          "upstream": {
+            "path": "src/components/layout/AlignmentViewerLayout.scss",
+            "startLine": 39,
+            "endLine": 42,
+            "startOffset": 649,
+            "endOffset": 699
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4308,
+            "endOffset": 4340
+          },
+          "upstream": {
+            "path": "src/components/msa-blocks-and-letters/MSABlocksAndLetters.scss",
+            "startLine": 56,
+            "endLine": 59,
+            "startOffset": 1245,
+            "endOffset": 1295
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4801,
+            "endOffset": 4835
+          },
+          "upstream": {
+            "path": "src/components/minimap/MiniMap.scss",
+            "startLine": 49,
+            "endLine": 52,
+            "startOffset": 969,
+            "endOffset": 1015
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 5476,
+            "endOffset": 5499
+          },
+          "upstream": {
+            "path": "src/components/layout/AlignmentViewerLayout.scss",
+            "startLine": 4,
+            "endLine": 7,
+            "startOffset": 81,
+            "endOffset": 116
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 5476,
+            "endOffset": 5499
+          },
+          "upstream": {
+            "path": "src/components/virtualization/VirtualScrollbars.scss",
+            "startLine": 22,
+            "endLine": 25,
+            "startOffset": 462,
+            "endOffset": 497
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 5476,
+            "endOffset": 5499
+          },
+          "upstream": {
+            "path": "src/components/virtualization/VirtualScrollbars.scss",
+            "startLine": 50,
+            "endLine": 53,
+            "startOffset": 982,
+            "endOffset": 1017
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/react.tsx",
+            "startLine": 10,
+            "endLine": 11,
+            "startOffset": 913,
+            "endOffset": 937
+          },
+          "upstream": {
+            "path": "src/common/Utils.ts",
+            "startLine": 71,
+            "endLine": 74,
+            "startOffset": 2499,
+            "endOffset": 2586
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4260,
+            "endOffset": 4291
+          },
+          "upstream": {
+            "path": "src/components/layout/AlignmentViewerLayout.scss",
+            "startLine": 26,
+            "endLine": 29,
+            "startOffset": 432,
+            "endOffset": 481
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4260,
+            "endOffset": 4291
+          },
+          "upstream": {
+            "path": "src/components/layout/AlignmentViewerLayout.scss",
+            "startLine": 39,
+            "endLine": 42,
+            "startOffset": 649,
+            "endOffset": 698
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4260,
+            "endOffset": 4291
+          },
+          "upstream": {
+            "path": "src/components/msa-blocks-and-letters/MSABlocksAndLetters.scss",
+            "startLine": 56,
+            "endLine": 59,
+            "startOffset": 1245,
+            "endOffset": 1294
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 5023,
+            "endOffset": 5081
+          },
+          "upstream": {
+            "path": "src/components/alignment-metadata/AlignmentSpreadsheet.scss",
+            "startLine": 93,
+            "endLine": 95,
+            "startOffset": 2040,
+            "endOffset": 2127
+          }
+        }
+      ],
+      "normalized": [
+        {
+          "tokens": 47,
+          "local": {
+            "path": "src/viewer.ts",
+            "startLine": 1,
+            "endLine": 4,
+            "startOffset": 12,
+            "endOffset": 329
+          },
+          "upstream": {
+            "path": "src/common/FileExporter.tsx",
+            "startLine": 11,
+            "endLine": 27,
+            "startOffset": 447,
+            "endOffset": 931
+          }
+        },
+        {
+          "tokens": 43,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 1,
+            "endLine": 5,
+            "startOffset": 14,
+            "endOffset": 285
+          },
+          "upstream": {
+            "path": "src/components/AlignmentViewerHook.tsx",
+            "startLine": 21,
+            "endLine": 35,
+            "startOffset": 712,
+            "endOffset": 1164
+          }
+        }
+      ]
+    },
+    {
+      "name": "React MSAViewer",
+      "url": "https://github.com/wilzbach/react-msa-viewer",
+      "revision": "b328927f42eabc19c811588d2ccd9c1fbda424cd",
+      "sourceDirs": [
+        "src"
+      ],
+      "files": 36,
+      "tokens": 10966,
+      "inventory": [
+        {
+          "path": "src/App.js",
+          "sha256": "c0c5f4fac7912699897c45dc83a0b1a41b57445e7f892723cab9528ab21ef013",
+          "tokens": 151
+        },
+        {
+          "path": "src/App.test.js",
+          "sha256": "558e8e943e842a6049c8bf49907ffe304c2ff9700d437de205c8ce06fa3359a7",
+          "tokens": 55
+        },
+        {
+          "path": "src/PropTypes.js",
+          "sha256": "d40540c47714a7fc12bb56558dd900302ddea33c3d051a5cb115b0fc5037ee4f",
+          "tokens": 332
+        },
+        {
+          "path": "src/components/CanvasComponent.js",
+          "sha256": "cce52ae260b49bf07b10000f134ff88ffaf645bb6f464add5ab075ef8e12bc5a",
+          "tokens": 334
+        },
+        {
+          "path": "src/components/DraggingComponent.js",
+          "sha256": "74fdfffd1a352a9da29597dfd470d7eb2f6b8be123ddde61953f5bc86aadc9f4",
+          "tokens": 1326
+        },
+        {
+          "path": "src/components/Labels.js",
+          "sha256": "5920a4e82e10721b01a38cc106b22885501056ca39ecfe9a8807364495f63953",
+          "tokens": 269
+        },
+        {
+          "path": "src/components/MSAViewer.js",
+          "sha256": "a79f8cec8dc0e35b8527e8af69b103793cc61798287a79c11593110b2f5cc103",
+          "tokens": 344
+        },
+        {
+          "path": "src/components/ModBar.js",
+          "sha256": "0a5bdf43912b4fe10b53c1124ce9a21ae7a0715b2e31049cc07778984d57f4b2",
+          "tokens": 317
+        },
+        {
+          "path": "src/components/OverviewBar.js",
+          "sha256": "7ffa75c2a7e74b3da5c242eab6ff7abf4d18fd460847e932f9537e39e96ee5af",
+          "tokens": 453
+        },
+        {
+          "path": "src/components/PositionBar.js",
+          "sha256": "919449168ca3a63871aaa1c463d4fb256533f3eaebf7b5f816a488bbc43ae625",
+          "tokens": 358
+        },
+        {
+          "path": "src/components/SequenceOverview.js",
+          "sha256": "b4df6d7302382b4adc79b90a9c73eea7d3698e649321042041a98687aad160b6",
+          "tokens": 570
+        },
+        {
+          "path": "src/components/SequenceViewer.js",
+          "sha256": "7b48e4c761353889b89d05e28a862801920aa559ff02f3f2fb0f03a8afae31cc",
+          "tokens": 1148
+        },
+        {
+          "path": "src/drawing/base.js",
+          "sha256": "bce2bf0d90b0a3771e7a1d811447b7de75ab75bef24889d68a2a3ab6848a79ab",
+          "tokens": 93
+        },
+        {
+          "path": "src/drawing/cache.js",
+          "sha256": "ab3d5e0933d6f6bf6ddf200488a88a6a3e96b2729564efff39e1331ec3490438",
+          "tokens": 254
+        },
+        {
+          "path": "src/drawing/canvas.js",
+          "sha256": "35a810ef8498ee0a8b2cbaea51b7997bc4fc4db77260304c92b72af5ffed41a6",
+          "tokens": 218
+        },
+        {
+          "path": "src/drawing/webgl.js",
+          "sha256": "d954ab7b1158c03c9c37c61df8a132d96957aeb1d2ae9ec29c9e0bbcb0fc7acf",
+          "tokens": 881
+        },
+        {
+          "path": "src/index.js",
+          "sha256": "4cc9c92597ffa84a296a20e37f459ff2028cb1fb652a91d4b09d241be68a85c6",
+          "tokens": 32
+        },
+        {
+          "path": "src/lib.js",
+          "sha256": "2e1e778d724ca187762ff40106d6ac71641009cb2da229340ca2e7165557bf18",
+          "tokens": 77
+        },
+        {
+          "path": "src/store/actionTypes.js",
+          "sha256": "8dbf7880e5b5b97b7c0e842c105d98546d9948d713ccc78be538f8db86255cac",
+          "tokens": 18
+        },
+        {
+          "path": "src/store/actions.js",
+          "sha256": "698a01f8ff9a9cd1f1194c68b6a87023593c9a0f9d3f351e7ed048153cc37c02",
+          "tokens": 89
+        },
+        {
+          "path": "src/store/calculateSequencesState.js",
+          "sha256": "a294c6a517d20abec76bd41c2a52eefb57ab4835b0fa07797e5a9298cd0afe96",
+          "tokens": 70
+        },
+        {
+          "path": "src/store/connect.js",
+          "sha256": "219d103af8dfb8b95c06fc530b02a0a86bd0ccb9e970bcd4ce1cf1f0395e8665",
+          "tokens": 52
+        },
+        {
+          "path": "src/store/createMSAStore.js",
+          "sha256": "b2a115b4fccf6f3f1889c7b29040604c3d5bad0f71e03ab17c4103251a16835a",
+          "tokens": 118
+        },
+        {
+          "path": "src/store/propsToRedux.js",
+          "sha256": "65aaf1201025d9267859dc4c64e27f3599d08c8aa477f132d95d9b8dc35c4e2a",
+          "tokens": 396
+        },
+        {
+          "path": "src/store/provider.js",
+          "sha256": "d5622391e8642d6f0c2c42335c77dd7991f148560f3682732da7e03097a2289d",
+          "tokens": 21
+        },
+        {
+          "path": "src/store/reducers.js",
+          "sha256": "8c6f90d35c494ac9ab637dcfd5c4ef659111f2891d98d09645b71b80fa40963e",
+          "tokens": 238
+        },
+        {
+          "path": "src/store/storeOptions.js",
+          "sha256": "1b0240804049a0eacd5ae3a838baf781461a5bd4fab503013f2b9e55d0bdf381",
+          "tokens": 13
+        },
+        {
+          "path": "src/stories/basic.js",
+          "sha256": "8f945995e5d7d215fca8f07b4fb78d53984c1d54e863f32cbb1ca25312a6d475",
+          "tokens": 256
+        },
+        {
+          "path": "src/stories/customization.js",
+          "sha256": "620bcec2374b2b3e1d0342e930f9f88a17a7648a77df219733091510861b554a",
+          "tokens": 247
+        },
+        {
+          "path": "src/stories/events.js",
+          "sha256": "2780a0a8a0f9c4366bd4699330d1fa1ec3aa795f1fca52e71dc2528e7a09d3b1",
+          "tokens": 948
+        },
+        {
+          "path": "src/stories/index.js",
+          "sha256": "0b4b054c86f6edaa5ef7e2d33840838bab283aa39076338596465f10c448aef8",
+          "tokens": 12
+        },
+        {
+          "path": "src/stories/layouts.js",
+          "sha256": "d3e02045887888d5b5e14604fd7ea826d83bc379367ce50b09e3ec9bcd411b5c",
+          "tokens": 548
+        },
+        {
+          "path": "src/stories/plugins.js",
+          "sha256": "59a1499467e42de397908e729d7656c000714d1ed0a3a70ed5e1c6b8c4e65034",
+          "tokens": 190
+        },
+        {
+          "path": "src/stories/wip.js",
+          "sha256": "a345a472f3b43c5fb71510901f804052241c45124c9a25eabf0c22550467edfc",
+          "tokens": 100
+        },
+        {
+          "path": "src/utils/ColorScheme.js",
+          "sha256": "7471f76420771d6c058ebc05c572f77e9da733525f1f446c3038db2795f06e79",
+          "tokens": 80
+        },
+        {
+          "path": "src/utils/mouse.js",
+          "sha256": "7340394aaba05664fe5a83137d1c6ecdfd4276d817f5ca34f07aad3fb959b461",
+          "tokens": 358
+        }
+      ],
+      "byteIdenticalFiles": [],
+      "exact": [],
+      "normalized": []
+    },
+    {
+      "name": "BioJS MSAViewer",
+      "url": "https://github.com/wilzbach/msa",
+      "revision": "6622fe63fc26c75d8d7590321f4e4949ce5a81e5",
+      "sourceDirs": [
+        "src"
+      ],
+      "files": 67,
+      "tokens": 35160,
+      "inventory": [
+        {
+          "path": "src/g/StageScale.js",
+          "sha256": "793f8a881b1ce0945ee29a01fc89a0ed93b53850889f4d6936e02a296b3b4366",
+          "tokens": 692
+        },
+        {
+          "path": "src/g/colorscheme.js",
+          "sha256": "6f51441ca50613e7779b95c603cb2781424df34e601d2067b6afdb37b2980aa8",
+          "tokens": 258
+        },
+        {
+          "path": "src/g/columns.js",
+          "sha256": "efac4fe4ef6cc0d7b267125e39fbc8530698b584f1a1d1ba6d25593a2a5f403f",
+          "tokens": 137
+        },
+        {
+          "path": "src/g/config.js",
+          "sha256": "13369b6f13bb1fe592f373ebb1638d8bf6eb196b41814ef6ec0bf6ab444bc66e",
+          "tokens": 74
+        },
+        {
+          "path": "src/g/package.js",
+          "sha256": "ffb7b42253f03e04ae6656c039c2bc94bb8bf7a8c95f7d11058066752195f24b",
+          "tokens": 214
+        },
+        {
+          "path": "src/g/selection/Selection.js",
+          "sha256": "9ab6a1e3fee41cae1a803b4ca945e1c5933b09ce3fbb9777710c1b7a9a8dede3",
+          "tokens": 267
+        },
+        {
+          "path": "src/g/selection/SelectionCol.js",
+          "sha256": "05a503a03719654cd643f219e570a715c40d3c1401c9a5b873776171b0555670",
+          "tokens": 1585
+        },
+        {
+          "path": "src/g/selection/index.js",
+          "sha256": "6c14e9dcc73f8dd513ee550f736520e7cc2d6812b82a52de3d23df9a072dda48",
+          "tokens": 7
+        },
+        {
+          "path": "src/g/user.js",
+          "sha256": "362b9c584ae94babdb8644728c897b5169b7a5f079e6a60e32479498a218bede",
+          "tokens": 34
+        },
+        {
+          "path": "src/g/visOrdering.js",
+          "sha256": "72549179ab2b6769c740c4df250e883bb86887e7cac155ff291420ed417c8b4b",
+          "tokens": 52
+        },
+        {
+          "path": "src/g/visibility.js",
+          "sha256": "2cd7fff62f3be88ca75aa153c5108b00184789cdfb2e76765d3624648e876b40",
+          "tokens": 285
+        },
+        {
+          "path": "src/g/zoomer.js",
+          "sha256": "41118f7c54d7eeb3e4b3a65b119f9ef77ac64235ab310852323ced05464f7ba6",
+          "tokens": 1189
+        },
+        {
+          "path": "src/index.js",
+          "sha256": "349f4946391dc625b0d72cc43bb1b49cd71dc0efce03372472b49d1688388603",
+          "tokens": 189
+        },
+        {
+          "path": "src/index_webpack.js",
+          "sha256": "90c666fcec6b3b42ef53c9edb5dd8455c76f93a5a8897a6bacf1c241b239a52c",
+          "tokens": 69
+        },
+        {
+          "path": "src/menu/defaultmenu.js",
+          "sha256": "f173fe8dfeb71247099347d33da03d82635591af7ec9775daebe4bd7c46d7b69",
+          "tokens": 476
+        },
+        {
+          "path": "src/menu/index.js",
+          "sha256": "91f0c331ec0c68577cbefdcc053d5a87ff5f695ef2631d273fa5c1f9ffc04189",
+          "tokens": 18
+        },
+        {
+          "path": "src/menu/menubuilder.js",
+          "sha256": "b84b15176932fc71fd678999c0854fc8b25712451374a6fbda9d0479fd736a3c",
+          "tokens": 227
+        },
+        {
+          "path": "src/menu/menulib.js",
+          "sha256": "55e47111f79ebc5f46deb7e3c54eff34acf6db5821f11c8be9152001c41ab4b9",
+          "tokens": 799
+        },
+        {
+          "path": "src/menu/settings.js",
+          "sha256": "8bdf781f3b3e330de910258dc72c2743656e591f9f10351071c4f7199a57d84d",
+          "tokens": 93
+        },
+        {
+          "path": "src/menu/views/ColorMenu.js",
+          "sha256": "d84c12e6df111dcbb3576f784555c65ed2f92c0eaa2fef66a32c1fd5ff81910e",
+          "tokens": 531
+        },
+        {
+          "path": "src/menu/views/DebugMenu.js",
+          "sha256": "9f09c80069933629da5b66ea71737f310644faa9b2881830e25e677ecec62223",
+          "tokens": 211
+        },
+        {
+          "path": "src/menu/views/ExportMenu.js",
+          "sha256": "37ead8d2a854d1bdd3fb5ca30abe54f4bd3b0ef3ae84981ff0cb1948f87f1a1f",
+          "tokens": 417
+        },
+        {
+          "path": "src/menu/views/ExtraMenu.js",
+          "sha256": "68485239e2a276ad134bb0be8d2ecda6a34688f4eca8d3a58fb83f8cac6e41d7",
+          "tokens": 277
+        },
+        {
+          "path": "src/menu/views/FilterMenu.js",
+          "sha256": "81248b70859646ff4da38e566cf21285efd3d7c9b486dd9ad1ee4992985ab59b",
+          "tokens": 769
+        },
+        {
+          "path": "src/menu/views/HelpMenu.js",
+          "sha256": "09a82cd23b1967e35c69eb6e0b9b8349a4c6751af5f397800a3d1f836bc89ebf",
+          "tokens": 141
+        },
+        {
+          "path": "src/menu/views/ImportMenu.js",
+          "sha256": "0b046fdf4058ac7e469b6d737af59e46b8a08a70331b88370f4b56cb387fc4b4",
+          "tokens": 279
+        },
+        {
+          "path": "src/menu/views/OrderingMenu.js",
+          "sha256": "7f8ba2891f36fbac37b1f01ac3b663daba2ec59cf2e135e06ee99399c2d7dff6",
+          "tokens": 967
+        },
+        {
+          "path": "src/menu/views/SelectionMenu.js",
+          "sha256": "5f49a9292c2dfbaac473684c9dcfa3963238b99183b54499021e6323db41b189",
+          "tokens": 271
+        },
+        {
+          "path": "src/menu/views/VisMenu.js",
+          "sha256": "58ff2decc04a40667f0f927fcfa4826515fbe308585e0329fd4d13886a957d2f",
+          "tokens": 651
+        },
+        {
+          "path": "src/model/Feature.js",
+          "sha256": "2c7fbdb1d0bc3e200d1a8edd4faca054967664a4cc030508fcebd60b6f3de396",
+          "tokens": 364
+        },
+        {
+          "path": "src/model/FeatureCol.js",
+          "sha256": "1ab83a1a7ec203b06c0e07b82d39cd7829e23561e552f2801aceab9c50f266c1",
+          "tokens": 676
+        },
+        {
+          "path": "src/model/SeqCollection.js",
+          "sha256": "eac935fd53fc3f634169f80a9fb9a2d16e483b958c1d3ac92c34ee59b1e7b7f9",
+          "tokens": 816
+        },
+        {
+          "path": "src/model/Sequence.js",
+          "sha256": "ae79d4daeaffa357998b2708e6f5528a3317aec37c0539b369c3987c4f36d415",
+          "tokens": 101
+        },
+        {
+          "path": "src/model/index.js",
+          "sha256": "30f9b8bfe82f53aa18fc0af508f95b7a99d7024c4b0b9bf65594cafad5589043",
+          "tokens": 36
+        },
+        {
+          "path": "src/msa.js",
+          "sha256": "ed38a67c9bc856224d81578d36bddcd081782cb23731e32664dc86b13640a97d",
+          "tokens": 1498
+        },
+        {
+          "path": "src/utils/bmath.js",
+          "sha256": "b7d410e06269364736d25b600fa0dfac6ff094aac7f6f5d1b63b05c0ad08eb12",
+          "tokens": 169
+        },
+        {
+          "path": "src/utils/exporter.js",
+          "sha256": "ad1f0ffe43f3cc9d558de87098adceb48e27c26f29758869bab16a668f740bef",
+          "tokens": 778
+        },
+        {
+          "path": "src/utils/file.js",
+          "sha256": "20ddf562e97632f4d267453856723ca056c4b560bf7ce61ce56d5974b7b48dfc",
+          "tokens": 715
+        },
+        {
+          "path": "src/utils/index.js",
+          "sha256": "99dfc4fd498d96d6ae8e64ac880068e7106f3202da996f00eef354b7b88a7483",
+          "tokens": 25
+        },
+        {
+          "path": "src/utils/loader.js",
+          "sha256": "5dff2321cf4a33e8f5b19a3449973e476655d6204f24daaadb615e3a964e705b",
+          "tokens": 258
+        },
+        {
+          "path": "src/utils/proxy.js",
+          "sha256": "e5f8b275b4d176ca7d5994f8c5e95c2a3afcfe9cee15cfa2e06b209a88da82fd",
+          "tokens": 161
+        },
+        {
+          "path": "src/utils/recognize.js",
+          "sha256": "faf73e3285f6e65ad6bd66ab7dadede99196430211e11c1c9e0f4253f322a3e7",
+          "tokens": 319
+        },
+        {
+          "path": "src/utils/seqgen.js",
+          "sha256": "eb76ecc158ea3385e4029b0bb037702e6e645d3b9317001d13125fb991ed7bab",
+          "tokens": 653
+        },
+        {
+          "path": "src/utils/svg.js",
+          "sha256": "41967577073a6bb566d29fd8baf1a630a0cfbe749bafa9be3fe6a885807ed1db",
+          "tokens": 204
+        },
+        {
+          "path": "src/utils/tree.js",
+          "sha256": "8183861933d2e20b588cd5a3b3de0dd5c45f08c7478893f1573b9d283cabb8a3",
+          "tokens": 308
+        },
+        {
+          "path": "src/views/AlignmentBody.js",
+          "sha256": "bcd7a2d4ea3df4d396b2bdfc65009f10161cef9a61f42c7a1ea7419c48e217d7",
+          "tokens": 401
+        },
+        {
+          "path": "src/views/FeatureBlock.js",
+          "sha256": "4747cc5c9ff4cfb0200a1bd447b85887939055cb3f458947e9fedfab4b53d720",
+          "tokens": 458
+        },
+        {
+          "path": "src/views/OverviewBox.js",
+          "sha256": "438073872ffbf709734dd1c5051ed462fb4b3757e04464de3ff06885a6452b20",
+          "tokens": 2598
+        },
+        {
+          "path": "src/views/ScaleSlider.js",
+          "sha256": "3b7955d5daf7b8b6016d252d3bd0678311cd0f954e5a5ced25859bf20ae45ee5",
+          "tokens": 430
+        },
+        {
+          "path": "src/views/Search.js",
+          "sha256": "5272ef6a4fbc25ecddb7fa8c44fafef859fd0c87b4440eb9d215c836417ab815",
+          "tokens": 830
+        },
+        {
+          "path": "src/views/Stage.js",
+          "sha256": "8319f8637425c187fdf614d583128ee802ffdaf2a96e9461c701837f03f6a8f1",
+          "tokens": 600
+        },
+        {
+          "path": "src/views/canvas/CanvasCharCache.js",
+          "sha256": "902ec90027958f9b88098a4b1eb2a131773a65a75ba06f6b52253f1ecc5f571d",
+          "tokens": 230
+        },
+        {
+          "path": "src/views/canvas/CanvasCoordsCache.js",
+          "sha256": "66eb30078013932711334038a33b952da0146084071415288177ef96fd5782a8",
+          "tokens": 258
+        },
+        {
+          "path": "src/views/canvas/CanvasSelection.js",
+          "sha256": "01c1570e8f286b8d8b8597d30dbf5f3ee8812f46d87fd4a20da4c6446e37f5a2",
+          "tokens": 1083
+        },
+        {
+          "path": "src/views/canvas/CanvasSeqBlock.js",
+          "sha256": "a17b21e616dbb100f5d828166c8c011ae068a7e17c7d294246db0112718ac2a9",
+          "tokens": 2663
+        },
+        {
+          "path": "src/views/canvas/CanvasSeqDrawer.js",
+          "sha256": "53882cadaef653d0cf4b01cf6a5a77d21c001fe0e0d2504a97da19c058318046",
+          "tokens": 1259
+        },
+        {
+          "path": "src/views/header/ConservationView.js",
+          "sha256": "c9b8f830792ce0af9b416abdc838b6f04bae993c41763f2cbfceee0e86a25bbd",
+          "tokens": 1153
+        },
+        {
+          "path": "src/views/header/GapView.js",
+          "sha256": "4f21998194790319f062bee7883dbe463e5bf0be448270ae1dc017488dc03e02",
+          "tokens": 765
+        },
+        {
+          "path": "src/views/header/HeaderBlock.js",
+          "sha256": "05748f158defe2e34f619510e3fa8afe9aade30ea142f342b61be209d0a11648",
+          "tokens": 238
+        },
+        {
+          "path": "src/views/header/LabelHeader.js",
+          "sha256": "054fc6d987a0e2d49f25159d949c139d6a628abfdc5f2eb0264270aac2c2ac7b",
+          "tokens": 585
+        },
+        {
+          "path": "src/views/header/MarkerView.js",
+          "sha256": "19ed500b805de3dae467ed8884309505762e8812f23ef670cef3772c040b2eb2",
+          "tokens": 949
+        },
+        {
+          "path": "src/views/header/RightHeaderBlock.js",
+          "sha256": "aaba4cd17ab203a94bc57372e2c958f825b4865b08a5284ba9228c128661ed8e",
+          "tokens": 721
+        },
+        {
+          "path": "src/views/header/SeqLogoWrapper.js",
+          "sha256": "1d1b71c964eb77774501183fce04f74285b0699abeae45085cce276b91745172",
+          "tokens": 399
+        },
+        {
+          "path": "src/views/labels/LabelBlock.js",
+          "sha256": "4992f94a89569a7c277b3da5efc03a8ef29219c6fbf1c894e6fc85c144b6e7f9",
+          "tokens": 410
+        },
+        {
+          "path": "src/views/labels/LabelRowView.js",
+          "sha256": "640ece148eb71b04d538a0389bf5230b3bf00b1dbfe6069ce578a29f93ef31d0",
+          "tokens": 397
+        },
+        {
+          "path": "src/views/labels/LabelView.js",
+          "sha256": "2712b7ac659e631466786b79c01f2b69523513cf0d6e0f0c220f80b8ac9a6231",
+          "tokens": 262
+        },
+        {
+          "path": "src/views/labels/MetaView.js",
+          "sha256": "83850f1ffb8bf00cc0b374865ff4499d5af958314e11e1a2d2432e03bb1c98b7",
+          "tokens": 211
+        }
+      ],
+      "byteIdenticalFiles": [],
+      "exact": [
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/analysis.ts",
+            "startLine": 8,
+            "endLine": 9,
+            "startOffset": 575,
+            "endOffset": 600
+          },
+          "upstream": {
+            "path": "src/views/OverviewBox.js",
+            "startLine": 149,
+            "endLine": 150,
+            "startOffset": 5585,
+            "endOffset": 5617
+          }
+        }
+      ],
+      "normalized": []
+    },
+    {
+      "name": "PAVI",
+      "url": "local checkout",
+      "revision": "b730d536b7e5c5aefcb836a273eb2870a864f007",
+      "sourceDirs": [
+        "webui/src"
+      ],
+      "files": 259,
+      "tokens": 136559,
+      "inventory": [
+        {
+          "path": "webui/src/app/accessibility/accessibility.module.css",
+          "sha256": "2111a73489a2359b32387a5e32650add6d8500beb96ae6f8d1073ea8e8f7acc2",
+          "tokens": 436
+        },
+        {
+          "path": "webui/src/app/accessibility/page.tsx",
+          "sha256": "9199015def1fc216b5d292a9b255ae12fc0eab5baaff4bb5c5963ae578e8ef6f",
+          "tokens": 1038
+        },
+        {
+          "path": "webui/src/app/admin/admin.module.css",
+          "sha256": "aee329ab30c3cb102e3c4ae4e408fc5be8f6f7bd9e2323e5b01c176cf6463e62",
+          "tokens": 512
+        },
+        {
+          "path": "webui/src/app/admin/components/AdminComponents.module.css",
+          "sha256": "85eaa70dfb724fc9ae56d54967dfeec02631fa1ffeeafd9dc9b40d39a36d6968",
+          "tokens": 2821
+        },
+        {
+          "path": "webui/src/app/admin/components/ApiTester.tsx",
+          "sha256": "67009087a3ebd0f22b1e330bdd5f2c0460e5ee5d5a617af06389bfcfdd38c281",
+          "tokens": 794
+        },
+        {
+          "path": "webui/src/app/admin/components/BatchJobMonitor.tsx",
+          "sha256": "9cbb6b4e2b158712e4790b9d1d34e12aa8e9e9020260d1ae250084037ce981b6",
+          "tokens": 1522
+        },
+        {
+          "path": "webui/src/app/admin/components/HealthStatus.tsx",
+          "sha256": "a7844be2d2cab9b27c5a1ccce41a09e8742e9a9011e02891f26280dacb6a2d12",
+          "tokens": 1037
+        },
+        {
+          "path": "webui/src/app/admin/components/JobAnalytics.tsx",
+          "sha256": "a13748ab0dfaeb8224ee4530a850b0f1b955305919aa2fb85201623b1b6405e7",
+          "tokens": 1479
+        },
+        {
+          "path": "webui/src/app/admin/components/JobSubmissionTester.tsx",
+          "sha256": "a5942e6f61ce1a05987f4505d221f76405e287493a5727b970e34237b8ac5839",
+          "tokens": 2061
+        },
+        {
+          "path": "webui/src/app/admin/components/StepFunctionsMonitor.tsx",
+          "sha256": "8c4b7e62d202742ee37ca611efd0c9722b63b6e2e9195a5b5ffdccbf2ad878b8",
+          "tokens": 374
+        },
+        {
+          "path": "webui/src/app/admin/components/index.ts",
+          "sha256": "9883c2552a58136ca480c121806dacf492040c6152b49c07337e59a5972632cc",
+          "tokens": 42
+        },
+        {
+          "path": "webui/src/app/admin/layout.tsx",
+          "sha256": "b11d2009d700956570a9ba58328c3d99582f0725b50f6d0b80fcb5c7ad119403",
+          "tokens": 52
+        },
+        {
+          "path": "webui/src/app/admin/page.tsx",
+          "sha256": "36c9561cb4685bf3c277c137aee56bc10fffada6f2dcc90484ef118c9afa1f77",
+          "tokens": 742
+        },
+        {
+          "path": "webui/src/app/alignment/page.tsx",
+          "sha256": "f44d341d5818b28b36b43a6af4f88d337f594537d2d5cf4d24e8b9cd139bcbcb",
+          "tokens": 878
+        },
+        {
+          "path": "webui/src/app/api/deployment-status/route.ts",
+          "sha256": "07948a4fc46445bddf6d1ad34aed5fdb4571e7c2bfbd533ac412dc31209a8b30",
+          "tokens": 1049
+        },
+        {
+          "path": "webui/src/app/api/mock/[...path]/route.ts",
+          "sha256": "8260cd75a816b62432d633d44b09acbb72207f636ecb8e3fbefb1c5b7bb4dbc6",
+          "tokens": 78
+        },
+        {
+          "path": "webui/src/app/api/pipeline-job/[uuid]/export/route.ts",
+          "sha256": "6746c7c1ea6a79876d4868f2cf19ff67b8d9c38fcf72f7ee48e8c6eed4c80555",
+          "tokens": 107
+        },
+        {
+          "path": "webui/src/app/api/proxy-deployment-status/route.ts",
+          "sha256": "df81841fb3923913b40d1879cd24df22aff4c75033f152302bbf696f1afc3d69",
+          "tokens": 155
+        },
+        {
+          "path": "webui/src/app/benchmark/page.tsx",
+          "sha256": "8778ab9249623555db3dcabac9bbe82802463248dfd82944dbb99827d35b1957",
+          "tokens": 343
+        },
+        {
+          "path": "webui/src/app/components/Accessibility/Accessibility.module.css",
+          "sha256": "28f501582c9927ef1d9b8a3adc5caea79fdeb7664616e5a5f0bb7b722c581fce",
+          "tokens": 528
+        },
+        {
+          "path": "webui/src/app/components/Accessibility/AccessibilityProvider.tsx",
+          "sha256": "9cef040cfbd6ad70a75a053d2a1d635ce1385232d27f554a747055cd65ca5229",
+          "tokens": 44
+        },
+        {
+          "path": "webui/src/app/components/Accessibility/KeyboardShortcuts.tsx",
+          "sha256": "1a6d8f9d80116b23750831cbb5941a8f40bb9bc7f6f6e2dc3947b8fe90b313c9",
+          "tokens": 677
+        },
+        {
+          "path": "webui/src/app/components/Accessibility/LiveRegion.tsx",
+          "sha256": "c1f542f6fd545f6fc22d7f9c857f39888f23ca6d55d171c832411ede0f3b9a15",
+          "tokens": 331
+        },
+        {
+          "path": "webui/src/app/components/Accessibility/SkipLinks.tsx",
+          "sha256": "2717fffb787928f5ffb085da0245aa652d6410cac8b1b190c39c4c0b9ff2fe5f",
+          "tokens": 197
+        },
+        {
+          "path": "webui/src/app/components/Accessibility/index.ts",
+          "sha256": "507496d4ac74dd0653e6a8660ba537e9563c31ccff978d5eb8d9c734597865e4",
+          "tokens": 38
+        },
+        {
+          "path": "webui/src/app/components/Breadcrumbs/Breadcrumbs.module.css",
+          "sha256": "9b821ac68a3089262771c6677f602ac569d25dbd21a7e74623ac2af3c3315ec3",
+          "tokens": 252
+        },
+        {
+          "path": "webui/src/app/components/Breadcrumbs/Breadcrumbs.tsx",
+          "sha256": "90421dd6445a5b816d01d3516c632bc961a8ecdefa259cb0b49637c7718fe186",
+          "tokens": 209
+        },
+        {
+          "path": "webui/src/app/components/Breadcrumbs/index.ts",
+          "sha256": "ba450606b758b605186043dff9094b1750e0fb807d98d9fbd7bba9d9690fc997",
+          "tokens": 15
+        },
+        {
+          "path": "webui/src/app/components/DarkModeToggle.tsx",
+          "sha256": "0a788470ef3084b28e4e324fd013455e34fdfafac2aa23e697d591ff260547e8",
+          "tokens": 124
+        },
+        {
+          "path": "webui/src/app/components/ErrorBoundary/ErrorBoundary.module.css",
+          "sha256": "9c9831979552034e3cb6cce06facfd4805bcde65f51a8a8ec77acf48c4fd5db3",
+          "tokens": 992
+        },
+        {
+          "path": "webui/src/app/components/ErrorBoundary/ErrorBoundary.tsx",
+          "sha256": "b8eafb454567091ffd8ded8d3d941a536fc56bfa293709cb7e4889e16bc09901",
+          "tokens": 322
+        },
+        {
+          "path": "webui/src/app/components/ErrorBoundary/index.ts",
+          "sha256": "5450b591775144c78fb18cd983096088895f63c154e7d4812a259bfc699bc450",
+          "tokens": 26
+        },
+        {
+          "path": "webui/src/app/components/Footer/Footer.module.css",
+          "sha256": "70bb711ba4ececd5f1925cc5aec1c4f9dba95cee7614b73f735df862ddbd970b",
+          "tokens": 432
+        },
+        {
+          "path": "webui/src/app/components/Footer/Footer.tsx",
+          "sha256": "707d92678c12c2182d0931333102e7e32cbe4e3131d8ecf540f5a76062457f79",
+          "tokens": 83
+        },
+        {
+          "path": "webui/src/app/components/Header/Header.module.css",
+          "sha256": "0a51e894f3053155d1b780ad683787921c5a7d973b4650860075d2f6881c085b",
+          "tokens": 450
+        },
+        {
+          "path": "webui/src/app/components/Header/Header.tsx",
+          "sha256": "76c78e4bb6ca8eda5df3a6902fcb07696bbfe59cfb07f6a014d8eb16563d8fc9",
+          "tokens": 416
+        },
+        {
+          "path": "webui/src/app/components/LayoutWrapper/LayoutWrapper.tsx",
+          "sha256": "d5247954768fdd539b3cda0586928733b129c417157b50f4e12d1d94f989418d",
+          "tokens": 187
+        },
+        {
+          "path": "webui/src/app/components/LayoutWrapper/index.ts",
+          "sha256": "c49edecb2f0594951da8f08bc19b502c0945a96046f611d43bcd23e6a2e7bde3",
+          "tokens": 7
+        },
+        {
+          "path": "webui/src/app/components/LazyComponent/LazyComponent.module.css",
+          "sha256": "07a37ed41109ab023582ad7d3876401ee072021493f7b4f783271ec3d933c95c",
+          "tokens": 322
+        },
+        {
+          "path": "webui/src/app/components/LazyComponent/LazyComponent.tsx",
+          "sha256": "5226b9c1ec5270744ce46aef59376cfe071155d5036ba883296b5d9e3dd31105",
+          "tokens": 1002
+        },
+        {
+          "path": "webui/src/app/components/LazyComponent/index.ts",
+          "sha256": "f57d1f1377b6372330349cb0bb97b2fd522c78a59e5e04ec8faa455914212593",
+          "tokens": 19
+        },
+        {
+          "path": "webui/src/app/components/LoadingSpinner/LoadingSpinner.module.css",
+          "sha256": "36bd0b12ce0d24d526e61192200460222a7ae8f4a67b71ce8b0529abfae29c29",
+          "tokens": 802
+        },
+        {
+          "path": "webui/src/app/components/LoadingSpinner/LoadingSpinner.tsx",
+          "sha256": "897348406fcfc03cb9feccff59fe00acf0df34e1e2b9f52e735e9e9894dd4863",
+          "tokens": 475
+        },
+        {
+          "path": "webui/src/app/components/LoadingSpinner/index.ts",
+          "sha256": "52f7cd2553c5536cdaea71306deb0a49412ed89f081a443d469ff327db87c46d",
+          "tokens": 27
+        },
+        {
+          "path": "webui/src/app/components/Ribbon/Ribbon.module.css",
+          "sha256": "4b2cad7d3787641826a3a494be538b1634cb735737bc8c62ec5c61fe8dc8fdc2",
+          "tokens": 118
+        },
+        {
+          "path": "webui/src/app/components/Ribbon/Ribbon.tsx",
+          "sha256": "8f8c42a1b42554853ff16ab87aa76c4bf4011b4af98438f308d6be5aed15bfd9",
+          "tokens": 125
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/Skeleton.module.css",
+          "sha256": "1e522b98d59f49ae220e42753fb3eeb5a41e9b4fed540f24c935234172f0ffee",
+          "tokens": 967
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/SkeletonAvatar.tsx",
+          "sha256": "d169efba914ddb011f3c971fc9680db75f9425525990d5584a614c4fe3d608c0",
+          "tokens": 148
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/SkeletonButton.tsx",
+          "sha256": "73e1684e755d34c4f8c2cd946b81bffdf4ebb753c57dab54d44ced98c4c9ea55",
+          "tokens": 184
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/SkeletonCard.tsx",
+          "sha256": "45317d6795428ca511b3d79ab9f76aaef47aa44b5a48ea454cb2248352705f5a",
+          "tokens": 190
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/SkeletonInput.tsx",
+          "sha256": "6488f74c139cf115512dd47e8eb3848d04c77419e69bf199fe2635929614403b",
+          "tokens": 179
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/SkeletonList.tsx",
+          "sha256": "20b49138d2119879c4803049558faf816da98ef91696aca7031a1e1dc0ed1050",
+          "tokens": 144
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/SkeletonTable.tsx",
+          "sha256": "09f0875bcd1c7026b92633649bd34aa9da0c5a64cadde91468efa855edcc9976",
+          "tokens": 294
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/SkeletonText.tsx",
+          "sha256": "ee874e2c926008e15461d4c944586a71b69cf20569003a38b9e4b3166364c83c",
+          "tokens": 318
+        },
+        {
+          "path": "webui/src/app/components/Skeleton/index.ts",
+          "sha256": "86a82b7168b6435f7989956593d2e45583d5579689a49084fe7e469f9f16bf64",
+          "tokens": 117
+        },
+        {
+          "path": "webui/src/app/components/WorkflowStepper/WorkflowStepper.module.css",
+          "sha256": "fbbd248ffd4ac1ec8c3593b0783026b56574f7e5cc21bfce99a663392c878d70",
+          "tokens": 651
+        },
+        {
+          "path": "webui/src/app/components/WorkflowStepper/WorkflowStepper.tsx",
+          "sha256": "1cce6a14a2d77386d0343504afe94462a3ac5e7a9c450f31e67985a512913593",
+          "tokens": 349
+        },
+        {
+          "path": "webui/src/app/components/WorkflowStepper/index.ts",
+          "sha256": "2607ad4b1bda9436c60a4abe8a8b2043640b548273ad20b1afcc92dcaaffb4f9",
+          "tokens": 21
+        },
+        {
+          "path": "webui/src/app/components/__tests__/DarkModeToggle.test.tsx",
+          "sha256": "0d0408f4d41c1f88ff94c1e85ea8a41409c3ff5d469d043da94dc7550f32ca80",
+          "tokens": 83
+        },
+        {
+          "path": "webui/src/app/error/page.tsx",
+          "sha256": "bc614db7c0724fbdb4f344ec16f7965ebd7c132eb96fa2d88e3cff2a09b780a9",
+          "tokens": 28
+        },
+        {
+          "path": "webui/src/app/globals.css",
+          "sha256": "2b03c327d656da8cc00e40e87dc6ee17ea387362373b169fcf21cbbc2ca71b9a",
+          "tokens": 342
+        },
+        {
+          "path": "webui/src/app/health/components/WebUiHealthCheck.tsx",
+          "sha256": "ee2f0c8c9ed29cbb65b7d5c7d26b063b2fc5410ff84ff08d68b00e86c33c95ee",
+          "tokens": 73
+        },
+        {
+          "path": "webui/src/app/health/components/__tests__/WebUiHealthCheck.test.tsx",
+          "sha256": "65522e98a0cfd38d533f5d723dd13b94a3f0655fa071cf6cc6f2decf5ea3402e",
+          "tokens": 799
+        },
+        {
+          "path": "webui/src/app/health/page.tsx",
+          "sha256": "65c6ee84334e47a346bca950fe35c4c19c5868a7a892bba35ca51a5424ea0466",
+          "tokens": 28
+        },
+        {
+          "path": "webui/src/app/help/components/FAQ.tsx",
+          "sha256": "e62bf3bfbec13340263a6e2102ad9eebda4296e06856246dadc7208abc96eeb6",
+          "tokens": 419
+        },
+        {
+          "path": "webui/src/app/help/components/Glossary.tsx",
+          "sha256": "792f7aabfb31cd8a11315045b9b1b8efd5a087c96ae58dbdce7dcb2e693fd8fb",
+          "tokens": 485
+        },
+        {
+          "path": "webui/src/app/help/components/HelpSearch.tsx",
+          "sha256": "ebd77cf5198d7a240cdc2774bd7b9dc6f9b1310d16aa92b03036cad41639ab8c",
+          "tokens": 777
+        },
+        {
+          "path": "webui/src/app/help/guide/guide.module.css",
+          "sha256": "7123febbf1ecf0221de69cdfb1e70b0eedf5758813db063326b087669546935a",
+          "tokens": 2092
+        },
+        {
+          "path": "webui/src/app/help/guide/page.tsx",
+          "sha256": "52ee79080ad4dfd1cad698c7281500c9cd3f1d2c32bd8913403176c9b4783026",
+          "tokens": 971
+        },
+        {
+          "path": "webui/src/app/help/help.module.css",
+          "sha256": "1914443adddbd78e54309edf5b3ab034813296db425c05c62d7628259643e78b",
+          "tokens": 1656
+        },
+        {
+          "path": "webui/src/app/help/helpContent.ts",
+          "sha256": "6e96262c22f613f1d681883a2977cf6638eb14fe8a89d5408e59fecc8ce41ac6",
+          "tokens": 758
+        },
+        {
+          "path": "webui/src/app/help/page.tsx",
+          "sha256": "c8a167f8506f00c5429407c127509fb000a094f9f53c3aad8507571d118c4bab",
+          "tokens": 842
+        },
+        {
+          "path": "webui/src/app/helper_fns.ts",
+          "sha256": "35ca5e3312382daad230cc96aa7895ea1f50b0f561f548db2f2f2bab7713cc16",
+          "tokens": 280
+        },
+        {
+          "path": "webui/src/app/hooks/index.ts",
+          "sha256": "6d8ae2ec063d4e4e963e5fe6c84f70f06382c2345ba4d5c7f4fb0c86891268ab",
+          "tokens": 9
+        },
+        {
+          "path": "webui/src/app/hooks/useFormPersistence.ts",
+          "sha256": "04a36d81db8d315bc67d64a649ae01d6cdfed827fb752755f57b132f26435232",
+          "tokens": 173
+        },
+        {
+          "path": "webui/src/app/jobs/components/JobTable/JobTable.module.css",
+          "sha256": "e912dd3a2684c8a619a592b18613c92cffa20b454576cec5394fe311cedbb87f",
+          "tokens": 421
+        },
+        {
+          "path": "webui/src/app/jobs/components/JobTable/JobTable.tsx",
+          "sha256": "f9ad330a6d70b05e507bb8fc4a66917ac311a38634ea404601b462ea529a9184",
+          "tokens": 535
+        },
+        {
+          "path": "webui/src/app/jobs/components/JobTable/index.ts",
+          "sha256": "bdc49d8beaf04e4fdd62cadcf6a0b15b5dd206c5edcc5d025a69109f76e89767",
+          "tokens": 7
+        },
+        {
+          "path": "webui/src/app/jobs/jobs.module.css",
+          "sha256": "e82ca6d95e782d30edad636dad89fce44eba6ecfd15c04abb796188cba936833",
+          "tokens": 378
+        },
+        {
+          "path": "webui/src/app/jobs/page.tsx",
+          "sha256": "d89e5bbd6c64ad628367457ce46c4b71ecc1ba78d6551bfadbbf51b41ff6e492",
+          "tokens": 1359
+        },
+        {
+          "path": "webui/src/app/layout.tsx",
+          "sha256": "d3af46ba908bedf61f759630dd169595e15e5b59f5c299b5c5b17fdd3c34536d",
+          "tokens": 259
+        },
+        {
+          "path": "webui/src/app/page.module.css",
+          "sha256": "3ffa1d2a60c66edacb9bf335c7f2ad583f2530e28371b3f73cfc4030787851b7",
+          "tokens": 1408
+        },
+        {
+          "path": "webui/src/app/page.tsx",
+          "sha256": "0f75d6ad482de36077f6cd81997dc75ed91e1f2c4e0d0d6a952000dc7ab7560c",
+          "tokens": 268
+        },
+        {
+          "path": "webui/src/app/progress/components/ConnectionStatus/ConnectionStatus.module.css",
+          "sha256": "c5d51e4e7d4d45970633c9ab5113c469c4f6412149367f0affb7468c3dc4dd50",
+          "tokens": 143
+        },
+        {
+          "path": "webui/src/app/progress/components/ConnectionStatus/ConnectionStatus.tsx",
+          "sha256": "e377c7faa19585c2a4785817ab90c84622a97b61c38c558d7603818545808471",
+          "tokens": 240
+        },
+        {
+          "path": "webui/src/app/progress/components/ConnectionStatus/index.ts",
+          "sha256": "87fe19e1e7a666b9f2d1793ca2d262e7fabeb3c3a06a55074b44cdddf0d6e042",
+          "tokens": 7
+        },
+        {
+          "path": "webui/src/app/progress/components/ErrorRecovery/ErrorRecovery.module.css",
+          "sha256": "129965beaf8834bc0858498945ded893041b9e93fbd55984523ea4a6b6578015",
+          "tokens": 560
+        },
+        {
+          "path": "webui/src/app/progress/components/ErrorRecovery/ErrorRecovery.tsx",
+          "sha256": "db77e76c3fd6808a284dc8d1f76ba1a0fc638d9d9f1c72af15c286c98b83960f",
+          "tokens": 347
+        },
+        {
+          "path": "webui/src/app/progress/components/ErrorRecovery/index.ts",
+          "sha256": "524a594336156684369e659332a14f673f38daacd48035f501fbf01a8e369164",
+          "tokens": 15
+        },
+        {
+          "path": "webui/src/app/progress/components/JobMetadata/JobMetadata.module.css",
+          "sha256": "e3ff503c2b6d5fedc77f55e21331fe99b00ebd5fdd9bb2ab12ea6ccd05cdbe46",
+          "tokens": 295
+        },
+        {
+          "path": "webui/src/app/progress/components/JobMetadata/JobMetadata.tsx",
+          "sha256": "a2c82f95996da3703bbc0198216cde2496053173fae4dc123acf7ed238b10ac3",
+          "tokens": 251
+        },
+        {
+          "path": "webui/src/app/progress/components/JobMetadata/index.ts",
+          "sha256": "34edf5f189a6430fa25f2b1faadc6c651a8a900679dcce17dffaa159dd7ae1af",
+          "tokens": 7
+        },
+        {
+          "path": "webui/src/app/progress/components/JobProgressTracker/JobProgressTracker.module.css",
+          "sha256": "5a2de80551c48f1892b6d1041de038ed9f27a8c1a2bc7f53d7892cb121339d39",
+          "tokens": 679
+        },
+        {
+          "path": "webui/src/app/progress/components/JobProgressTracker/JobProgressTracker.tsx",
+          "sha256": "d53f22d309795f0cedba918692e3bb9659f4d5056dc8188e0aed50bb1ca60d4c",
+          "tokens": 1218
+        },
+        {
+          "path": "webui/src/app/progress/components/JobProgressTracker/serverActions.ts",
+          "sha256": "7d403fa80cce83582529a719644784aa0dec0a320a7542242415d565fee30492",
+          "tokens": 157
+        },
+        {
+          "path": "webui/src/app/progress/components/JobProgressTracker/types.ts",
+          "sha256": "c69e5232fbefb2644872fb6267c53557780849ffe3026124f240f1d0d6dee863",
+          "tokens": 76
+        },
+        {
+          "path": "webui/src/app/progress/components/LogViewer/LogViewer.module.css",
+          "sha256": "40c3c34108175edd0f2d7e1a6baddb30010411af0834b33ca7474ac52388a938",
+          "tokens": 529
+        },
+        {
+          "path": "webui/src/app/progress/components/LogViewer/LogViewer.tsx",
+          "sha256": "4c4f14bd648e2f7beb59f13abd78d1e0747a36e7bc7d9d3e5417c8aef38bd159",
+          "tokens": 500
+        },
+        {
+          "path": "webui/src/app/progress/components/LogViewer/index.ts",
+          "sha256": "4a5bc519b7a15a890951fff05a0fb7cf264e39e71c4127c5e2f96146ecbb3a2c",
+          "tokens": 15
+        },
+        {
+          "path": "webui/src/app/progress/components/ProgressTimeline/ProgressTimeline.module.css",
+          "sha256": "9c9ca47d4e67ef2377a36b62a61ade5c77ac7fb4704addfa231ec5edb50a8e40",
+          "tokens": 559
+        },
+        {
+          "path": "webui/src/app/progress/components/ProgressTimeline/ProgressTimeline.tsx",
+          "sha256": "db72fb63b624dcc28a8dd60a9be7c88f3320edee358c42bed528df1e7f38e19a",
+          "tokens": 292
+        },
+        {
+          "path": "webui/src/app/progress/components/ProgressTimeline/index.ts",
+          "sha256": "baea04727253b0c305ff5f2f98e3441a89cd539445f74976871724c0c280b128",
+          "tokens": 17
+        },
+        {
+          "path": "webui/src/app/progress/components/index.ts",
+          "sha256": "92a2c750cacc76e35f2c56b0bb343c321f3831a1b71ff68633542664e76705b7",
+          "tokens": 59
+        },
+        {
+          "path": "webui/src/app/progress/page.tsx",
+          "sha256": "c20cf5334bec3f79883b5a0109ed42b7aacc6dd5406019906033fdd22675f190",
+          "tokens": 111
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentResultView/AlignmentResultView.tsx",
+          "sha256": "f8ee64c5ab6af0ef492da71af38ce173dab10f5596b1184a5bd619c8ef933cc6",
+          "tokens": 586
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentResultView/serverActions.ts",
+          "sha256": "429cb7d0771544aadc1e4e0e8edd37717ce50d5ed375e2531ff98dca709ab59f",
+          "tokens": 138
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentResultView/types.ts",
+          "sha256": "7cdf71ddd1dc207ec273038356d92a6f23bd79e0d052f97483abf35d1dc703f0",
+          "tokens": 11
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentSearch/AlignmentSearch.module.css",
+          "sha256": "36ade0f7893260c7b2b43a59b5546db50106b4802e1aaac9ae80ecd25084139f",
+          "tokens": 863
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentSearch/AlignmentSearch.tsx",
+          "sha256": "fe8fafe73c9bad94e1283f49f6830bba7f00687c3dc9746049b8f180cf25b969",
+          "tokens": 1570
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentSearch/index.ts",
+          "sha256": "5fca22236114834e6068968fe0109ad7371709b6005edc84fd3c2ae6039fb74e",
+          "tokens": 20
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentSkeleton/AlignmentSkeleton.module.css",
+          "sha256": "360b6899d89f77cc63d6ae0f6536f977140cf19d1cbf7feb3dc9056e140c7603",
+          "tokens": 264
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentSkeleton/AlignmentSkeleton.tsx",
+          "sha256": "bf246484b2cf3d76036f7aa9219dc489f7bf0c55f8ef7b49d93d554dd1de0c47",
+          "tokens": 210
+        },
+        {
+          "path": "webui/src/app/result/components/AlignmentSkeleton/index.ts",
+          "sha256": "30d9dc2d9c7065e07e446617a3065b5c03b8729ab12f6c3341740f6fb119bdb4",
+          "tokens": 17
+        },
+        {
+          "path": "webui/src/app/result/components/DisplayModeSelector/DisplayModeSelector.module.css",
+          "sha256": "c441aa8d928b309a911f951c3ac6c96df876bb2d92b26d4448a19cae05a4f378",
+          "tokens": 744
+        },
+        {
+          "path": "webui/src/app/result/components/DisplayModeSelector/DisplayModeSelector.tsx",
+          "sha256": "473d62436c1c0e82d3c72d172757db65d1693e7fe6f3933a3501441e064395ef",
+          "tokens": 417
+        },
+        {
+          "path": "webui/src/app/result/components/DisplayModeSelector/index.ts",
+          "sha256": "9ffff2b285610017ca9af6a9a6f409ef6052767bfd026a18ded59a6410c1b3bb",
+          "tokens": 21
+        },
+        {
+          "path": "webui/src/app/result/components/ExportMenu/ExportMenu.module.css",
+          "sha256": "e835743c10a2520b56b2cdfb25578b4455971bf70e01bc0a1a165d9bf500e8ad",
+          "tokens": 668
+        },
+        {
+          "path": "webui/src/app/result/components/ExportMenu/ExportMenu.tsx",
+          "sha256": "32491ecc88c8ab9ec3d611cd5789ddc3b897f2560a6946e9fd5e061772fe83d3",
+          "tokens": 1025
+        },
+        {
+          "path": "webui/src/app/result/components/ExportMenu/index.ts",
+          "sha256": "8f974c5d980775d41db99b5bb5a0d9b23dea34fea94f8ee230a1b381b4d95643",
+          "tokens": 19
+        },
+        {
+          "path": "webui/src/app/result/components/FailureDisplay/FailureDisplay.module.css",
+          "sha256": "d8f034125beb220da17f5259278c7e90cc1b32974dcd0c8b1367ec99e0973b67",
+          "tokens": 876
+        },
+        {
+          "path": "webui/src/app/result/components/FailureDisplay/FailureDisplay.tsx",
+          "sha256": "80ce6abd5d5fcc87135c96581926af25d61c3f6d532efdd8fdea821f8e5b1cd2",
+          "tokens": 866
+        },
+        {
+          "path": "webui/src/app/result/components/FailureDisplay/index.ts",
+          "sha256": "0db618e2b19019c2d51d0a142fb0f286d970e5ee67e1297cdc71627e637cae83",
+          "tokens": 19
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/InteractiveAlignment.tsx",
+          "sha256": "739d26f2ba412843ead05777ede1e19be77eec0d7e0320589ebc2969534cedf9",
+          "tokens": 843
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/VirtualizedAlignment.module.css",
+          "sha256": "8f0456e6584e18fec1ac0af67890e464c7a4425c12918ca0101d704419413353",
+          "tokens": 3583
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/VirtualizedAlignment.tsx",
+          "sha256": "acfc16a30db16b6fdf1b7d29403ffae4958b315bda628deb1730f67754ac2dab",
+          "tokens": 953
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/nightingale/LinegraphTrack.tsx",
+          "sha256": "fc60d4b9bcbad1f77537971610d82b059498e8c4ac57a87b9138ecf76432b3d0",
+          "tokens": 96
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/nightingale/MSA.tsx",
+          "sha256": "9d3d77a15714faf0351362f7533398aa9eb08010b058bc43e7fa693a7ffa3738",
+          "tokens": 184
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/nightingale/Manager.tsx",
+          "sha256": "77ceaa8db7a34b6d17936b57169811c45edcb4a5bf244d7c605efd900b6c86f6",
+          "tokens": 51
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/nightingale/Navigation.tsx",
+          "sha256": "2f27a07dce703c35dc100428a2a545fa7933db410c8039389efbe8cc73140600",
+          "tokens": 85
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/nightingale/Track.tsx",
+          "sha256": "285ced8d0bac7d23e7401e05676af6f84370692086065538679397308b0c6145",
+          "tokens": 138
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/nightingale/index.ts",
+          "sha256": "d35f1dbab9c6c816a3d442f7ec76b9fc9e5524f2fd3ccfde3f3e74d780360cbe",
+          "tokens": 70
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/nightingale/types.ts",
+          "sha256": "c8b50848fdc0fdcb92ccceb1b472a206182fef830543c159cbf1fcad4449e754",
+          "tokens": 17
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/serverActions.ts",
+          "sha256": "7b83e1d14c25f951db274a870ee3a18906819b0d3fa1b228daa1690b33ac0c81",
+          "tokens": 63
+        },
+        {
+          "path": "webui/src/app/result/components/InteractiveAlignment/types.ts",
+          "sha256": "bd98aa6744e71bbedc5edac0ea7842b5fed4442738a26bad7827b002b55b6570",
+          "tokens": 217
+        },
+        {
+          "path": "webui/src/app/result/components/JobExportMenu/JobExportMenu.module.css",
+          "sha256": "63d97bb4db482fa8405cb593539983c67c6be71bb1c199a8e6ddef274fc14efe",
+          "tokens": 164
+        },
+        {
+          "path": "webui/src/app/result/components/JobExportMenu/JobExportMenu.tsx",
+          "sha256": "24c3f63509770c48422476d9e26f2f8e16abdc741a6f3da3208605993067c39a",
+          "tokens": 531
+        },
+        {
+          "path": "webui/src/app/result/components/JobExportMenu/index.ts",
+          "sha256": "b93fbfeb55881ce94dfaa2503430762129f09f22015be4cc14f643b51ffaeb07",
+          "tokens": 15
+        },
+        {
+          "path": "webui/src/app/result/components/PositionInfoPanel/PositionInfoPanel.module.css",
+          "sha256": "611504497c6dd0cf21e5d28d0802dc244c43c09f6116403315c8bfa97e1e2942",
+          "tokens": 963
+        },
+        {
+          "path": "webui/src/app/result/components/PositionInfoPanel/PositionInfoPanel.tsx",
+          "sha256": "fb3c2be49f9c4d4c136b0f5a3296e7364f4801a68aa444174ec2faf69ef0a32c",
+          "tokens": 936
+        },
+        {
+          "path": "webui/src/app/result/components/PositionInfoPanel/index.ts",
+          "sha256": "12926e4cedcad69f0cac214a6a9eb46e8653719034c9ab5a3915ee4d6acc0697",
+          "tokens": 22
+        },
+        {
+          "path": "webui/src/app/result/components/PublicationFigure/PublicationFigureDialog.tsx",
+          "sha256": "6e1f3d646bda32fcbd7d25ffb75476b630daf8cd3128622b9c61bfef03975072",
+          "tokens": 634
+        },
+        {
+          "path": "webui/src/app/result/components/ResponsiveAlignmentContainer/ResponsiveAlignmentContainer.module.css",
+          "sha256": "4230d04676f1310bd77d7b1144b75eda8cf842081583ca8a2f405dfc90061290",
+          "tokens": 955
+        },
+        {
+          "path": "webui/src/app/result/components/ResponsiveAlignmentContainer/ResponsiveAlignmentContainer.tsx",
+          "sha256": "3f039d4e8538f216b7a9280339342e0b623c497c015e698b3f322a3665600688",
+          "tokens": 1612
+        },
+        {
+          "path": "webui/src/app/result/components/ResponsiveAlignmentContainer/index.ts",
+          "sha256": "0e89a7cff603182fe12b873bd20c2fd18fdaf522146baa0860851bd7ce27a3c7",
+          "tokens": 18
+        },
+        {
+          "path": "webui/src/app/result/components/ResultsSummary/ResultsSummary.module.css",
+          "sha256": "76be54445c0d5699f386f0684083bc6dbeaed14a0442df0f4d25a8bd3399f193",
+          "tokens": 1736
+        },
+        {
+          "path": "webui/src/app/result/components/ResultsSummary/ResultsSummary.tsx",
+          "sha256": "8fb8b8e50946c3482b0a5b97f5213667b45b2f145be285600b3a26f620eec648",
+          "tokens": 625
+        },
+        {
+          "path": "webui/src/app/result/components/ResultsSummary/index.ts",
+          "sha256": "0b30b169f67dfb3ea0b5f305182e9c00b42b9adb6a9f167941db3ec7ad776c46",
+          "tokens": 17
+        },
+        {
+          "path": "webui/src/app/result/components/TextAlignment/TextAlignment.tsx",
+          "sha256": "e62b0b0e065cda0dfd3a9d59f74c85380a0bcc0df5cde63a0cea1caf428f951b",
+          "tokens": 92
+        },
+        {
+          "path": "webui/src/app/result/components/VisualizationToolbar/VisualizationToolbar.module.css",
+          "sha256": "d9e1a439716965f23b76ef4fba6bb3b0432917fc012cfc19f3dac842ce4ece5c",
+          "tokens": 509
+        },
+        {
+          "path": "webui/src/app/result/components/VisualizationToolbar/VisualizationToolbar.tsx",
+          "sha256": "4a22cdfd55c6793c3c65d2ec6a6caee029ce6ef1e45747b68d75accd7dcfd4b6",
+          "tokens": 831
+        },
+        {
+          "path": "webui/src/app/result/components/VisualizationToolbar/index.ts",
+          "sha256": "5aef7fa093f67cba6b1db258fbec22caeeb34b72b35fb3613651abf587808c42",
+          "tokens": 15
+        },
+        {
+          "path": "webui/src/app/result/components/__tests__/FailureDisplay.test.tsx",
+          "sha256": "2456f43e253dc213b0e74c6ac215602c1a13b90c0dd45990f9c342781cd84169",
+          "tokens": 226
+        },
+        {
+          "path": "webui/src/app/result/components/__tests__/InteractiveAlignment.test.tsx",
+          "sha256": "62170a7f6481d638223ab624db0a96b72a53dffffa7258e661d7cd5f77526ba8",
+          "tokens": 1018
+        },
+        {
+          "path": "webui/src/app/result/page.tsx",
+          "sha256": "e5978941d066bb597560c6433c65e89111f12c006fe957948b90dba4a957cfd4",
+          "tokens": 111
+        },
+        {
+          "path": "webui/src/app/result/utils/__tests__/deduplicateSequences.test.ts",
+          "sha256": "461cb712b600c0d0fdc9392d1fcb7ab2a0f7685ed9183f09f7f218d2c7973b73",
+          "tokens": 1232
+        },
+        {
+          "path": "webui/src/app/result/utils/__tests__/publicationSvg.test.ts",
+          "sha256": "9620c8748f80452a6acc0cefa1c328143a29556661e6ff204e9c1db384f7df1d",
+          "tokens": 975
+        },
+        {
+          "path": "webui/src/app/result/utils/__tests__/resultsUnavailable.test.ts",
+          "sha256": "20e5011255c5901ae4e3cbfb872bb34c5196f93238ec6dd0546d6b7ad9cf4bce",
+          "tokens": 244
+        },
+        {
+          "path": "webui/src/app/result/utils/deduplicateSequences.ts",
+          "sha256": "c58b2f8f89b4e2343a029bea985b4303134b08dd41292bd62c8952a7e277802c",
+          "tokens": 702
+        },
+        {
+          "path": "webui/src/app/result/utils/publicationSvg.ts",
+          "sha256": "276afb6d5f9f6f88561f77d9c4b8eafae8a878144b33389629c7c85b0f0cf249",
+          "tokens": 1219
+        },
+        {
+          "path": "webui/src/app/result/utils/resultsUnavailable.ts",
+          "sha256": "0116f436c969e1d4154d5b5663be9b2d6de125aa2f00eb08523132bdea4f40f4",
+          "tokens": 153
+        },
+        {
+          "path": "webui/src/app/styles/agr-theme.css",
+          "sha256": "3eb3f5654f79695bc44f6343aa75bd09de685b076c3c7547172b839a5b650d7b",
+          "tokens": 3512
+        },
+        {
+          "path": "webui/src/app/submit-bulk/BulkUploadForm.tsx",
+          "sha256": "fd39ab09f6046f225832123e87a3e728636c9bebae3a651b796bdfda36413129",
+          "tokens": 818
+        },
+        {
+          "path": "webui/src/app/submit-bulk/BulkUploadReport.tsx",
+          "sha256": "5f69694eef71ca1719622e845c09beb3e275b4657ec5b079df3976c3483dea5c",
+          "tokens": 240
+        },
+        {
+          "path": "webui/src/app/submit-bulk/__tests__/BulkUploadForm.test.tsx",
+          "sha256": "42c4f0ad67a0b026853058b0a1b8507aaf0feaa1e1accf8fc3ebaaf17b269ce7",
+          "tokens": 684
+        },
+        {
+          "path": "webui/src/app/submit-bulk/__tests__/BulkUploadReport.test.tsx",
+          "sha256": "7c2ee56da0e7494c0a7bed28e85c322bfe5bc43bd177e613624f67739b708db2",
+          "tokens": 255
+        },
+        {
+          "path": "webui/src/app/submit-bulk/__tests__/bulkTemplate.test.ts",
+          "sha256": "6a370cb509263098213350405a161a15d823302c5e356df88668495ab481f97a",
+          "tokens": 118
+        },
+        {
+          "path": "webui/src/app/submit-bulk/__tests__/parseGeneListFile.test.ts",
+          "sha256": "c235c589deeb9aea2bd50582d3b42270f15b372dbabeb9d21f2096aa6c3789cf",
+          "tokens": 678
+        },
+        {
+          "path": "webui/src/app/submit-bulk/__tests__/resolveRows.test.ts",
+          "sha256": "f4582cdaf0e93eea6966fbc1b636ce501a08ace7abd11ab3a7d26bdb660888f0",
+          "tokens": 581
+        },
+        {
+          "path": "webui/src/app/submit-bulk/bulkTemplate.ts",
+          "sha256": "7ae0dd416b9392314aec339d8ca2e5610c78f6d1ab982debe57a5f44ff293986",
+          "tokens": 30
+        },
+        {
+          "path": "webui/src/app/submit-bulk/page.tsx",
+          "sha256": "248e72a36654969f0a3508146975174e80bb5592828c8d36bc805bd5fdc57ac4",
+          "tokens": 58
+        },
+        {
+          "path": "webui/src/app/submit-bulk/parseGeneListFile.ts",
+          "sha256": "f6e2aeac3fc04d504adea59d19af10214a87b5a1052c3299e073338fc0462ee4",
+          "tokens": 764
+        },
+        {
+          "path": "webui/src/app/submit-bulk/resolveRows.ts",
+          "sha256": "a76e6002cdb429a5f05d9f5d88b0792d78033596b343c0d2500675e5d5ad0d5a",
+          "tokens": 246
+        },
+        {
+          "path": "webui/src/app/submit-bulk/serverActions.ts",
+          "sha256": "ac209c592065741287174b34daf1756f95ce9e2d7ed01ea56ae74fc125f6b108",
+          "tokens": 76
+        },
+        {
+          "path": "webui/src/app/submit-bulk/types.ts",
+          "sha256": "1bd120352c96a022a9bd827100156f0287a7e5cafec6b11070323e322843be24",
+          "tokens": 69
+        },
+        {
+          "path": "webui/src/app/submit-ortholog/OrthologForm.tsx",
+          "sha256": "de3e074a29f4c14fb4edd3bc31a624b823fe83ae675dcf200c44fbf9dea46504",
+          "tokens": 690
+        },
+        {
+          "path": "webui/src/app/submit-ortholog/page.module.css",
+          "sha256": "b80ce7e73db7541147ee6000009800b9691ba34e56d96fb156593d4cc34181c3",
+          "tokens": 404
+        },
+        {
+          "path": "webui/src/app/submit-ortholog/page.tsx",
+          "sha256": "e3fa7c0d5906934e9227b8abe07ceceb5a8f38d7963e47d504246d866b4fd736",
+          "tokens": 58
+        },
+        {
+          "path": "webui/src/app/submit-ortholog/serverActions.ts",
+          "sha256": "e79d3c08670f9511a43634d4e41b52fa1d197e2f66120c0ed2eb3d4a12128934",
+          "tokens": 95
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/AlignmentEntry.tsx",
+          "sha256": "0aa5ad43126fcb7339510c31bd197a64d17fa13fa2c558d7c25d863059be663a",
+          "tokens": 615
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/AlleleFilterPanel.tsx",
+          "sha256": "ff81e149246e1ec7523a88ff8d264cb061d91c6a69be691f6fa3ec70c3ae227e",
+          "tokens": 452
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/__mocks__/serverActions.ts",
+          "sha256": "ddbd274a1930a76985b8008d43642b24d1640099ab63961b36e2802f06211f9c",
+          "tokens": 1030
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/__tests__/AlignmentEntry.test.tsx",
+          "sha256": "e72fd3b588301599b2c9927a1c9618ab7e44c0e4bf236a257925eb7a0cf092d1",
+          "tokens": 2732
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/__tests__/AlignmentEntry.variantSearch.test.tsx",
+          "sha256": "1fee11c953f317db03d5840860fd3fcc19393d588741e29060d3337201fab562",
+          "tokens": 2247
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/__tests__/hgvs.test.ts",
+          "sha256": "691ac6b5ea83226c0b1b0fda33a596e7f374ee3674a9cca1aac04379dbe26698",
+          "tokens": 346
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/__tests__/lookupVariantByHgvs.test.ts",
+          "sha256": "8a03c78185e847c675e8970e7cc58175d5c1f6d27a4d44741ebb665b412ed0ed",
+          "tokens": 475
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/__tests__/searchAllelesByName.test.ts",
+          "sha256": "3f4eac6c73f5e57842b14f84ea17afaadb184be2d62eca8da7e0e41e138c90b9",
+          "tokens": 410
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/__tests__/searchVariants.test.ts",
+          "sha256": "eecf16ab2f1fd153978fa00790093dc161b58e0e04e07271e54c77d95aad7335",
+          "tokens": 364
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/hgvs.ts",
+          "sha256": "0967b0d1f1f8e7568a0a2d596485b1776b9434c7851fd1aa8969de2fe3d48386",
+          "tokens": 130
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/serverActions.ts",
+          "sha256": "cf5d4f7946bbbebb828383f03c00f3c3967b23cf131bd8918d3b253e12e3504f",
+          "tokens": 1599
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/types.ts",
+          "sha256": "2266febbde40f9f45c34e931dd91b5e8a28b5330a2146e55394844b07181ba26",
+          "tokens": 316
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntry/useAlleleFilters.ts",
+          "sha256": "223a02f5595c413ffec4ccf6e959aab4258eb4311ed4abfcf43d198c3b86005a",
+          "tokens": 1234
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntryList/AlignmentEntryList.tsx",
+          "sha256": "8be689a31449ec750cbaef4fcd6f4b73e82b78971ea6179f67ed6a3d67ef7f07",
+          "tokens": 241
+        },
+        {
+          "path": "webui/src/app/submit/components/AlignmentEntryList/__tests__/AlignmentEntryList.test.tsx",
+          "sha256": "5dd378557d6cbc05be505b28d68f64e8e9948da87f11cc723c73661165bd2f9f",
+          "tokens": 407
+        },
+        {
+          "path": "webui/src/app/submit/components/EnhancedMultiSelect/EnhancedMultiSelect.module.css",
+          "sha256": "040dc25fdd94467f9b93a4e907472b4654bc4255eb5dae050418172e8be9fb93",
+          "tokens": 494
+        },
+        {
+          "path": "webui/src/app/submit/components/EnhancedMultiSelect/EnhancedMultiSelect.tsx",
+          "sha256": "fb98efbe75f1d2af66e6fe7f99b04813c0a4f6e58f5cc1799f4c133a814287fd",
+          "tokens": 361
+        },
+        {
+          "path": "webui/src/app/submit/components/EnhancedMultiSelect/index.ts",
+          "sha256": "a6547f05cad3ce7109dba8cf4b08389312e9399591527281d144c54d3ba0815a",
+          "tokens": 7
+        },
+        {
+          "path": "webui/src/app/submit/components/ExampleDataLoader/ExampleDataLoader.module.css",
+          "sha256": "432af3297d910f41d824a8c29defd7165e4d3152a65859f8b3bd3798df44456f",
+          "tokens": 685
+        },
+        {
+          "path": "webui/src/app/submit/components/ExampleDataLoader/ExampleDataLoader.tsx",
+          "sha256": "8adb38022c4a24ffd8eb1068d82d009133151ba1b4b9d5ec994ec080d25fbce1",
+          "tokens": 528
+        },
+        {
+          "path": "webui/src/app/submit/components/ExampleDataLoader/index.ts",
+          "sha256": "268d15468af0e92422defaaba7a7515f40fd9f04b6af996f472dfe2aee2d1e2c",
+          "tokens": 19
+        },
+        {
+          "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.module.css",
+          "sha256": "a4d111edc7c8c58c924b3e210804e767858ed53c1258289cbaa4ebbed31be38f",
+          "tokens": 406
+        },
+        {
+          "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.tsx",
+          "sha256": "24482336c93feb7f65bd70c4e62e548f59cc58733c846287be4a2fcf10ac93d0",
+          "tokens": 757
+        },
+        {
+          "path": "webui/src/app/submit/components/FormIntroduction/index.ts",
+          "sha256": "19dd9d0122f867b281d735a90d88fd779707ba9dcc31bc90655d437a760380d5",
+          "tokens": 7
+        },
+        {
+          "path": "webui/src/app/submit/components/HelpTooltip/HelpTooltip.module.css",
+          "sha256": "e81e00ae38c8ffef5e53494b8047da556f8828e4fd2988646ab08d98599aa8c2",
+          "tokens": 273
+        },
+        {
+          "path": "webui/src/app/submit/components/HelpTooltip/HelpTooltip.tsx",
+          "sha256": "32c74b603164ab59a0ed8cfb1ef93bba6e77af1d5fc537beb84b5149c5d08972",
+          "tokens": 161
+        },
+        {
+          "path": "webui/src/app/submit/components/HelpTooltip/index.ts",
+          "sha256": "63ac249d7c70d8e8c980c1b37c78989ba035221cab885225e9beee8229e2b438",
+          "tokens": 9
+        },
+        {
+          "path": "webui/src/app/submit/components/JobSubmitForm/JobSubmitForm.tsx",
+          "sha256": "70050084044f973c45a2a6cca3d16aa961c2eaf02d9f78d13e5c1a7573e3a21b",
+          "tokens": 293
+        },
+        {
+          "path": "webui/src/app/submit/components/JobSubmitForm/__tests__/JobSubmitForm.editStash.test.tsx",
+          "sha256": "46c8fc6c62c0be720404cb786735643b2e96452f2fc0512895403fbdf3884d1d",
+          "tokens": 551
+        },
+        {
+          "path": "webui/src/app/submit/components/JobSubmitForm/__tests__/JobSubmitForm.initialGenes.test.tsx",
+          "sha256": "677e6129019938adbf3468c0cc2407b088608fda94a30682ef032c92f0445dc6",
+          "tokens": 285
+        },
+        {
+          "path": "webui/src/app/submit/components/JobSubmitForm/__tests__/JobSubmitForm.test.tsx",
+          "sha256": "1c6b51b505bdbec4893693d90683a4f2a525fcd531ca8fbf1dfab47300057590",
+          "tokens": 470
+        },
+        {
+          "path": "webui/src/app/submit/components/JobSubmitForm/serverActions.ts",
+          "sha256": "73e5326c9b755bd9c58b4c4f304e541057967e261e091920c76221e9886e2626",
+          "tokens": 102
+        },
+        {
+          "path": "webui/src/app/submit/components/JobSubmitForm/types.ts",
+          "sha256": "b62bcea33a498a02faa03c7f703c536dd31aede07ec61aee8719324cf42949a4",
+          "tokens": 177
+        },
+        {
+          "path": "webui/src/app/submit/components/TranscriptViewer/GenomeFeatureView.tsx",
+          "sha256": "9e06bf68c8580ca09585ab4c6167d469cf6462f1f9c04413bb2eb62ff43e5ead",
+          "tokens": 329
+        },
+        {
+          "path": "webui/src/app/submit/components/TranscriptViewer/TranscriptViewerDialog.tsx",
+          "sha256": "5d5c6ee9421cbc15ea1c8de147d03278ebdeec1068641f97bf797c722280f9eb",
+          "tokens": 224
+        },
+        {
+          "path": "webui/src/app/submit/components/TranscriptViewer/__tests__/GenomeFeatureView.test.tsx",
+          "sha256": "c86664afd2ce9d67be66e589da657cdd28cf81bfd639a7c7b81eb633a3a26cdd",
+          "tokens": 1219
+        },
+        {
+          "path": "webui/src/app/submit/components/TranscriptViewer/__tests__/TranscriptViewerDialog.test.tsx",
+          "sha256": "58d9f8ba86f2547c33173490bbc20495955f27fb58ae24725599557957b05238",
+          "tokens": 250
+        },
+        {
+          "path": "webui/src/app/submit/components/TranscriptViewer/__tests__/trackConfig.test.ts",
+          "sha256": "467c1be81dfe81bd3668baf6774ce82d4e696ca0179a699b3505332a61fe994c",
+          "tokens": 368
+        },
+        {
+          "path": "webui/src/app/submit/components/TranscriptViewer/index.ts",
+          "sha256": "a8ab0713360e082929126bee367fbe6e02f75e3cd3d083dff25abcfc0bb83dd0",
+          "tokens": 24
+        },
+        {
+          "path": "webui/src/app/submit/components/TranscriptViewer/trackConfig.ts",
+          "sha256": "19d88b738cc9e56b3098ead1350bd9ba9fc588479a2bdd40e1a37685710a105a",
+          "tokens": 116
+        },
+        {
+          "path": "webui/src/app/submit/components/TranscriptViewer/transcriptView.css",
+          "sha256": "31157424b094fbbc2a9064d581733837faae3ae8ce12a53c1dc08012e5315e68",
+          "tokens": 44
+        },
+        {
+          "path": "webui/src/app/submit/components/ValidationMessage/ValidationMessage.module.css",
+          "sha256": "7faae8fec2c06d0dae0889f47f85c3dde78d7b36b236aefac5aadf477be279e7",
+          "tokens": 426
+        },
+        {
+          "path": "webui/src/app/submit/components/ValidationMessage/ValidationMessage.tsx",
+          "sha256": "54ad19dec6216140f9b3d78df02e92ae76c5cbd9ad8afb760de40aead7e0b7b7",
+          "tokens": 429
+        },
+        {
+          "path": "webui/src/app/submit/components/ValidationMessage/index.ts",
+          "sha256": "0d687862d26ddeb7ea2f90d6afe1548d87e9135c5085f16b8e1cf2a9e76a8109",
+          "tokens": 21
+        },
+        {
+          "path": "webui/src/app/submit/page.tsx",
+          "sha256": "1f205d79c8f802455cc13debda1d4344a46e3228c7bb2b9bfb401917e84c6216",
+          "tokens": 43
+        },
+        {
+          "path": "webui/src/examples/index.ts",
+          "sha256": "a06c02f4d31326cfa97dea1dd83317d8560e65930ba886b6d9c19df59a79080d",
+          "tokens": 24
+        },
+        {
+          "path": "webui/src/examples/types.ts",
+          "sha256": "ae82bf246f83bf4a741b555347c05f3861e27238d5c898f00ddeae9554cec810",
+          "tokens": 111
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useAlleleSelection.addAlleles.test.ts",
+          "sha256": "ce9bfcd8152efc503f6c9d3faa9adcdf0934caf26c14ac6fabc4b02ecf193552",
+          "tokens": 532
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useFocusOnMount.test.ts",
+          "sha256": "431e1c7d70565c6c75001125bf5ad2894ce759287cfc16411501ea8cffe11216",
+          "tokens": 1193
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useGeneSearch.initialGeneId.test.ts",
+          "sha256": "a01833d1513624eda4be3534386dbe3f76f20b25c137fdaa1987e54b42599afa",
+          "tokens": 521
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useJobHistory.test.ts",
+          "sha256": "66143521b6ad1dd26baa00cb22580f1c645d9b63cad8c1a9e260d4a8f1201e01",
+          "tokens": 2176
+        },
+        {
+          "path": "webui/src/hooks/__tests__/usePrefetch.test.ts",
+          "sha256": "1b4a57a6ad14c7751b8b5e9719c4d05f3109cb69ddb928d3e2b752baf16abfd1",
+          "tokens": 2338
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useRealtimeUpdates.test.ts",
+          "sha256": "738d417b3e4d09757f58059288a06410bd912b08ba3945025be9a285e27a3581",
+          "tokens": 2220
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useResponsive.test.ts",
+          "sha256": "078cd3c9bdb709322887b4be3a63f201ff644f92a808d80acff4bdd02b99b120",
+          "tokens": 1917
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useTranscriptSelection.defaultPick.test.ts",
+          "sha256": "ad0228c50a246346fe2f6cb4c736697404cfbe4381ece5fb3dc3439e4ecac443",
+          "tokens": 197
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useTranscriptSelection.initialTranscripts.test.ts",
+          "sha256": "417afd1fc71a8b016adeabfb80b741616110c90c72e747cd8ad519e194fc6800",
+          "tokens": 208
+        },
+        {
+          "path": "webui/src/hooks/__tests__/useTranscriptSelection.loadFailed.test.ts",
+          "sha256": "b6d6052a90b1d223f44c2a5aa270af692e40914f51fd3ee6b0afe807edc25ca8",
+          "tokens": 439
+        },
+        {
+          "path": "webui/src/hooks/index.ts",
+          "sha256": "8eb5be4a4d2e8483e78c2cd392a6fa82274b5e3a7fa278b0c96d6866b8438ef2",
+          "tokens": 142
+        },
+        {
+          "path": "webui/src/hooks/useAlleleSelection.ts",
+          "sha256": "c50366cb6e1e0a78f5af0a5a53cae950d4156e0817cdd965835a731b6ee4a2a9",
+          "tokens": 491
+        },
+        {
+          "path": "webui/src/hooks/useFocusOnMount.ts",
+          "sha256": "1646c28d5f89c769eed11379935306c2f0be7eeae2ecc62d214b13a24873dcfa",
+          "tokens": 265
+        },
+        {
+          "path": "webui/src/hooks/useGeneSearch.ts",
+          "sha256": "b14490b46d828a640b3bad8cce6f4fcb21fd615ffbbab01c8a3e3fec560fa365",
+          "tokens": 480
+        },
+        {
+          "path": "webui/src/hooks/useJobHistory.ts",
+          "sha256": "727ce70c3abb91f3495faa94067b8c6ef4b4fa8a0fd082dd324884d98289471a",
+          "tokens": 1009
+        },
+        {
+          "path": "webui/src/hooks/usePrefetch.ts",
+          "sha256": "9d40a1fdf06a3015b72d6a3142b3f35a88f3fc650217cdaaef3ce78c142c6b77",
+          "tokens": 1219
+        },
+        {
+          "path": "webui/src/hooks/useRealtimeUpdates.ts",
+          "sha256": "bf7e06253f7c0d03f22cdf30eadc448aaba89792817716ca05fe525f34366288",
+          "tokens": 1159
+        },
+        {
+          "path": "webui/src/hooks/useResponsive.ts",
+          "sha256": "5438c9a6fd1cee3c7d3f25f2022d76d4d3e34e3ec75103f74ebf4dc4006df303",
+          "tokens": 664
+        },
+        {
+          "path": "webui/src/hooks/useTranscriptSelection.ts",
+          "sha256": "073182a82d5169ff6d2239def2548beeee4a688c84923107d13dec49be7f7082",
+          "tokens": 605
+        },
+        {
+          "path": "webui/src/hooks/useWebVitals.ts",
+          "sha256": "274316c02ef86bb8f384e63953d557bae348652de04e19e334f572d37cf23014",
+          "tokens": 541
+        },
+        {
+          "path": "webui/src/proxy.ts",
+          "sha256": "db20820c28dd322a8065344aca42dc2af583a0261aeb1ea750eefed53250dde6",
+          "tokens": 213
+        },
+        {
+          "path": "webui/src/types/html2canvas.d.ts",
+          "sha256": "36d2f274b13bca671f9a4f9328a3192e84cb435bb8c62b67f36701e58df442d8",
+          "tokens": 73
+        },
+        {
+          "path": "webui/src/utils/__tests__/dataCache.emptyResults.test.ts",
+          "sha256": "5bded0e16f2b9ea3dc7ccb02db768f38b3f1e969f52df360bbe540af48e670d3",
+          "tokens": 330
+        },
+        {
+          "path": "webui/src/utils/__tests__/maneSelect.test.ts",
+          "sha256": "90724293ea466193599dff8bf08b6787407fe2209bae0d43b60a375dc52a8142",
+          "tokens": 61
+        },
+        {
+          "path": "webui/src/utils/__tests__/tabixTranscripts.test.ts",
+          "sha256": "4a3d337174cfc61cac100521bd63ccd22eb85799e90bc8ca68aa3ab8a643be0d",
+          "tokens": 2702
+        },
+        {
+          "path": "webui/src/utils/agrSpeciesConfig.ts",
+          "sha256": "c9ccd7d6b6b172a652c9619e8451ff1eab110ddb3b5b8735cf566a8aa5bef33e",
+          "tokens": 643
+        },
+        {
+          "path": "webui/src/utils/basePath.ts",
+          "sha256": "3a8c55a7c47a8f5095e496cac94faec2b079da879850f627faae1d78de4b6c7c",
+          "tokens": 32
+        },
+        {
+          "path": "webui/src/utils/dataCache.ts",
+          "sha256": "f6451ccf43b9d316cf12af6dee6bdd743370a404181cd0f1082accfb15efc51c",
+          "tokens": 1672
+        },
+        {
+          "path": "webui/src/utils/featureFlags.ts",
+          "sha256": "b35d71663ecfe67f43a4f3ba0604d278bddb54c84afe9241f1f27be49c34eb06",
+          "tokens": 12
+        },
+        {
+          "path": "webui/src/utils/index.ts",
+          "sha256": "7a043d66baf1fc2d38926717cae7113f56e666474d46a34fecc32242faea830f",
+          "tokens": 10
+        },
+        {
+          "path": "webui/src/utils/jobExport.ts",
+          "sha256": "764957e5cfdcafb58a59f475f67dc56ac0a2b4fdaaccbf404757193203e87fef",
+          "tokens": 552
+        },
+        {
+          "path": "webui/src/utils/maneSelect.ts",
+          "sha256": "5c97e8b15d842ceeaecb3b276bf4ea97f4faa7008cb74a64f6277371d76b6b39",
+          "tokens": 256
+        },
+        {
+          "path": "webui/src/utils/mockData.ts",
+          "sha256": "6cd7bd701018d5670d6097c497a5834a29be34e6ed38b645ae19d0d092aaae6e",
+          "tokens": 541
+        },
+        {
+          "path": "webui/src/utils/tabixTranscripts.ts",
+          "sha256": "c4b20dea4b2bd7d668f0807feebbfcfe7f05f0e56316d3542fcaf5d36057f58a",
+          "tokens": 1941
+        }
+      ],
+      "byteIdenticalFiles": [],
+      "exact": [
+        {
+          "tokens": 16,
+          "local": {
+            "path": "src/analysis.ts",
+            "startLine": 33,
+            "endLine": 33,
+            "startOffset": 1658,
+            "endOffset": 1686
+          },
+          "upstream": {
+            "path": "webui/src/app/admin/components/JobAnalytics.tsx",
+            "startLine": 197,
+            "endLine": 197,
+            "startOffset": 6515,
+            "endOffset": 6548
+          }
+        },
+        {
+          "tokens": 16,
+          "local": {
+            "path": "src/analysis.ts",
+            "startLine": 33,
+            "endLine": 33,
+            "startOffset": 1658,
+            "endOffset": 1686
+          },
+          "upstream": {
+            "path": "webui/src/app/admin/components/JobAnalytics.tsx",
+            "startLine": 216,
+            "endLine": 216,
+            "startOffset": 7249,
+            "endOffset": 7282
+          }
+        },
+        {
+          "tokens": 16,
+          "local": {
+            "path": "src/analysis.ts",
+            "startLine": 33,
+            "endLine": 33,
+            "startOffset": 1658,
+            "endOffset": 1686
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/PositionInfoPanel/PositionInfoPanel.tsx",
+            "startLine": 94,
+            "endLine": 94,
+            "startOffset": 3435,
+            "endOffset": 3468
+          }
+        },
+        {
+          "tokens": 15,
+          "local": {
+            "path": "src/controls.ts",
+            "startLine": 29,
+            "endLine": 30,
+            "startOffset": 3636,
+            "endOffset": 3662
+          },
+          "upstream": {
+            "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.tsx",
+            "startLine": 37,
+            "endLine": 43,
+            "startOffset": 1868,
+            "endOffset": 1957
+          }
+        },
+        {
+          "tokens": 14,
+          "local": {
+            "path": "src/controls.ts",
+            "startLine": 29,
+            "endLine": 30,
+            "startOffset": 3636,
+            "endOffset": 3659
+          },
+          "upstream": {
+            "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.tsx",
+            "startLine": 36,
+            "endLine": 41,
+            "startOffset": 1837,
+            "endOffset": 1934
+          }
+        },
+        {
+          "tokens": 14,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 6,
+            "endLine": 6,
+            "startOffset": 2689,
+            "endOffset": 2740
+          },
+          "upstream": {
+            "path": "webui/src/app/help/guide/guide.module.css",
+            "startLine": 527,
+            "endLine": 530,
+            "startOffset": 10466,
+            "endOffset": 10535
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/controls.ts",
+            "startLine": 29,
+            "endLine": 30,
+            "startOffset": 3637,
+            "endOffset": 3659
+          },
+          "upstream": {
+            "path": "webui/src/app/admin/components/BatchJobMonitor.tsx",
+            "startLine": 197,
+            "endLine": 200,
+            "startOffset": 9132,
+            "endOffset": 9202
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/controls.ts",
+            "startLine": 33,
+            "endLine": 35,
+            "startOffset": 4672,
+            "endOffset": 4701
+          },
+          "upstream": {
+            "path": "webui/src/app/admin/components/BatchJobMonitor.tsx",
+            "startLine": 197,
+            "endLine": 200,
+            "startOffset": 9132,
+            "endOffset": 9202
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/controls.ts",
+            "startLine": 33,
+            "endLine": 35,
+            "startOffset": 4672,
+            "endOffset": 4701
+          },
+          "upstream": {
+            "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.tsx",
+            "startLine": 37,
+            "endLine": 41,
+            "startOffset": 1863,
+            "endOffset": 1934
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/controls.ts",
+            "startLine": 33,
+            "endLine": 35,
+            "startOffset": 4672,
+            "endOffset": 4701
+          },
+          "upstream": {
+            "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.tsx",
+            "startLine": 38,
+            "endLine": 43,
+            "startOffset": 1890,
+            "endOffset": 1954
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6492,
+            "endOffset": 6512
+          },
+          "upstream": {
+            "path": "webui/src/app/jobs/page.tsx",
+            "startLine": 121,
+            "endLine": 124,
+            "startOffset": 4227,
+            "endOffset": 4310
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6492,
+            "endOffset": 6512
+          },
+          "upstream": {
+            "path": "webui/src/app/jobs/page.tsx",
+            "startLine": 130,
+            "endLine": 133,
+            "startOffset": 4747,
+            "endOffset": 4830
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6492,
+            "endOffset": 6512
+          },
+          "upstream": {
+            "path": "webui/src/app/jobs/page.tsx",
+            "startLine": 139,
+            "endLine": 142,
+            "startOffset": 5267,
+            "endOffset": 5350
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6492,
+            "endOffset": 6512
+          },
+          "upstream": {
+            "path": "webui/src/app/jobs/page.tsx",
+            "startLine": 148,
+            "endLine": 151,
+            "startOffset": 5779,
+            "endOffset": 5862
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6492,
+            "endOffset": 6512
+          },
+          "upstream": {
+            "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.tsx",
+            "startLine": 22,
+            "endLine": 25,
+            "startOffset": 1023,
+            "endOffset": 1110
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6492,
+            "endOffset": 6512
+          },
+          "upstream": {
+            "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.tsx",
+            "startLine": 29,
+            "endLine": 32,
+            "startOffset": 1427,
+            "endOffset": 1514
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6492,
+            "endOffset": 6512
+          },
+          "upstream": {
+            "path": "webui/src/app/submit/components/FormIntroduction/FormIntroduction.tsx",
+            "startLine": 36,
+            "endLine": 39,
+            "startOffset": 1831,
+            "endOffset": 1914
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6936,
+            "endOffset": 6967
+          },
+          "upstream": {
+            "path": "webui/src/app/admin/components/BatchJobMonitor.tsx",
+            "startLine": 134,
+            "endLine": 135,
+            "startOffset": 5356,
+            "endOffset": 5416
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6936,
+            "endOffset": 6967
+          },
+          "upstream": {
+            "path": "webui/src/app/admin/components/BatchJobMonitor.tsx",
+            "startLine": 140,
+            "endLine": 141,
+            "startOffset": 5706,
+            "endOffset": 5766
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/inspector.ts",
+            "startLine": 29,
+            "endLine": 29,
+            "startOffset": 6936,
+            "endOffset": 6967
+          },
+          "upstream": {
+            "path": "webui/src/app/admin/components/BatchJobMonitor.tsx",
+            "startLine": 146,
+            "endLine": 147,
+            "startOffset": 6056,
+            "endOffset": 6116
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/react.tsx",
+            "startLine": 10,
+            "endLine": 11,
+            "startOffset": 912,
+            "endOffset": 937
+          },
+          "upstream": {
+            "path": "webui/src/hooks/usePrefetch.ts",
+            "startLine": 109,
+            "endLine": 113,
+            "startOffset": 3053,
+            "endOffset": 3124
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/react.tsx",
+            "startLine": 10,
+            "endLine": 11,
+            "startOffset": 912,
+            "endOffset": 937
+          },
+          "upstream": {
+            "path": "webui/src/hooks/usePrefetch.ts",
+            "startLine": 210,
+            "endLine": 214,
+            "startOffset": 5715,
+            "endOffset": 5786
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4308,
+            "endOffset": 4340
+          },
+          "upstream": {
+            "path": "webui/src/app/components/Accessibility/Accessibility.module.css",
+            "startLine": 2,
+            "endLine": 5,
+            "startOffset": 71,
+            "endOffset": 121
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4308,
+            "endOffset": 4340
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/ResponsiveAlignmentContainer/ResponsiveAlignmentContainer.module.css",
+            "startLine": 34,
+            "endLine": 37,
+            "startOffset": 656,
+            "endOffset": 706
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 6057,
+            "endOffset": 6116
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/AlignmentSearch/AlignmentSearch.module.css",
+            "startLine": 139,
+            "endLine": 142,
+            "startOffset": 2399,
+            "endOffset": 2476
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 6057,
+            "endOffset": 6116
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/AlignmentSearch/AlignmentSearch.module.css",
+            "startLine": 227,
+            "endLine": 230,
+            "startOffset": 4016,
+            "endOffset": 4093
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 6057,
+            "endOffset": 6116
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/AlignmentSearch/AlignmentSearch.module.css",
+            "startLine": 247,
+            "endLine": 250,
+            "startOffset": 4467,
+            "endOffset": 4544
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 6057,
+            "endOffset": 6116
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/InteractiveAlignment/VirtualizedAlignment.module.css",
+            "startLine": 877,
+            "endLine": 880,
+            "startOffset": 17671,
+            "endOffset": 17742
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 6057,
+            "endOffset": 6116
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/ResultsSummary/ResultsSummary.module.css",
+            "startLine": 502,
+            "endLine": 505,
+            "startOffset": 9308,
+            "endOffset": 9385
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 10014,
+            "endOffset": 10058
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/AlignmentSkeleton/AlignmentSkeleton.module.css",
+            "startLine": 61,
+            "endLine": 64,
+            "startOffset": 824,
+            "endOffset": 886
+          }
+        },
+        {
+          "tokens": 13,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 11,
+            "endLine": 11,
+            "startOffset": 11105,
+            "endOffset": 11143
+          },
+          "upstream": {
+            "path": "webui/src/app/components/Accessibility/Accessibility.module.css",
+            "startLine": 13,
+            "endLine": 16,
+            "startOffset": 233,
+            "endOffset": 289
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/annotations.ts",
+            "startLine": 11,
+            "endLine": 11,
+            "startOffset": 596,
+            "endOffset": 616
+          },
+          "upstream": {
+            "path": "webui/src/utils/tabixTranscripts.ts",
+            "startLine": 339,
+            "endLine": 339,
+            "startOffset": 14071,
+            "endOffset": 14094
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/annotations.ts",
+            "startLine": 11,
+            "endLine": 11,
+            "startOffset": 596,
+            "endOffset": 616
+          },
+          "upstream": {
+            "path": "webui/src/utils/tabixTranscripts.ts",
+            "startLine": 340,
+            "endLine": 340,
+            "startOffset": 14120,
+            "endOffset": 14143
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/parsers.ts",
+            "startLine": 11,
+            "endLine": 11,
+            "startOffset": 728,
+            "endOffset": 744
+          },
+          "upstream": {
+            "path": "webui/src/app/submit-bulk/__tests__/bulkTemplate.test.ts",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 349,
+            "endOffset": 365
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/react.tsx",
+            "startLine": 10,
+            "endLine": 11,
+            "startOffset": 913,
+            "endOffset": 937
+          },
+          "upstream": {
+            "path": "webui/src/hooks/useJobHistory.ts",
+            "startLine": 61,
+            "endLine": 65,
+            "startOffset": 1899,
+            "endOffset": 1978
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 6,
+            "endLine": 6,
+            "startOffset": 2689,
+            "endOffset": 2736
+          },
+          "upstream": {
+            "path": "webui/src/app/components/Breadcrumbs/Breadcrumbs.module.css",
+            "startLine": 9,
+            "endLine": 11,
+            "startOffset": 146,
+            "endOffset": 206
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4260,
+            "endOffset": 4291
+          },
+          "upstream": {
+            "path": "webui/src/app/components/Accessibility/Accessibility.module.css",
+            "startLine": 2,
+            "endLine": 5,
+            "startOffset": 71,
+            "endOffset": 120
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4260,
+            "endOffset": 4291
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/ResponsiveAlignmentContainer/ResponsiveAlignmentContainer.module.css",
+            "startLine": 34,
+            "endLine": 37,
+            "startOffset": 656,
+            "endOffset": 705
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 8,
+            "endLine": 8,
+            "startOffset": 4309,
+            "endOffset": 4340
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/ResponsiveAlignmentContainer/ResponsiveAlignmentContainer.module.css",
+            "startLine": 287,
+            "endLine": 289,
+            "startOffset": 5224,
+            "endOffset": 5268
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 5397,
+            "endOffset": 5428
+          },
+          "upstream": {
+            "path": "webui/src/app/help/guide/guide.module.css",
+            "startLine": 263,
+            "endLine": 265,
+            "startOffset": 5319,
+            "endOffset": 5363
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 5572,
+            "endOffset": 5603
+          },
+          "upstream": {
+            "path": "webui/src/app/help/guide/guide.module.css",
+            "startLine": 263,
+            "endLine": 265,
+            "startOffset": 5319,
+            "endOffset": 5363
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/style.css",
+            "startLine": 9,
+            "endLine": 9,
+            "startOffset": 6058,
+            "endOffset": 6116
+          },
+          "upstream": {
+            "path": "webui/src/app/admin/components/AdminComponents.module.css",
+            "startLine": 171,
+            "endLine": 173,
+            "startOffset": 2872,
+            "endOffset": 2943
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/viewer.ts",
+            "startLine": 34,
+            "endLine": 35,
+            "startOffset": 3308,
+            "endOffset": 3328
+          },
+          "upstream": {
+            "path": "webui/src/app/components/LazyComponent/LazyComponent.tsx",
+            "startLine": 249,
+            "endLine": 252,
+            "startOffset": 6932,
+            "endOffset": 7030
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/worker.js",
+            "startLine": 14,
+            "endLine": 14,
+            "startOffset": 801,
+            "endOffset": 851
+          },
+          "upstream": {
+            "path": "webui/src/app/api/deployment-status/route.ts",
+            "startLine": 117,
+            "endLine": 117,
+            "startOffset": 4256,
+            "endOffset": 4310
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/worker.js",
+            "startLine": 14,
+            "endLine": 14,
+            "startOffset": 801,
+            "endOffset": 851
+          },
+          "upstream": {
+            "path": "webui/src/app/api/deployment-status/route.ts",
+            "startLine": 159,
+            "endLine": 159,
+            "startOffset": 5920,
+            "endOffset": 5974
+          }
+        },
+        {
+          "tokens": 12,
+          "local": {
+            "path": "src/worker.js",
+            "startLine": 14,
+            "endLine": 14,
+            "startOffset": 801,
+            "endOffset": 851
+          },
+          "upstream": {
+            "path": "webui/src/app/api/deployment-status/route.ts",
+            "startLine": 194,
+            "endLine": 194,
+            "startOffset": 7225,
+            "endOffset": 7279
+          }
+        }
+      ],
+      "normalized": [
+        {
+          "tokens": 42,
+          "local": {
+            "path": "src/colors.ts",
+            "startLine": 10,
+            "endLine": 10,
+            "startOffset": 863,
+            "endOffset": 1117
+          },
+          "upstream": {
+            "path": "webui/src/app/result/utils/publicationSvg.ts",
+            "startLine": 84,
+            "endLine": 91,
+            "startOffset": 2930,
+            "endOffset": 3148
+          }
+        },
+        {
+          "tokens": 40,
+          "local": {
+            "path": "src/viewer.ts",
+            "startLine": 1,
+            "endLine": 6,
+            "startOffset": 165,
+            "endOffset": 433
+          },
+          "upstream": {
+            "path": "webui/src/app/result/components/AlignmentResultView/AlignmentResultView.tsx",
+            "startLine": 9,
+            "endLine": 15,
+            "startOffset": 290,
+            "endOffset": 661
+          }
+        }
+      ]
+    }
+  ],
+  "palettes": [
+    {
+      "palette": "aliphatic",
+      "entries": 5,
+      "differences": [],
+      "currentBlob": "79e87dad102c9607b0287799c3ff51f408c091c0",
+      "recordedBlob": "79e87dad102c9607b0287799c3ff51f408c091c0",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "aromatic",
+      "entries": 4,
+      "differences": [],
+      "currentBlob": "6e51e52785e0822ae80002c9229f1b9dd9b9cc8a",
+      "recordedBlob": "6e51e52785e0822ae80002c9229f1b9dd9b9cc8a",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "buried",
+      "entries": 23,
+      "differences": [],
+      "currentBlob": "3fcc0fd48f03cf54613b5e6a9f9630edd2f81be3",
+      "recordedBlob": "3fcc0fd48f03cf54613b5e6a9f9630edd2f81be3",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "charged",
+      "entries": 5,
+      "differences": [],
+      "currentBlob": "2459775237d476e279d5fdb594c928607536d56f",
+      "recordedBlob": "2459775237d476e279d5fdb594c928607536d56f",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "cinema",
+      "entries": 27,
+      "differences": [],
+      "currentBlob": "fb0a3a8ade09e360c1e782e9965e23a82a60f1d7",
+      "recordedBlob": "fb0a3a8ade09e360c1e782e9965e23a82a60f1d7",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "clustal",
+      "entries": 27,
+      "differences": [],
+      "currentBlob": "3466d03a755a6fc8ef092980815f39e81a134c28",
+      "recordedBlob": "3466d03a755a6fc8ef092980815f39e81a134c28",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "clustal2",
+      "entries": 23,
+      "differences": [],
+      "currentBlob": "6b3043c4f9e0823966f88642317814658c82b301",
+      "recordedBlob": "6b3043c4f9e0823966f88642317814658c82b301",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "helix",
+      "entries": 23,
+      "differences": [],
+      "currentBlob": "34609f0387f786c28d4659ab07e8cbce86543a5d",
+      "recordedBlob": "34609f0387f786c28d4659ab07e8cbce86543a5d",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "hydrophobicity",
+      "entries": 26,
+      "differences": [],
+      "currentBlob": "8df1bfc6be0fb0ba738c07fa07d05f6dca86405a",
+      "recordedBlob": "8df1bfc6be0fb0ba738c07fa07d05f6dca86405a",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "lesk",
+      "entries": 27,
+      "differences": [],
+      "currentBlob": "09633628d781effb9e2360001e0ef6c213807f96",
+      "recordedBlob": "09633628d781effb9e2360001e0ef6c213807f96",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "mae",
+      "entries": 27,
+      "differences": [],
+      "currentBlob": "93788f93714c2fa01724b8dfbbb7f3eecdd36b44",
+      "recordedBlob": "93788f93714c2fa01724b8dfbbb7f3eecdd36b44",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "negative",
+      "entries": 2,
+      "differences": [],
+      "currentBlob": "c14fb8abc416a67088d1f208007acbd5308298c5",
+      "recordedBlob": "c14fb8abc416a67088d1f208007acbd5308298c5",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "nucleotide",
+      "entries": 5,
+      "differences": [],
+      "currentBlob": "f381048af96fdb7dfebc8e2a4d4b7a7b31c8ebd4",
+      "recordedBlob": "f381048af96fdb7dfebc8e2a4d4b7a7b31c8ebd4",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "polar",
+      "entries": 11,
+      "differences": [],
+      "currentBlob": "127d9f153d480adc38bc54fb4a4ca6ad1307f529",
+      "recordedBlob": "127d9f153d480adc38bc54fb4a4ca6ad1307f529",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "positive",
+      "entries": 3,
+      "differences": [],
+      "currentBlob": "0a69534be427ff91da512c9c7c4a805988e0bca5",
+      "recordedBlob": "0a69534be427ff91da512c9c7c4a805988e0bca5",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "purine",
+      "entries": 7,
+      "differences": [],
+      "currentBlob": "ff8c085f96503e490f8be9373fae7912eab97386",
+      "recordedBlob": "ff8c085f96503e490f8be9373fae7912eab97386",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "serine_threonine",
+      "entries": 2,
+      "differences": [],
+      "currentBlob": "4787e285d18a087be9343b9e18b0131e01f58c0c",
+      "recordedBlob": "4787e285d18a087be9343b9e18b0131e01f58c0c",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "strand",
+      "entries": 23,
+      "differences": [],
+      "currentBlob": "2b77b324ab45fcfbc1513d53170bcf60a39cd5d3",
+      "recordedBlob": "2b77b324ab45fcfbc1513d53170bcf60a39cd5d3",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "taylor",
+      "entries": 23,
+      "differences": [],
+      "currentBlob": "5d1afdb74d6e159960c4a16c5925dd47263a3939",
+      "recordedBlob": "5d1afdb74d6e159960c4a16c5925dd47263a3939",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "turn",
+      "entries": 23,
+      "differences": [],
+      "currentBlob": "336aa7e9fe3b477f58091ecc9efc6d3271909bce",
+      "recordedBlob": "336aa7e9fe3b477f58091ecc9efc6d3271909bce",
+      "matchesRecordedBlob": true
+    },
+    {
+      "palette": "zappo",
+      "entries": 23,
+      "differences": [],
+      "currentBlob": "faa360afbb43aa35120f3248e3ae13699141028b",
+      "recordedBlob": "faa360afbb43aa35120f3248e3ae13699141028b",
+      "matchesRecordedBlob": true
+    }
+  ]
+}
