@@ -7,3 +7,6 @@ export { exportFasta, exportStatistics, exportSvg, exportPng } from './export';
 export { AnnotationIndex, filterAnnotations } from './annotations';
 export type * from './types';
 export type { ColorScheme } from './colors';
+export { defaultVisibility } from './visibility';
+export { parseViewerConfig } from './config';
+export type { ViewerConfig } from './config';

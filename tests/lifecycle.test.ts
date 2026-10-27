@@ -58,7 +58,8 @@ it('cancels stale loads and removes listeners and DOM on destroy',async()=>{
 it('restores state only for the correct dataset and maps ungapped motifs through gaps',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());await viewer.setAlignment(data());
   viewer.findMotif('ACG');expect(viewer.getState().selection).toMatchObject({start:1,end:4,rowId:'seq-1'});
-  const state=viewer.getState();viewer.setSelection(null);await viewer.setState(state);expect(viewer.getState().selection?.start).toBe(1);
+  viewer.setOptions({visibility:{overview:false}});const state=viewer.getState();viewer.setSelection(null);viewer.setOptions({visibility:{overview:true}});await viewer.setState(state);expect(viewer.getState().selection?.start).toBe(1);expect(viewer.getVisibility().overview).toBe(false);
+  await viewer.setState({...state,visibility:undefined});expect(viewer.getVisibility().overview).toBe(false);
   await expect(viewer.setState({...state,alignmentId:'wrong'})).rejects.toThrow(/different alignment/);
 });
 it('clears reactive alignment props and refuses A3M URL input',async()=>{
@@ -67,4 +68,33 @@ it('clears reactive alignment props and refuses A3M URL input',async()=>{
   controller.update({alignment:undefined,options:{worker:false}});
   expect(controller.viewer.getAlignment()).toBeUndefined();
   await expect(controller.viewer.loadUrl('https://example.org/test.a3m')).rejects.toThrow(/A3M/);
+});
+it('merges visibility patches, preserves data, and restores the reference to the matrix when unpinned visually',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false,visibility:{open:false,overview:false}});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());viewer.setSelection({start:2,end:3,rowId:'seq-2'});
+  expect(el.querySelector<HTMLElement>('[data-action="open"]')!.hidden).toBe(true);
+  expect(el.querySelector<HTMLElement>('.ak-overview-wrap')!.hidden).toBe(true);
+  viewer.setOptions({visibility:{labels:false,reference:false,tracks:false}});
+  expect(el.querySelector<HTMLElement>('.ak-viewer')!.style.getPropertyValue('--ak-gutter')).toBe('0px');
+  expect(el.querySelector<HTMLElement>('.ak-spacer')!.style.height).toBe('108px');
+  expect(viewer.getStatistics()?.total).toBe(3);expect(viewer.getState().selection).toMatchObject({start:2,end:3});
+  expect(viewer.getVisibility().open).toBe(false);
+  viewer.setOptions({visibility:{labels:true,tracks:true,reference:true,overview:true}});
+  expect(el.querySelector<HTMLElement>('.ak-spacer')!.style.height).toBe('72px');
+  expect(el.querySelector<HTMLElement>('.ak-viewer')!.style.getPropertyValue('--ak-gutter')).toBe('230px');
+  expect(el.querySelector<HTMLElement>('.ak-overview-wrap')!.hidden).toBe(false);
+  expect(el.querySelector<HTMLElement>('[data-action="open"]')!.hidden).toBe(true);
+});
+it('collapses disabled track heights and supports legacy aliases and integration updates',async()=>{
+  const el=host(),alignment=data(),controller=mountViewer(el,{alignment,options:{worker:false,visibility:{ruler:false,modalFrequency:false,gapFraction:false,consensus:false,reference:false}}});disposers.push(()=>controller.destroy());
+  await vi.waitFor(()=>expect(controller.viewer.getStatistics()).toBeDefined());
+  expect(el.querySelector<HTMLElement>('.ak-tracks')!.hidden).toBe(true);
+  controller.update({alignment,options:{visibility:{logo:true,tools:false},showToolbar:true}});
+  expect(el.querySelector<HTMLElement>('.ak-tracks')!.style.height).toBe('45px');
+  expect(el.querySelector<HTMLElement>('.ak-tools')!.hidden).toBe(true);
+  expect(el.querySelector<HTMLElement>('.ak-toolbar')!.hidden).toBe(false);
+  controller.viewer.setOptions({showLogo:false,showInspector:false,showToolbar:false});
+  expect(el.querySelector<HTMLElement>('.ak-tracks')!.hidden).toBe(true);
+  expect(el.querySelector<HTMLElement>('.ak-inspector')!.hidden).toBe(true);
+  expect(controller.viewer.getVisibility().logo).toBe(false);
 });

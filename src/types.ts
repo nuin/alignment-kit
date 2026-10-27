@@ -24,13 +24,75 @@ export interface Identity { matches:number; compared:number; identity:number|nul
 export interface Selection { start:number; end:number; rowId?:string }
 export interface AnnotationFilter { types?:string[]; consequences?:string[]; disease?:boolean; phenotype?:boolean; hiddenRowIds?:string[] }
 export type ColorMode = 'all'|'reference-differences'|'reference-matches'|'consensus-differences'|'consensus-matches';
+/** Presentation switches. Omitted keys retain their current value on updates. */
+export interface ViewerVisibility {
+  toolbar?:boolean;
+  tools?:boolean;
+  overview?:boolean;
+  overviewTitle?:boolean;
+  tracks?:boolean;
+  alignment?:boolean;
+  inspector?:boolean;
+  inspectorTabs?:boolean;
+  status?:boolean;
+  statusSummary?:boolean;
+  statusDetails?:boolean;
+  open?:boolean;
+  search?:boolean;
+  colorScheme?:boolean;
+  zoom?:boolean;
+  fit?:boolean;
+  theme?:boolean;
+  inspectorToggle?:boolean;
+  fullscreen?:boolean;
+  export?:boolean;
+  goTo?:boolean;
+  motif?:boolean;
+  order?:boolean;
+  colorMode?:boolean;
+  logoToggle?:boolean;
+  statisticsScope?:boolean;
+  alphabet?:boolean;
+  ruler?:boolean;
+  modalFrequency?:boolean;
+  gapFraction?:boolean;
+  consensus?:boolean;
+  logo?:boolean;
+  reference?:boolean;
+  labels?:boolean;
+  rowNames?:boolean;
+  rowSpecies?:boolean;
+  rowSelection?:boolean;
+  rowPinning?:boolean;
+  labelResize?:boolean;
+  residueLetters?:boolean;
+  annotationMarks?:boolean;
+  selectionOverlay?:boolean;
+  positionTab?:boolean;
+  featuresTab?:boolean;
+  compareTab?:boolean;
+  colorsTab?:boolean;
+  pinReference?:boolean;
+  rowFeaturesToggle?:boolean;
+  featureType?:boolean;
+  featureConsequence?:boolean;
+  diseaseFilter?:boolean;
+  phenotypeFilter?:boolean;
+  featurePagination?:boolean;
+  calculateIdentity?:boolean;
+  clearRows?:boolean;
+  messages?:boolean;
+  emptyState?:boolean;
+}
 export interface ViewerOptions {
+  visibility?:ViewerVisibility;
   alignment?: Alignment; height?:number; name?:string; theme?:'light'|'dark';
   colorScheme?:string; colorMode?:ColorMode; cellWidth?:number; rowHeight?:number;
   labelWidth?:number; showLogo?:boolean; showInspector?:boolean; showToolbar?:boolean;
   statisticsScope?:'all'|'filtered'; workerUrl?:string|URL; worker?:boolean;
 }
 export interface ViewState {
+  visibility?:ViewerVisibility;
   version:1; alignmentId:string; referenceId:string|null; query:string; sort:'input'|'name'|'identity';
   start:number; rowOffset:number; cellWidth:number; selection:Selection|null;
   colorScheme:string; colorMode:ColorMode; statisticsScope:'all'|'filtered'; annotationFilter:AnnotationFilter;

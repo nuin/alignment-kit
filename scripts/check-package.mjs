@@ -6,10 +6,17 @@ import { build } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { build as esbuild } from 'esbuild';
 import { compile } from 'svelte/compiler';
+import assert from 'node:assert/strict';
 const tmp=await realpath(await mkdtemp(join(tmpdir(),'alignment-kit-package-')));
-const packed=JSON.parse(execFileSync('npm',['pack','--json','--cache',join(tmp,'cache'),'--pack-destination',tmp,'--logs-dir',join(tmp,'logs')],{encoding:'utf8'}));
+// release:check builds first; keep lifecycle output out of npm's JSON response.
+const packed=JSON.parse(execFileSync('npm',['pack','--ignore-scripts','--json','--cache',join(tmp,'cache'),'--pack-destination',tmp,'--logs-dir',join(tmp,'logs')],{encoding:'utf8'}));
 const tgz=join(tmp,packed[0].filename);
-await writeFile(join(tmp,'package.json'),JSON.stringify({private:true,type:'module',dependencies:{'@alignment-kit/viewer':`file:${tgz}`,react:'19.2.3','react-dom':'19.2.3',svelte:'5.55.5'}}));
+const contents=new Set(packed[0].files.map(file=>file.path));
+for(const required of ['dist/index.js','dist/index.d.ts','dist/react.js','dist/svelte.js','dist/svelte/AlignmentViewer.svelte','dist/worker.js','dist/style.css','dist/fonts/IBMPlex-LICENSE.txt','THIRD_PARTY_NOTICES.md','docs/USER_GUIDE.md','config/viewer-config.schema.json','config/viewer-config.example.json'])assert.ok(contents.has(required),`Missing packed file: ${required}`);
+assert.ok(![...contents].some(path=>/^(?:demo|tests|scripts|node_modules)\//.test(path)),'Development files leaked into archive');
+const peers=Object.fromEntries(await Promise.all(['react','react-dom','svelte'].map(async name=>[name,JSON.parse(await readFile(resolve('node_modules',name,'package.json'),'utf8')).version])));
+await writeFile(join(tmp,'package.json'),JSON.stringify({private:true,type:'module',dependencies:{'@alignment-kit/viewer':`file:${tgz}`,...peers}}));
+console.log('Consumer peer versions:',peers);
 // Extract the actual package archive; reuse installed framework peers without registry access.
 const packageDir=join(tmp,'node_modules/@alignment-kit/viewer');await mkdir(packageDir,{recursive:true});
 execFileSync('tar',['-xzf',tgz,'--strip-components=1','-C',packageDir]);

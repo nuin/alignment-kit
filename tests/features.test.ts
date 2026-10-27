@@ -3,7 +3,23 @@ import { parseAlignment, readAlignmentInput } from '../src/parsers';
 import { calculateStats } from '../src/analysis';
 import { AnnotationIndex, filterAnnotations } from '../src/annotations';
 import { exportFasta, exportStatistics, exportSvg } from '../src/export';
-import { getColorScheme, registerColorScheme } from '../src/colors';
+import { getColorScheme, registerColorScheme, colorSchemes, residueColor, textColor } from '../src/colors';
+
+it('provides distinct DNA/RNA palettes with honest ambiguity grouping and readable letters',()=>{
+  const ids=['nucleotide-blue-orange','nucleotide-contrast','nucleotide-grayscale','nucleotide-gc','nucleotide-purine'];
+  for(const id of ids){
+    const scheme=getColorScheme(id);expect(colorSchemes('dna').map(s=>s.id)).toContain(id);expect(colorSchemes('rna').map(s=>s.id)).toContain(id);expect(colorSchemes('protein').map(s=>s.id)).not.toContain(id);
+    expect(scheme.colors.T).toBe(scheme.colors.U);
+    for(const base of 'ACGTUNRYKMSWBDHV'){
+      const color=residueColor(base,scheme);expect(color).toMatch(/^#[0-9a-f]{6}$/i);
+      const luminance=(hex:string)=>{const c=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return c[0]*.2126+c[1]*.7152+c[2]*.0722;};
+      const bg=luminance(color),fg=luminance(textColor(color));expect((Math.max(bg,fg)+.05)/(Math.min(bg,fg)+.05)).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+  const gc=getColorScheme('nucleotide-gc').colors;expect(gc.G).toBe(gc.C);expect(gc.S).toBe(gc.G);expect(gc.W).toBe(gc.A);expect(gc.R).toBe(gc.N);
+  const purine=getColorScheme('nucleotide-purine').colors;expect(purine.R).toBe(purine.A);expect(purine.Y).toBe(purine.C);expect(purine.S).toBe(purine.N);
+  for(const id of ids.slice(0,3))expect(new Set('ACGT'.split('').map(base=>getColorScheme(id).colors[base])).size).toBe(4);
+});
 
 it('reads gzip bytes and rejects truncated compressed data', async()=>{
   const stream=new Blob(['>a\nACGT']).stream().pipeThrough(new CompressionStream('gzip'));

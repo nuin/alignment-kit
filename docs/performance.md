@@ -1,6 +1,6 @@
 # Validation and performance
 
-Recorded 2026-10-27. The implementation has 27 passing automated tests across scientific definitions, parsers, exports, lifecycle, SSR imports and the worker protocol. TypeScript and Svelte checks pass without diagnostics. The worker tests execute the bundled worker protocol in Node worker_threads; they do not validate a browser's worker URL or CSP handling.
+Recorded 2026-10-27. The implementation has 36 passing automated tests across scientific definitions, parsers, exports, lifecycle, SSR imports and the worker protocol. TypeScript and Svelte checks pass without diagnostics. The worker tests execute the bundled worker protocol in Node worker_threads; they do not validate a browser's worker URL or CSP handling.
 
 ## CPU baseline
 
@@ -17,10 +17,11 @@ Machine: Apple M3 Max, 16 logical CPUs, 64 GiB RAM, arm64 Darwin 27.0.0, Node 26
 
 Timings exclude fetch, decompression, text parsing, browser layout/paint and worker messaging. RSS increase is the process difference around a fixture, not peak memory, retained viewer memory or browser heap. Garbage collection and retained allocations affect comparisons between rows. Zero-annotation query timings only measure empty-index overhead.
 
-## Browser acceptance remains outstanding
+## Browser checks and outstanding acceptance
 
-This environment rejects listening on 127.0.0.1 with EPERM. Chromium also fails before page execution because MachPortRendezvous is denied. A native Chrome attempt returned a crashed page. Consequently no browser interaction, screenshot, accessibility audit, scrolling frame-time or browser-memory pass is claimed. WebKit remains unverified too.
+Targeted Chromium checks through the browser automation service now execute against the local development server. They cover dynamic visibility, collapsed track/label geometry, menu closure, inspector tab fallback and preservation of alignment/statistics. Documentation screenshots show the actual CBS protein and tRNA viewers plus a minimal embedding; these were visually inspected.
 
+The CLI browser test command still fails when its server attempts to listen on 127.0.0.1 (`EPERM`) inside the shell sandbox. This is distinct from the working browser automation service. The full Chromium/WebKit suite, screen-reader audit, scrolling frame-time and browser-memory acceptance have not been completed.
 Run `npm run test:browser` in a normal desktop environment with Playwright Chromium and WebKit installed. Tests cover viewer interactions, bounded rendered labels, replacement/disposal and both framework examples. For visual review run `npm run dev`, or generate standalone files with `npm run preview:files` and open `.preview/index.html`, `.preview/react.html` and `.preview/svelte.html`.
 
 Before a production release, record browser/OS versions and repeat each large fixture with warm-up and multiple runs. Measure time to the first interactive viewport, p95 scripted horizontal/vertical scroll frame intervals, peak memory including workers, annotation density effects, and repeated mount/unmount. The design targets of under five seconds to usability, p95 frame interval under 33 ms, and under 512 MiB on the target fixture are goals, not verified results. Check desktop/narrow layouts, both themes, keyboard navigation, screen readers and image exports visually.

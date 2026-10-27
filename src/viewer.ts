@@ -1,3 +1,5 @@
+import { defaultVisibility, applyVisibility, trackLayout, inspectorTabs } from './visibility';
+import type { ViewerVisibility } from './types';
 import type { Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode } from './types';
 import { createAlignment, sequenceToAlignment } from './model';
 import { readAlignmentInput } from './parsers';
@@ -24,6 +26,11 @@ export class AlignmentViewer {
   private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
   private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
+  private visibility:Required<ViewerVisibility>={...defaultVisibility};
+  private get gutter(){return this.visibility.labels?this.options.labelWidth:0;}
+  private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
+  getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
+  private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
   private motifCursor={query:'',row:0,start:0};
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
@@ -86,17 +93,26 @@ export class AlignmentViewer {
   setOptions(options:ViewerOptions) {
     this.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
     const oldScope=this.options.statisticsScope;
-    const {alignment:_,worker:__,workerUrl:___,...visual}=options;
+    const wasPinned=this.pinned;
+    const {alignment:_,worker:__,workerUrl:___,visibility,...visual}=options;
+    if(options.showToolbar!==undefined){this.visibility.toolbar=options.showToolbar;this.visibility.tools=options.showToolbar;}
+    if(options.showInspector!==undefined)this.visibility.inspector=options.showInspector;
+    if(options.showLogo!==undefined)this.visibility.logo=options.showLogo;
+    for(const key of Object.keys(visibility??{}) as (keyof ViewerVisibility)[])if(typeof visibility![key]==='boolean')this.visibility[key]=visibility![key]!;
+    this.menus.close();this.ensureTab();
     Object.assign(this.options,visual);
+    this.options.showInspector=this.visibility.inspector;this.options.showLogo=this.visibility.logo;
     if(this.a&&!colorSchemes(this.a.alphabet).some(s=>s.id===this.options.colorScheme))this.options.colorScheme=this.a.alphabet==='protein'?'soft':'soft-nucleotide';
     this.options.cellWidth=bounded(this.options.cellWidth,3,32);this.options.rowHeight=bounded(this.options.rowHeight,18,48);this.options.labelWidth=bounded(this.options.labelWidth,100,420);this.options.height=bounded(this.options.height,360,2000);
     this.root.style.height=this.options.height+'px';this.root.dataset.theme=this.options.theme;this.root.dataset.inspector=String(this.options.showInspector);
-    $(this.root,'.ak-toolbar').hidden=!this.options.showToolbar;$(this.root,'.ak-tools').hidden=!this.options.showToolbar;
+    if(wasPinned!==this.pinned)this.rebuildRows();
     $<HTMLSelectElement>(this.root,'[aria-label="Color scheme"]').value=this.options.colorScheme;
     $<HTMLSelectElement>(this.root,'[aria-label="Residues to color"]').value=this.options.colorMode;
     $<HTMLSelectElement>(this.root,'[aria-label="Statistics scope"]').value=this.options.statisticsScope;
     $<HTMLInputElement>(this.root,'[aria-label="Show frequency logo"]').checked=this.options.showLogo;
     this.labelKey='';this.overviewDirty=true;this.inspectorDirty=true;this.layout();
+    const focused=this.root.ownerDocument.activeElement as HTMLElement|null;
+    if(focused&&this.root.contains(focused)&&focused.closest('[hidden]')){const target=this.visibility.alignment?this.scroll:this.root;if(target===this.root)target.tabIndex=-1;target.focus();}
     if(oldScope!==this.options.statisticsScope&&this.a)void this.updateStats().catch(()=>{});
   }
   private async updateStats() {
@@ -116,7 +132,7 @@ export class AlignmentViewer {
     this.filteredRows=this.a.rows.map((_,i)=>i).filter(i=>!q||`${this.a!.rows[i].name} ${this.a!.rows[i].species??''}`.toLocaleLowerCase().includes(q));
     if(this.sort==='name')this.filteredRows.sort((x,y)=>this.a!.rows[x].name.localeCompare(this.a!.rows[y].name)||x-y);
     if(this.sort==='identity'&&this.identities)this.filteredRows.sort((x,y)=>this.identities![y]-this.identities![x]||x-y);
-    this.rows=this.filteredRows.filter(i=>i!==this.reference);this.labelKey='';this.layout();
+    this.rows=this.filteredRows.filter(i=>!this.pinned||i!==this.reference);this.labelKey='';this.layout();
   }
   setFilter(query:string) {this.assertAlive();this.query=query;this.scroll.scrollTop=0;this.rebuildRows();$<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value=query;if(this.options.statisticsScope==='filtered')void this.updateStats().catch(()=>{});this.emit('state',this.getState());}
   async setSort(sort:ViewState['sort']) {
@@ -135,42 +151,46 @@ export class AlignmentViewer {
   setSelection(selection:Selection|null,scrollIntoView=true) {
     this.assertAlive();if(!this.a)return;
     if(selection&&(!Number.isInteger(selection.start)||!Number.isInteger(selection.end)||selection.start<1||selection.end<selection.start||selection.end>this.a.width||(selection.rowId&&!this.a.rows.some(r=>r.id===selection.rowId))))throw new Error('Invalid selection coordinates or row ID.');
-    this.selection=selection?{...selection}:null;this.tab='position';this.inspectorDirty=true;
+    this.selection=selection?{...selection}:null;this.tab='position';this.ensureTab();this.inspectorDirty=true;
     if(selection){$<HTMLInputElement>(this.root,'[aria-label="Go to alignment column"]').value=String(selection.start);if(scrollIntoView)this.reveal(selection);$(this.root,'.ak-live').textContent=`Column ${selection.start}${selection.end!==selection.start?` through ${selection.end}`:''}${selection.rowId?`, ${this.a.rows.find(r=>r.id===selection.rowId)?.name}`:''}`;}
     this.schedule();this.emit('selection',this.selection);this.emit('state',this.getState());
   }
   private reveal(s:Selection) {
-    const available=this.scroll.clientWidth-this.options.labelWidth,x=(s.start-1)*this.options.cellWidth;
+    const available=this.scroll.clientWidth-this.gutter,x=(s.start-1)*this.options.cellWidth;
     if(x<this.scroll.scrollLeft||x+this.options.cellWidth>this.scroll.scrollLeft+available)this.scroll.scrollLeft=Math.max(0,x-available/2);
     if(s.rowId&&this.a){const index=this.rows.findIndex(i=>this.a!.rows[i].id===s.rowId),y=index*this.options.rowHeight;if(index>=0&&(y<this.scroll.scrollTop||y+this.options.rowHeight>this.scroll.scrollTop+this.scroll.clientHeight))this.scroll.scrollTop=y;}
   }
   setAnnotationFilter(filter:AnnotationFilter) {this.assertAlive();this.annotationFilter={...filter};this.featurePage=0;this.rebuildAnnotations();this.inspectorDirty=true;this.schedule();}
   private rebuildAnnotations() {this.filteredAnnotations=filterAnnotations(this.a?.annotations??[],this.annotationFilter);this.annotationIndex=new AnnotationIndex(this.filteredAnnotations.visible);}
-  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,statisticsScope:this.options.statisticsScope,annotationFilter:structuredClone(this.annotationFilter)};}
+  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,statisticsScope:this.options.statisticsScope,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility()};}
   async setState(state:ViewState) {
     if(!this.a||state.version!==1||state.alignmentId!==this.a.id)throw new Error('View state belongs to a different alignment or unsupported version.');
     if(!Number.isFinite(state.start)||!Number.isFinite(state.rowOffset))throw new Error('Invalid view state.');
-    this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,statisticsScope:state.statisticsScope});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
+    this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,statisticsScope:state.statisticsScope,visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
     this.scroll.scrollLeft=(state.start-1)*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
   }
-  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.options.labelWidth,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo};}
+  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility};}
   private layout() {
-    if(this.disposed)return;const {labelWidth:gutter,rowHeight:rh,showLogo}=this.options;
+    if(this.disposed)return;const rh=this.options.rowHeight,gutter=this.gutter;
+    const tracks=trackLayout(this.visibility,rh);
+    this.menus.sync();applyVisibility(this.root,this.visibility);
     this.root.style.setProperty('--ak-gutter',gutter+'px');this.root.style.setProperty('--ak-row-height',rh+'px');
     this.root.dataset.compactRows=String(rh<32);
-    $(this.root,'.ak-tracks').style.height=(114+rh+(showLogo?45:0))+'px';$(this.root,'.ak-logo-label').hidden=!showLogo;
-    $(this.root,'.ak-reference-label').style.top=(114+(showLogo?45:0))+'px';
+    $(this.root,'.ak-tracks').style.height=tracks.height+'px';$(this.root,'.ak-tracks').hidden=tracks.height===0;
+    const names=['ruler','modalFrequency','gapFraction','consensus','logo','reference'] as const;
+    [...$(this.root,'.ak-track-labels').children].forEach((label,i)=>{const node=label as HTMLElement,offset=tracks.offsets[names[i]];node.hidden=offset===null;node.style.top=((offset??0)+(names[i]==='reference'?0:3))+'px';});
+    const message=$(this.root,'.ak-message');message.hidden=!this.visibility.messages||!message.textContent;
     const spacer=$(this.root,'.ak-spacer');spacer.style.width=(gutter+(this.a?.width??0)*this.options.cellWidth)+'px';spacer.style.height=Math.max(1,this.rows.length*rh)+'px';
-    $(this.root,'.ak-empty').hidden=!!this.a&&this.rows.length>0;
-    if(this.a&&!this.rows.length)$(this.root,'.ak-empty').textContent=this.filteredRows.length?'The reference is pinned above.':'No sequences match this filter. The reference remains pinned.';
+    $(this.root,'.ak-empty').hidden=!this.visibility.emptyState||(!!this.a&&this.rows.length>0);
+    if(this.a&&!this.rows.length)$(this.root,'.ak-empty').textContent=this.pinned?(this.filteredRows.length?'The reference is pinned above.':'No sequences match this filter. The reference remains pinned.'):'No sequences match this filter.';
     $(this.root,'[aria-label="Zoom level"]').textContent=this.options.cellWidth+' px';
     this.schedule();
   }
   private schedule() {if(this.disposed)return;this.menus.sync();if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=0;this.render();});}
   private render() {
-    if(!this.a||this.disposed)return;const width=this.scroll.clientWidth,height=this.scroll.clientHeight;if(width<1||height<1)return;
+    if(!this.a||this.disposed)return;const width=$(this.root,'.ak-main').clientWidth,height=this.scroll.clientHeight;if(width<1)return;
     const v=this.view();this.renderer.body($(this.root,'.ak-body-canvas'),v,width,height);this.renderer.tracks($(this.root,'.ak-tracks canvas'),v,width);
-    const overview=$(this.root,'.ak-overview');if(this.overviewDirty){this.renderer.overview($(overview,'canvas'),v,overview.clientWidth);this.overviewDirty=false;}
+    const overview=$(this.root,'.ak-overview');if(this.overviewDirty&&this.visibility.overview){this.renderer.overview($(overview,'canvas'),v,overview.clientWidth);this.overviewDirty=false;}
     const win=$(overview,'.ak-overview-window');const visible=Math.max(1,(width-v.gutter)/v.cw),left=v.x/v.cw/this.a.width;
     win.style.left=Math.min(1,left)*100+'%';win.style.width=Math.min(1,visible/this.a.width)*100+'%';overview.setAttribute('aria-valuemax',String(this.a.width));overview.setAttribute('aria-valuenow',String(Math.floor(v.x/v.cw)+1));
     const ref=$(this.root,'.ak-reference-label');ref.textContent=this.a.rows[this.reference]?.name??'Reference';ref.title='Pinned reference: '+ref.textContent;
@@ -185,17 +205,19 @@ export class AlignmentViewer {
       }this.labels.replaceChildren(fragment);
     }
     for(const label of this.labels.children as HTMLCollectionOf<HTMLElement>)label.style.transform=`translateY(${Number(label.dataset.index)*v.rh-v.y}px)`;
-    if(this.inspectorDirty){this.inspectorDirty=false;renderInspector(this.inspector,{a:this.a,stats:this.stats,selection:this.selection,scheme:this.options.colorScheme,reference:this.reference,selectedRows:this.selectedRows,annotations:this.filteredAnnotations.visible,annotationFilter:this.annotationFilter,unknown:this.filteredAnnotations.unknown,excluded:this.filteredAnnotations.excluded,tab:this.tab,page:this.featurePage,scope:this.options.statisticsScope,identity:this.selection?.rowId?this.identityDetails?.[this.a.rows.findIndex(r=>r.id===this.selection!.rowId)]:undefined});for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-tab]'))button.setAttribute('aria-pressed',String(button.dataset.tab===this.tab));this.menus.sync();}
+    if(this.inspectorDirty){this.inspectorDirty=false;if(this.tab)renderInspector(this.inspector,{a:this.a,stats:this.stats,selection:this.selection,scheme:this.options.colorScheme,reference:this.reference,selectedRows:this.selectedRows,annotations:this.filteredAnnotations.visible,annotationFilter:this.annotationFilter,unknown:this.filteredAnnotations.unknown,excluded:this.filteredAnnotations.excluded,tab:this.tab,page:this.featurePage,scope:this.options.statisticsScope,identity:this.selection?.rowId?this.identityDetails?.[this.a.rows.findIndex(r=>r.id===this.selection!.rowId)]:undefined});for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-tab]'))button.setAttribute('aria-pressed',String(button.dataset.tab===this.tab));this.menus.sync();}
+    if(!this.tab)this.inspector.replaceChildren();
+    applyVisibility(this.root,this.visibility);
     const start=Math.floor(v.x/v.cw)+1,end=Math.min(this.a.width,Math.ceil((v.x+width-v.gutter)/v.cw));
     $(this.root,'.ak-status-main').textContent=`${this.a.rows.length.toLocaleString()} sequences${this.query?` · ${this.filteredRows.length.toLocaleString()} filtered`:''} · ${this.a.width.toLocaleString()} columns`;
     $(this.root,'.ak-status-detail').textContent=`${start}–${end} · ${this.stats?`${this.options.statisticsScope} rows`:'statistics pending'} · ${this.a.alphabet.toUpperCase()}`;
     this.scroll.setAttribute('aria-rowcount',String(this.a.rows.length));this.scroll.setAttribute('aria-colcount',String(this.a.width));
     this.emit('viewport',{start,end,firstRow:first,lastRow:last,visibleRows:last-first,totalRows:this.a.rows.length});
   }
-  private message(message:string,isError=false) {const target=$(this.root,'.ak-message');target.hidden=!message;target.textContent=message;target.dataset.error=String(isError);}
-  private zoom(value:number) {const available=this.scroll.clientWidth-this.options.labelWidth,center=(this.scroll.scrollLeft+available/2)/this.options.cellWidth;this.setOptions({cellWidth:value});this.scroll.scrollLeft=Math.max(0,center*this.options.cellWidth-available/2);this.schedule();}
+  private message(message:string,isError=false) {const target=$(this.root,'.ak-message');target.hidden=!message||!this.visibility.messages;target.textContent=message;target.dataset.error=String(isError);}
+  private zoom(value:number) {const available=this.scroll.clientWidth-this.gutter,center=(this.scroll.scrollLeft+available/2)/this.options.cellWidth;this.setOptions({cellWidth:value});this.scroll.scrollLeft=Math.max(0,center*this.options.cellWidth-available/2);this.schedule();}
   private eventAt(event:MouseEvent):Selection|null {
-    if(!this.a)return null;const rect=this.scroll.getBoundingClientRect(),x=event.clientX-rect.left-this.options.labelWidth,y=event.clientY-rect.top;
+    if(!this.a)return null;const rect=this.scroll.getBoundingClientRect(),x=event.clientX-rect.left-this.gutter,y=event.clientY-rect.top;
     if(x<0)return null;const column=Math.floor((x+this.scroll.scrollLeft)/this.options.cellWidth)+1,row=this.rows[Math.floor((y+this.scroll.scrollTop)/this.options.rowHeight)];
     if(column<1||column>this.a.width||row===undefined)return null;return {start:column,end:column,rowId:this.a.rows[row].id};
   }
@@ -204,7 +226,7 @@ export class AlignmentViewer {
       if(action==='open'){$<HTMLInputElement>(this.root,'.ak-file').click();return;}
       if(action==='zoom-in')this.zoom(this.options.cellWidth+2);
       if(action==='zoom-out')this.zoom(this.options.cellWidth-2);
-      if(action==='fit'&&this.a)this.zoom(Math.max(3,Math.floor((this.scroll.clientWidth-this.options.labelWidth)/this.a.width)));
+      if(action==='fit'&&this.a)this.zoom(Math.max(3,Math.floor((this.scroll.clientWidth-this.gutter)/this.a.width)));
       if(action==='theme')this.setOptions({theme:this.options.theme==='light'?'dark':'light'});
       if(action==='inspect')this.setOptions({showInspector:!this.options.showInspector});
       if(action==='fullscreen'){if(document.fullscreenElement)await document.exitFullscreen();else if(this.root.requestFullscreen)await this.root.requestFullscreen();else this.message('Full screen is unavailable in this browser.');}
@@ -232,7 +254,7 @@ export class AlignmentViewer {
   private async export(kind:string) {
     if(!this.a)return;
     try{
-      const region:ExportRegion={start:this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,end:this.selection?.end??Math.min(this.a.width,Math.ceil((this.scroll.scrollLeft+this.scroll.clientWidth-this.options.labelWidth)/this.options.cellWidth)),rowIds:this.selectedRows.size?[...this.selectedRows]:[this.a.rows[this.reference].id,...this.rows.slice(Math.floor(this.scroll.scrollTop/this.options.rowHeight),Math.ceil((this.scroll.scrollTop+this.scroll.clientHeight)/this.options.rowHeight)).map(i=>this.a!.rows[i].id)]};
+      const region:ExportRegion={start:this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,end:this.selection?.end??Math.min(this.a.width,Math.ceil((this.scroll.scrollLeft+this.scroll.clientWidth-this.gutter)/this.options.cellWidth)),rowIds:this.selectedRows.size?[...this.selectedRows]:[...(this.pinned?[this.a.rows[this.reference].id]:[]),...this.rows.slice(Math.floor(this.scroll.scrollTop/this.options.rowHeight),Math.ceil((this.scroll.scrollTop+this.scroll.clientHeight)/this.options.rowHeight)).map(i=>this.a!.rows[i].id)]};
       if(kind==='fasta-all')download(exportFasta(this.a),'alignment.fasta');
       if(kind==='fasta')download(exportFasta(this.a,region),'selection.fasta');
       if(kind==='state')download(JSON.stringify(this.getState(),null,2),'alignment-view.json','application/json');
@@ -285,7 +307,7 @@ export class AlignmentViewer {
       }
     });
     const overview=$(this.root,'.ak-overview');let dragging=false;
-    const navigate=(event:PointerEvent)=>{if(!this.a)return;const rect=overview.getBoundingClientRect(),ratio=bounded((event.clientX-rect.left)/rect.width,0,1);this.scroll.scrollLeft=ratio*this.a.width*this.options.cellWidth-(this.scroll.clientWidth-this.options.labelWidth)/2;this.schedule();};
+    const navigate=(event:PointerEvent)=>{if(!this.a)return;const rect=overview.getBoundingClientRect(),ratio=bounded((event.clientX-rect.left)/rect.width,0,1);this.scroll.scrollLeft=ratio*this.a.width*this.options.cellWidth-(this.scroll.clientWidth-this.gutter)/2;this.schedule();};
     on(overview,'pointerdown',(event:PointerEvent)=>{dragging=true;overview.setPointerCapture(event.pointerId);navigate(event);});on(overview,'pointermove',(event:PointerEvent)=>{if(dragging)navigate(event);});on(overview,'pointerup',()=>{dragging=false;});
     on(overview,'keydown',(event:KeyboardEvent)=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();this.scroll.scrollLeft+=(event.key==='ArrowRight'?1:-1)*this.options.cellWidth*10;this.schedule();}});
     const separator=$(this.root,'.ak-gutter-resize');let resizing=false,origin=0,gutter=0;

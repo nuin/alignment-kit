@@ -1,0 +1,16 @@
+{
+  "$schema": "./viewer-config.schema.json",
+  "height": 700,
+  "theme": "light",
+  "colorScheme": "soft-nucleotide",
+  "cellWidth": 16,
+  "visibility": {
+    "overview": true,
+    "inspector": true,
+    "modalFrequency": true,
+    "gapFraction": true,
+    "logo": false,
+    "rowSelection": false,
+    "rowPinning": false
+  }
+}

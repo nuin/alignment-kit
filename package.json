@@ -6,7 +6,14 @@
   "description": "An annotation-aware, virtualized multiple sequence alignment viewer for JavaScript, React and Svelte",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "THIRD_PARTY_NOTICES.md",
+    "docs/USER_GUIDE.md",
+    "docs/RELEASE.md",
+    "docs/performance.md",
+    "docs/benchmark-results.json",
+    "docs/screenshots",
+    "config"
   ],
   "exports": {
     ".": {
@@ -30,7 +37,9 @@
       "types": "./dist/pavi.d.ts",
       "import": "./dist/pavi.js"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/style.css",
+    "./config.schema.json": "./config/viewer-config.schema.json",
+    "./config.example.json": "./config/viewer-config.example.json"
   },
   "sideEffects": [
     "**/*.css"
@@ -45,7 +54,13 @@
     "benchmark": "node --expose-gc scripts/benchmark.mjs",
     "check:package": "node scripts/check-package.mjs",
     "preview:files": "node scripts/preview.mjs",
-    "check:datasets": "node scripts/check-datasets.mjs"
+    "check:datasets": "node scripts/check-datasets.mjs",
+    "build:guide": "node scripts/build-guide.mjs",
+    "predev": "npm run build:guide",
+    "prebuild:demo": "npm run build:guide",
+    "prepack": "npm run build",
+    "release:check": "npm test && npm run check && npm run build && npm run check:datasets && npm run build:demo && npm run check:package",
+    "screenshots": "node scripts/capture-docs.mjs"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -68,14 +83,34 @@
     "@types/node": "^25.0.10",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "esbuild": "^0.27.3",
+    "esbuild": "^0.28.2",
     "jsdom": "^26.1.0",
+    "marked": "^18.1.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "svelte": "^5.55.5",
+    "svelte": "^5.57.3",
     "svelte-check": "^4.4.6",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "vitest": "^4.0.18"
-  }
+    "vite": "^7.3.7",
+    "vitest": "^4.1.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nuin/alignment-kit.git"
+  },
+  "homepage": "https://github.com/nuin/alignment-kit#readme",
+  "bugs": {
+    "url": "https://github.com/nuin/alignment-kit/issues"
+  },
+  "keywords": [
+    "msa",
+    "multiple-sequence-alignment",
+    "bioinformatics",
+    "dna",
+    "rna",
+    "protein",
+    "react",
+    "svelte"
+  ],
+  "license": "UNLICENSED"
 }

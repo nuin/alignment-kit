@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Alignment Kit viewer configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for editor completion."
+    },
+    "height": {
+      "type": "number",
+      "minimum": 360,
+      "maximum": 2000
+    },
+    "theme": {
+      "enum": [
+        "light",
+        "dark"
+      ]
+    },
+    "colorScheme": {
+      "type": "string",
+      "minLength": 1
+    },
+    "colorMode": {
+      "enum": [
+        "all",
+        "reference-differences",
+        "reference-matches",
+        "consensus-differences",
+        "consensus-matches"
+      ]
+    },
+    "cellWidth": {
+      "type": "number",
+      "minimum": 3,
+      "maximum": 32
+    },
+    "rowHeight": {
+      "type": "number",
+      "minimum": 18,
+      "maximum": 48
+    },
+    "labelWidth": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 420
+    },
+    "statisticsScope": {
+      "enum": [
+        "all",
+        "filtered"
+      ]
+    },
+    "workerUrl": {
+      "type": "string",
+      "minLength": 1
+    },
+    "visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "toolbar": {
+          "type": "boolean"
+        },
+        "tools": {
+          "type": "boolean"
+        },
+        "overview": {
+          "type": "boolean"
+        },
+        "overviewTitle": {
+          "type": "boolean"
+        },
+        "tracks": {
+          "type": "boolean"
+        },
+        "alignment": {
+          "type": "boolean"
+        },
+        "inspector": {
+          "type": "boolean"
+        },
+        "inspectorTabs": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "boolean"
+        },
+        "statusSummary": {
+          "type": "boolean"
+        },
+        "statusDetails": {
+          "type": "boolean"
+        },
+        "open": {
+          "type": "boolean"
+        },
+        "search": {
+          "type": "boolean"
+        },
+        "colorScheme": {
+          "type": "boolean"
+        },
+        "zoom": {
+          "type": "boolean"
+        },
+        "fit": {
+          "type": "boolean"
+        },
+        "theme": {
+          "type": "boolean"
+        },
+        "inspectorToggle": {
+          "type": "boolean"
+        },
+        "fullscreen": {
+          "type": "boolean"
+        },
+        "export": {
+          "type": "boolean"
+        },
+        "goTo": {
+          "type": "boolean"
+        },
+        "motif": {
+          "type": "boolean"
+        },
+        "order": {
+          "type": "boolean"
+        },
+        "colorMode": {
+          "type": "boolean"
+        },
+        "logoToggle": {
+          "type": "boolean"
+        },
+        "statisticsScope": {
+          "type": "boolean"
+        },
+        "alphabet": {
+          "type": "boolean"
+        },
+        "ruler": {
+          "type": "boolean"
+        },
+        "modalFrequency": {
+          "type": "boolean"
+        },
+        "gapFraction": {
+          "type": "boolean"
+        },
+        "consensus": {
+          "type": "boolean"
+        },
+        "logo": {
+          "type": "boolean"
+        },
+        "reference": {
+          "type": "boolean"
+        },
+        "labels": {
+          "type": "boolean"
+        },
+        "rowNames": {
+          "type": "boolean"
+        },
+        "rowSpecies": {
+          "type": "boolean"
+        },
+        "rowSelection": {
+          "type": "boolean"
+        },
+        "rowPinning": {
+          "type": "boolean"
+        },
+        "labelResize": {
+          "type": "boolean"
+        },
+        "residueLetters": {
+          "type": "boolean"
+        },
+        "annotationMarks": {
+          "type": "boolean"
+        },
+        "selectionOverlay": {
+          "type": "boolean"
+        },
+        "positionTab": {
+          "type": "boolean"
+        },
+        "featuresTab": {
+          "type": "boolean"
+        },
+        "compareTab": {
+          "type": "boolean"
+        },
+        "colorsTab": {
+          "type": "boolean"
+        },
+        "pinReference": {
+          "type": "boolean"
+        },
+        "rowFeaturesToggle": {
+          "type": "boolean"
+        },
+        "featureType": {
+          "type": "boolean"
+        },
+        "featureConsequence": {
+          "type": "boolean"
+        },
+        "diseaseFilter": {
+          "type": "boolean"
+        },
+        "phenotypeFilter": {
+          "type": "boolean"
+        },
+        "featurePagination": {
+          "type": "boolean"
+        },
+        "calculateIdentity": {
+          "type": "boolean"
+        },
+        "clearRows": {
+          "type": "boolean"
+        },
+        "messages": {
+          "type": "boolean"
+        },
+        "emptyState": {
+          "type": "boolean"
+        }
+      }
+    },
+    "worker": {
+      "type": "boolean"
+    },
+    "showLogo": {
+      "type": "boolean"
+    },
+    "showInspector": {
+      "type": "boolean"
+    },
+    "showToolbar": {
+      "type": "boolean"
+    }
+  }
+}
