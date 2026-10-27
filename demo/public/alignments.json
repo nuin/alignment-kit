@@ -1,0 +1,82 @@
+[
+  {
+    "id": "cbs",
+    "label": "CBS family",
+    "name": "CBS domain",
+    "accession": "PF00571.34",
+    "alphabet": "protein",
+    "collection": "Pfam seed alignment",
+    "file": "cbs-seed.sto",
+    "page": "https://www.ebi.ac.uk/interpro/entry/pfam/PF00571/",
+    "source": {
+      "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/pfam/PF00571/?annotation=alignment:seed",
+      "retrieved": "2026-10-26",
+      "sha256": "a7fbf2e7bed4d980e200f5cb2f709d484ca325170da742a8476d293acedd040e",
+      "description": "Pfam CBS domain seed \u00b7 PF00571.34. SHA-256 covers the decompressed Stockholm file."
+    },
+    "description": "Curated seed alignment of CBS domains. A compact protein-family example.",
+    "rows": 838,
+    "columns": 160,
+    "bytes": 205428
+  },
+  {
+    "id": "kinase-seed",
+    "label": "Protein kinase",
+    "name": "Protein kinase",
+    "accession": "PF00069.32",
+    "alphabet": "protein",
+    "collection": "Pfam seed alignment",
+    "file": "kinase-seed.sto.gz",
+    "page": "https://www.ebi.ac.uk/interpro/entry/pfam/PF00069/",
+    "description": "Curated protein kinase domain seed. Inspect conserved motifs across divergent kinase sequences.",
+    "source": {
+      "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/pfam/PF00069/?annotation=alignment:seed",
+      "retrieved": "2026-10-27T12:05:37.049965+00:00",
+      "sha256": "5ff4c47f6b866f736b48ce7fc9e94faf7d01e536995954cb91cced62b904461b",
+      "description": "Pfam seed alignment \u00b7 PF00069.32. SHA-256 covers decompressed Stockholm bytes. All rows and columns retained."
+    },
+    "rows": 37,
+    "columns": 419,
+    "bytes": 9523
+  },
+  {
+    "id": "globin-full",
+    "label": "Globin \u00b7 20,705",
+    "name": "Globin full family",
+    "accession": "PF00042.29",
+    "alphabet": "protein",
+    "collection": "Pfam full alignment",
+    "file": "globin-full.sto.gz",
+    "page": "https://www.ebi.ac.uk/interpro/entry/pfam/PF00042/",
+    "description": "Complete downloaded full alignment: 20,705 globin domain sequences. No rows sampled or columns trimmed.",
+    "source": {
+      "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/pfam/PF00042/?annotation=alignment:full",
+      "retrieved": "2026-10-27T12:05:37.435002+00:00",
+      "sha256": "4d17fafc1739019dbf9afe0b44a4191ec0a57474958c1eff49a2c377e75d7a5d",
+      "description": "Pfam full alignment \u00b7 PF00042.29. SHA-256 covers decompressed Stockholm bytes. All rows and columns retained."
+    },
+    "rows": 20705,
+    "columns": 672,
+    "bytes": 2979476
+  },
+  {
+    "id": "trna-seed",
+    "label": "Transfer RNA",
+    "name": "Transfer RNA",
+    "accession": "RF00005",
+    "alphabet": "rna",
+    "collection": "Rfam seed alignment",
+    "file": "trna-seed.sto.gz",
+    "page": "https://rfam.org/family/RF00005",
+    "description": "Curated tRNA seed with RNA residues and Stockholm secondary-structure metadata; the viewer retains that metadata but does not draw RNA structures.",
+    "source": {
+      "url": "https://rfam.org/family/RF00005/alignment/stockholm",
+      "retrieved": "2026-10-27T12:05:37.450566+00:00",
+      "sha256": "d1a66517066e6d4fbad3bd382934406df3018ff9bdaf72f22732f4c9740c9505",
+      "description": "Rfam seed alignment \u00b7 RF00005. SHA-256 covers decompressed Stockholm bytes. All rows and columns retained."
+    },
+    "rows": 954,
+    "columns": 118,
+    "bytes": 36028
+  }
+]

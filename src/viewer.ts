@@ -1,0 +1,297 @@
+import type { Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode } from './types';
+import { createAlignment, sequenceToAlignment } from './model';
+import { readAlignmentInput } from './parsers';
+import { AnnotationIndex, filterAnnotations } from './annotations';
+import { getColorScheme } from './colors';
+import { Renderer, type RenderView } from './renderer';
+import { buildShell, $, download } from './controls';
+import { renderInspector } from './inspector';
+import { exportFasta, exportStatistics, exportSvg, exportPng, escapeXml as e } from './export';
+import { WorkerTask } from './worker-client';
+
+const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
+export class AlignmentViewer {
+  readonly element:HTMLElement;
+  private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
+  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'>>;
+  private a?:Alignment; private stats?:AlignmentStats;private fullStats?:AlignmentStats;
+  private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
+  private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
+  private filteredAnnotations:ReturnType<typeof filterAnnotations>={visible:[],unknown:0,excluded:0};private annotationIndex=new AnnotationIndex([]);
+  private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;
+  private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private request?:AbortController;
+  private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
+  private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
+  private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
+  private motifCursor={query:'',row:0,start:0};
+  constructor(element:HTMLElement,options:ViewerOptions={}) {
+    this.element=element;this.root=document.createElement('section');element.append(this.root);
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:28,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',...options};
+    this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);
+    buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
+    this.bind();this.resize=new ResizeObserver(()=>{this.overviewDirty=true;this.layout();});this.resize.observe(this.root);
+    this.setOptions(options);this.layout();
+    if(options.alignment) void this.setAlignment(options.alignment).catch(()=>{});
+  }
+  on<K extends ViewerEvent>(event:K,handler:EventHandler<K>):()=>void {
+    if(!this.listeners.has(event))this.listeners.set(event,new Set());this.listeners.get(event)!.add(handler);return ()=>this.listeners.get(event)?.delete(handler);
+  }
+  private emit<K extends ViewerEvent>(event:K,value:ViewerEvents[K]) {for(const handler of this.listeners.get(event)??[])handler(value);}
+  private error(error:unknown) {const err=error instanceof Error?error:new Error(String(error));if(err.name!=='AbortError'&&!this.disposed){this.message(err.message,true);this.emit('error',err);}return err;}
+  private assertAlive(){if(this.disposed)throw new Error('This viewer has been destroyed.');}
+  getAlignment(){return this.a;}
+  getStatistics(){return this.stats;}
+  getSelectedRowIds(){return [...this.selectedRows];}
+  async load(input:string|Blob|ArrayBuffer,options:ParseOptions={}):Promise<void> {
+    this.assertAlive();this.parser.cancel();this.request?.abort();const token=++this.loadRevision;
+    this.message('Reading alignment…');
+    try {
+      if(input instanceof File&&/\.a3m(?:\.gz)?$/i.test(input.name))throw new Error('A3M insertion notation is not aligned FASTA. Convert it to a rectangular alignment first.');
+      const text=await readAlignmentInput(input);
+      if(this.disposed||token!==this.loadRevision)return;
+      const alignment=await this.parser.parse(text,options);
+      if(this.disposed||token!==this.loadRevision)return;
+      await this.setAlignment(alignment);
+    } catch(error){if(token===this.loadRevision) this.error(error);if((error as Error).name!=='AbortError')throw error;}
+  }
+  async loadUrl(url:string,options:ParseOptions={}):Promise<void> {
+    this.assertAlive();this.request?.abort();this.parser.cancel();const request=new AbortController();this.request=request;const token=++this.loadRevision;
+    this.message('Fetching alignment…');
+    try {
+      const parsed=new URL(url,document.baseURI);if(/\.a3m(?:\.gz)?$/i.test(parsed.pathname))throw new Error('A3M insertion notation is not aligned FASTA. Convert it before loading.');if(!['https:','http:'].includes(parsed.protocol))throw new Error('Alignment URLs must use HTTP or HTTPS.');
+      const response=await fetch(parsed,{signal:request.signal});if(!response.ok)throw new Error(`HTTP ${response.status}`);
+      const bytes=await response.arrayBuffer();if(token!==this.loadRevision||this.disposed)return;
+      this.request=undefined;
+      await this.load(bytes,{...options,source:options.source??{url:parsed.href,retrieved:new Date().toISOString()}});
+    }catch(error){if((error as Error).name==='AbortError')return;const err=new Error(`Could not load this URL: ${(error as Error).message}. The server must allow browser CORS requests. Download the file and use Open alignment instead.`);if(token===this.loadRevision)this.error(err);throw err;}
+  }
+  async setAlignment(alignment:Alignment):Promise<void> {
+    this.assertAlive();++this.loadRevision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();const revision=++this.revision;
+    if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw this.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
+    this.a=alignment;this.stats=undefined;this.fullStats=undefined;this.reference=0;this.selection=null;this.selectedRows.clear();this.query='';this.sort='input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter={};this.featurePage=0;
+    this.motifCursor={query:'',row:0,start:0};this.scroll.scrollLeft=0;this.scroll.scrollTop=0;
+    $<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value='';
+    $<HTMLSelectElement>(this.root,'[aria-label="Sequence alphabet"]').value=alignment.alphabet;
+    $<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';
+    this.rebuildAnnotations();this.rebuildRows();this.inspectorDirty=true;this.overviewDirty=true;this.layout();
+    this.message('Calculating exact column statistics…');
+    await this.updateStats();
+    if(!this.disposed&&this.revision===revision&&this.a===alignment){this.message('');this.emit('ready',alignment);}
+  }
+  setOptions(options:ViewerOptions) {
+    this.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
+    const oldScope=this.options.statisticsScope;
+    const {alignment:_,worker:__,workerUrl:___,...visual}=options;
+    Object.assign(this.options,visual);
+    this.options.cellWidth=bounded(this.options.cellWidth,3,32);this.options.rowHeight=bounded(this.options.rowHeight,18,48);this.options.labelWidth=bounded(this.options.labelWidth,100,420);this.options.height=bounded(this.options.height,360,2000);
+    this.root.style.height=this.options.height+'px';this.root.dataset.theme=this.options.theme;this.root.dataset.inspector=String(this.options.showInspector);
+    $(this.root,'.ak-toolbar').hidden=!this.options.showToolbar;$(this.root,'.ak-tools').hidden=!this.options.showToolbar;
+    $<HTMLSelectElement>(this.root,'[aria-label="Color scheme"]').value=this.options.colorScheme;
+    $<HTMLSelectElement>(this.root,'[aria-label="Residues to color"]').value=this.options.colorMode;
+    $<HTMLSelectElement>(this.root,'[aria-label="Statistics scope"]').value=this.options.statisticsScope;
+    $<HTMLInputElement>(this.root,'[aria-label="Show frequency logo"]').checked=this.options.showLogo;
+    this.labelKey='';this.overviewDirty=true;this.inspectorDirty=true;this.layout();
+    if(oldScope!==this.options.statisticsScope&&this.a)void this.updateStats().catch(()=>{});
+  }
+  private async updateStats() {
+    if(!this.a)return;const token=++this.statsRevision,a=this.a,scope=this.options.statisticsScope;
+    this.analysis.cancel();
+    if(scope==='all'&&this.fullStats){this.stats=this.fullStats;this.inspectorDirty=true;this.overviewDirty=true;this.schedule();return;}
+    this.stats=undefined;this.inspectorDirty=true;this.schedule();
+    try {
+      const result=await this.analysis.stats(a,scope==='filtered'?this.filteredRows:undefined);
+      if(this.disposed||token!==this.statsRevision||this.a!==a)return;
+      this.stats=result;if(scope==='all')this.fullStats=result;
+      this.inspectorDirty=true;this.overviewDirty=true;this.message('');this.schedule();
+    }catch(error){this.error(error);if((error as Error).name!=='AbortError')throw error;}
+  }
+  private rebuildRows() {
+    if(!this.a)return;const q=this.query.trim().toLocaleLowerCase();
+    this.filteredRows=this.a.rows.map((_,i)=>i).filter(i=>!q||`${this.a!.rows[i].name} ${this.a!.rows[i].species??''}`.toLocaleLowerCase().includes(q));
+    if(this.sort==='name')this.filteredRows.sort((x,y)=>this.a!.rows[x].name.localeCompare(this.a!.rows[y].name)||x-y);
+    if(this.sort==='identity'&&this.identities)this.filteredRows.sort((x,y)=>this.identities![y]-this.identities![x]||x-y);
+    this.rows=this.filteredRows.filter(i=>i!==this.reference);this.labelKey='';this.layout();
+  }
+  setFilter(query:string) {this.assertAlive();this.query=query;this.scroll.scrollTop=0;this.rebuildRows();$<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value=query;if(this.options.statisticsScope==='filtered')void this.updateStats().catch(()=>{});this.emit('state',this.getState());}
+  async setSort(sort:ViewState['sort']) {
+    this.assertAlive();if(!['input','name','identity'].includes(sort))throw new Error('Unknown sequence order.');
+    this.sort=sort;$<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value=sort;
+    if(sort==='identity'&&this.a) {
+      const a=this.a,ref=this.reference;this.message('Comparing sequences with the reference…');
+      try{const results=await this.comparison.identities(a,ref,a.rows.map((_,i)=>i));if(this.a!==a||this.reference!==ref||this.sort!==sort||this.disposed)return;this.identityDetails=results;this.inspectorDirty=true;this.identities=results.map(r=>r.identity??-1);this.message('');}catch(error){this.error(error);return;}
+    }
+    this.rebuildRows();this.emit('state',this.getState());
+  }
+  setReference(id:string) {
+    this.assertAlive();if(!this.a)return;const row=this.a.rows.findIndex(r=>r.id===id);if(row<0)throw new Error('Unknown reference sequence.');
+    this.reference=row;this.identities=undefined;this.identityDetails=undefined;this.rebuildRows();this.inspectorDirty=true;this.schedule();if(this.sort==='identity')void this.setSort('identity');this.emit('state',this.getState());
+  }
+  setSelection(selection:Selection|null,scrollIntoView=true) {
+    this.assertAlive();if(!this.a)return;
+    if(selection&&(!Number.isInteger(selection.start)||!Number.isInteger(selection.end)||selection.start<1||selection.end<selection.start||selection.end>this.a.width||(selection.rowId&&!this.a.rows.some(r=>r.id===selection.rowId))))throw new Error('Invalid selection coordinates or row ID.');
+    this.selection=selection?{...selection}:null;this.tab='position';this.inspectorDirty=true;
+    if(selection){$<HTMLInputElement>(this.root,'[aria-label="Go to alignment column"]').value=String(selection.start);if(scrollIntoView)this.reveal(selection);$(this.root,'.ak-live').textContent=`Column ${selection.start}${selection.end!==selection.start?` through ${selection.end}`:''}${selection.rowId?`, ${this.a.rows.find(r=>r.id===selection.rowId)?.name}`:''}`;}
+    this.schedule();this.emit('selection',this.selection);this.emit('state',this.getState());
+  }
+  private reveal(s:Selection) {
+    const available=this.scroll.clientWidth-this.options.labelWidth,x=(s.start-1)*this.options.cellWidth;
+    if(x<this.scroll.scrollLeft||x+this.options.cellWidth>this.scroll.scrollLeft+available)this.scroll.scrollLeft=Math.max(0,x-available/2);
+    if(s.rowId&&this.a){const index=this.rows.findIndex(i=>this.a!.rows[i].id===s.rowId),y=index*this.options.rowHeight;if(index>=0&&(y<this.scroll.scrollTop||y+this.options.rowHeight>this.scroll.scrollTop+this.scroll.clientHeight))this.scroll.scrollTop=y;}
+  }
+  setAnnotationFilter(filter:AnnotationFilter) {this.assertAlive();this.annotationFilter={...filter};this.featurePage=0;this.rebuildAnnotations();this.inspectorDirty=true;this.schedule();}
+  private rebuildAnnotations() {this.filteredAnnotations=filterAnnotations(this.a?.annotations??[],this.annotationFilter);this.annotationIndex=new AnnotationIndex(this.filteredAnnotations.visible);}
+  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,statisticsScope:this.options.statisticsScope,annotationFilter:structuredClone(this.annotationFilter)};}
+  async setState(state:ViewState) {
+    if(!this.a||state.version!==1||state.alignmentId!==this.a.id)throw new Error('View state belongs to a different alignment or unsupported version.');
+    if(!Number.isFinite(state.start)||!Number.isFinite(state.rowOffset))throw new Error('Invalid view state.');
+    this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,statisticsScope:state.statisticsScope});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
+    this.scroll.scrollLeft=(state.start-1)*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
+  }
+  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.options.labelWidth,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo};}
+  private layout() {
+    if(this.disposed)return;const {labelWidth:gutter,rowHeight:rh,showLogo}=this.options;
+    this.root.style.setProperty('--ak-gutter',gutter+'px');this.root.style.setProperty('--ak-row-height',rh+'px');
+    $(this.root,'.ak-tracks').style.height=(114+rh+(showLogo?45:0))+'px';$(this.root,'.ak-logo-label').hidden=!showLogo;
+    $(this.root,'.ak-reference-label').style.top=(114+(showLogo?45:0))+'px';
+    const spacer=$(this.root,'.ak-spacer');spacer.style.width=(gutter+(this.a?.width??0)*this.options.cellWidth)+'px';spacer.style.height=Math.max(1,this.rows.length*rh)+'px';
+    $(this.root,'.ak-empty').hidden=!!this.a&&this.rows.length>0;
+    if(this.a&&!this.rows.length)$(this.root,'.ak-empty').textContent=this.filteredRows.length?'The reference is pinned above.':'No sequences match this filter. The reference remains pinned.';
+    $(this.root,'[aria-label="Zoom level"]').textContent=this.options.cellWidth+' px';
+    this.schedule();
+  }
+  private schedule() {if(!this.frame&&!this.disposed)this.frame=requestAnimationFrame(()=>{this.frame=0;this.render();});}
+  private render() {
+    if(!this.a||this.disposed)return;const width=this.scroll.clientWidth,height=this.scroll.clientHeight;if(width<1||height<1)return;
+    const v=this.view();this.renderer.body($(this.root,'.ak-body-canvas'),v,width,height);this.renderer.tracks($(this.root,'.ak-tracks canvas'),v,width);
+    const overview=$(this.root,'.ak-overview');if(this.overviewDirty){this.renderer.overview($(overview,'canvas'),v,overview.clientWidth);this.overviewDirty=false;}
+    const win=$(overview,'.ak-overview-window');const visible=Math.max(1,(width-v.gutter)/v.cw),left=v.x/v.cw/this.a.width;
+    win.style.left=Math.min(1,left)*100+'%';win.style.width=Math.min(1,visible/this.a.width)*100+'%';overview.setAttribute('aria-valuemax',String(this.a.width));overview.setAttribute('aria-valuenow',String(Math.floor(v.x/v.cw)+1));
+    const ref=$(this.root,'.ak-reference-label');ref.textContent=this.a.rows[this.reference]?.name??'Reference';ref.title='Pinned reference: '+ref.textContent;
+    const first=Math.max(0,Math.floor(v.y/v.rh)),last=Math.min(this.rows.length,Math.ceil((v.y+height)/v.rh));
+    const key=[first,last,this.rows.slice(first,last).join(','),[...this.selectedRows].join(',')].join(':');
+    if(this.labelKey!==key){this.labelKey=key;const fragment=document.createDocumentFragment();
+      for(let i=first;i<last;i++){const row=this.a.rows[this.rows[i]],label=document.createElement('div');label.className='ak-row-label';label.dataset.index=String(i);
+        const check=document.createElement('input');check.type='checkbox';check.checked=this.selectedRows.has(row.id);check.setAttribute('aria-label',`Select ${row.name}`);check.dataset.selectRow=row.id;
+        const button=document.createElement('button');button.type='button';button.dataset.row=row.id;button.title=row.name+(row.species?' · '+row.species:'');button.textContent=row.name;if(row.species){const species=document.createElement('small');species.className='ak-row-species';species.textContent=row.species;button.append(species);}
+        const pin=document.createElement('button');pin.type='button';pin.dataset.pin=row.id;pin.className='ak-pin';pin.textContent='◇';pin.setAttribute('aria-label',`Pin ${row.name} as reference`);
+        label.append(check,button,pin);fragment.append(label);
+      }this.labels.replaceChildren(fragment);
+    }
+    for(const label of this.labels.children as HTMLCollectionOf<HTMLElement>)label.style.transform=`translateY(${Number(label.dataset.index)*v.rh-v.y}px)`;
+    if(this.inspectorDirty){this.inspectorDirty=false;renderInspector(this.inspector,{a:this.a,stats:this.stats,selection:this.selection,scheme:this.options.colorScheme,reference:this.reference,selectedRows:this.selectedRows,annotations:this.filteredAnnotations.visible,annotationFilter:this.annotationFilter,unknown:this.filteredAnnotations.unknown,excluded:this.filteredAnnotations.excluded,tab:this.tab,page:this.featurePage,scope:this.options.statisticsScope,identity:this.selection?.rowId?this.identityDetails?.[this.a.rows.findIndex(r=>r.id===this.selection!.rowId)]:undefined});for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-tab]'))button.setAttribute('aria-pressed',String(button.dataset.tab===this.tab));}
+    const start=Math.floor(v.x/v.cw)+1,end=Math.min(this.a.width,Math.ceil((v.x+width-v.gutter)/v.cw));
+    $(this.root,'.ak-status-main').textContent=`${this.a.rows.length.toLocaleString()} sequences${this.query?` · ${this.filteredRows.length.toLocaleString()} filtered`:''} · ${this.a.width.toLocaleString()} columns`;
+    $(this.root,'.ak-status-detail').textContent=`${start}–${end} · ${this.stats?`${this.options.statisticsScope} rows`:'statistics pending'} · ${this.a.alphabet.toUpperCase()}`;
+    this.scroll.setAttribute('aria-rowcount',String(this.a.rows.length));this.scroll.setAttribute('aria-colcount',String(this.a.width));
+    this.emit('viewport',{start,end,firstRow:first,lastRow:last,visibleRows:last-first,totalRows:this.a.rows.length});
+  }
+  private message(message:string,isError=false) {const target=$(this.root,'.ak-message');target.hidden=!message;target.textContent=message;target.dataset.error=String(isError);}
+  private zoom(value:number) {const available=this.scroll.clientWidth-this.options.labelWidth,center=(this.scroll.scrollLeft+available/2)/this.options.cellWidth;this.setOptions({cellWidth:value});this.scroll.scrollLeft=Math.max(0,center*this.options.cellWidth-available/2);this.schedule();}
+  private eventAt(event:MouseEvent):Selection|null {
+    if(!this.a)return null;const rect=this.scroll.getBoundingClientRect(),x=event.clientX-rect.left-this.options.labelWidth,y=event.clientY-rect.top;
+    if(x<0)return null;const column=Math.floor((x+this.scroll.scrollLeft)/this.options.cellWidth)+1,row=this.rows[Math.floor((y+this.scroll.scrollTop)/this.options.rowHeight)];
+    if(column<1||column>this.a.width||row===undefined)return null;return {start:column,end:column,rowId:this.a.rows[row].id};
+  }
+  private async action(action:string) {
+    try {
+      if(action==='open'){$<HTMLInputElement>(this.root,'.ak-file').click();return;}
+      if(action==='zoom-in')this.zoom(this.options.cellWidth+2);
+      if(action==='zoom-out')this.zoom(this.options.cellWidth-2);
+      if(action==='fit'&&this.a)this.zoom(Math.max(3,Math.floor((this.scroll.clientWidth-this.options.labelWidth)/this.a.width)));
+      if(action==='theme')this.setOptions({theme:this.options.theme==='light'?'dark':'light'});
+      if(action==='inspect')this.setOptions({showInspector:!this.options.showInspector});
+      if(action==='fullscreen'){if(document.fullscreenElement)await document.exitFullscreen();else if(this.root.requestFullscreen)await this.root.requestFullscreen();else this.message('Full screen is unavailable in this browser.');}
+      if(action==='reference-info'&&this.a)this.setSelection({start:this.selection?.start??1,end:this.selection?.end??1,rowId:this.a.rows[this.reference].id},false);
+      if(action==='pin-selected'&&this.selection?.rowId)this.setReference(this.selection.rowId);
+      if(action==='toggle-row-features'&&this.selection?.rowId){const ids=new Set(this.annotationFilter.hiddenRowIds??[]),id=this.selection.rowId;if(ids.has(id))ids.delete(id);else ids.add(id);this.setAnnotationFilter({...this.annotationFilter,hiddenRowIds:[...ids]});}
+      if(action==='features-prev'){this.featurePage=Math.max(0,this.featurePage-1);this.inspectorDirty=true;this.schedule();}
+      if(action==='features-next'){this.featurePage++;this.inspectorDirty=true;this.schedule();}
+      if(action==='clear-rows'){this.selectedRows.clear();this.labelKey='';this.inspectorDirty=true;this.schedule();}
+      if(action==='compare'&&this.a){const ids=new Map(this.a.rows.map((r,i)=>[r.id,i])),rows=[...this.selectedRows].map(id=>ids.get(id)!);const a=this.a,revision=this.revision,selectionKey=[...this.selectedRows].join(',');this.message('Calculating pairwise identity…');const matrix=await this.comparison.pairwise(a,rows);if(this.disposed||this.revision!==revision||this.tab!=='compare'||selectionKey!==[...this.selectedRows].join(','))return;this.message('');const target=$(this.inspector,'.ak-identity-result');target.innerHTML=`<div class="ak-matrix-scroll"><table><caption>Identity over canonical comparable positions</caption><thead><tr><th>Sequence</th>${rows.map(i=>`<th>${e(this.a!.rows[i].name)}</th>`).join('')}</tr></thead><tbody>${rows.map((row,i)=>`<tr><th>${e(this.a!.rows[row].name)}</th>${matrix[i].map(cell=>`<td title="${cell.matches} matches / ${cell.compared} compared">${cell.identity===null?'NA':(cell.identity*100).toFixed(1)+'%'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+      if(action==='motif')this.findMotif($<HTMLInputElement>(this.root,'[aria-label="Find literal motif"]').value);
+    }catch(error){this.error(error);}
+  }
+  findMotif(motif:string) {
+    if(!this.a)return;const query=motif.trim().toUpperCase();if(!/^[A-Z*]+$/.test(query)) {this.message('Enter a literal, ungapped residue motif (letters or *).');return;}
+    if(this.motifCursor.query!==query)this.motifCursor={query,row:0,start:0};
+    const rows=this.filteredRows;
+    for(let pass=0;pass<=rows.length;pass++) {
+      const index=(this.motifCursor.row+pass)%Math.max(1,rows.length),row=rows[index];if(row===undefined)break;
+      const seq=this.a.rows[row].sequence.toUpperCase().replace(/[-.]/g,''),from=pass===0?this.motifCursor.start:0,found=seq.indexOf(query,from);
+      if(found>=0){const start=sequenceToAlignment(this.a,row,found+1)!,end=sequenceToAlignment(this.a,row,found+query.length)!;this.motifCursor={query,row:index,start:found+1};this.setSelection({start,end,rowId:this.a.rows[row].id});this.message(`Found ${query} in ${this.a.rows[row].name}, sequence positions ${found+1}–${found+query.length}.`);return;}
+    }
+    this.motifCursor={query,row:0,start:0};this.message(`No match for ${query} in the filtered sequences.`);
+  }
+  private async export(kind:string) {
+    if(!this.a)return;
+    try{
+      const region:ExportRegion={start:this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,end:this.selection?.end??Math.min(this.a.width,Math.ceil((this.scroll.scrollLeft+this.scroll.clientWidth-this.options.labelWidth)/this.options.cellWidth)),rowIds:this.selectedRows.size?[...this.selectedRows]:[this.a.rows[this.reference].id,...this.rows.slice(Math.floor(this.scroll.scrollTop/this.options.rowHeight),Math.ceil((this.scroll.scrollTop+this.scroll.clientHeight)/this.options.rowHeight)).map(i=>this.a!.rows[i].id)]};
+      if(kind==='fasta-all')download(exportFasta(this.a),'alignment.fasta');
+      if(kind==='fasta')download(exportFasta(this.a,region),'selection.fasta');
+      if(kind==='state')download(JSON.stringify(this.getState(),null,2),'alignment-view.json','application/json');
+      if(['svg','png','tsv'].includes(kind)&&!this.stats)throw new Error('Wait for column statistics to finish before exporting.');
+      if(kind==='tsv')download(exportStatistics(this.stats!),'column-statistics.tsv','text/tab-separated-values');
+      if(kind==='svg')download(exportSvg({...this.a,annotations:this.filteredAnnotations.visible},this.stats!,region,this.options.colorScheme,{colorMode:this.options.colorMode,referenceId:this.a.rows[this.reference].id}),'alignment.svg','image/svg+xml');
+      if(kind==='png')download(await exportPng({...this.a,annotations:this.filteredAnnotations.visible},this.stats!,region,this.options.colorScheme,{colorMode:this.options.colorMode,referenceId:this.a.rows[this.reference].id}),'alignment.png');
+    }catch(error){this.error(error);}
+  }
+  private bind() {
+    const signal=this.controller.signal,on=(target:EventTarget,event:string,handler:(event:any)=>void)=>target.addEventListener(event,handler,{signal});
+    on(this.scroll,'scroll',()=>this.schedule());
+    on(this.root,'click',(event:MouseEvent)=>{
+      const target=event.target as HTMLElement,button=target.closest<HTMLElement>('[data-action],[data-tab],[data-row],[data-pin],[data-feature]');if(!button)return;
+      if(button.dataset.action)void this.action(button.dataset.action);
+      if(button.dataset.tab){this.tab=button.dataset.tab;this.inspectorDirty=true;this.schedule();}
+      if(button.dataset.pin)this.setReference(button.dataset.pin);
+      if(button.dataset.row)this.setSelection({start:this.selection?.start??1,end:this.selection?.end??1,rowId:button.dataset.row},false);
+      if(button.dataset.feature){const feature=this.filteredAnnotations.visible[Number(button.dataset.feature)];if(feature){if(feature.mapping==='mapped')this.setSelection({start:feature.start!,end:feature.end!,rowId:feature.rowId});this.emit('annotation',feature);this.message(`${feature.label}: ${feature.mapping==='mapped'?`alignment columns ${feature.start}–${feature.end}`:'no protein mapping'}. ${JSON.stringify(feature.metadata??{})}`);}}
+    });
+    on(this.scroll,'click',(event:MouseEvent)=>{const s=this.eventAt(event);if(s){if(event.shiftKey&&this.selection){s.start=Math.min(this.selection.start,s.start);s.end=Math.max(this.selection.end,s.end);}this.setSelection(s,false);}});
+    on(this.root,'change',(event:Event)=>{
+      const target=event.target as HTMLInputElement,aria=target.getAttribute('aria-label');
+      if(target.dataset.selectRow){if(target.checked)this.selectedRows.add(target.dataset.selectRow);else this.selectedRows.delete(target.dataset.selectRow);this.inspectorDirty=true;this.labelKey='';this.schedule();}
+      if(aria==='Alignment file'&&target.files?.[0]){const file=target.files[0];void this.load(file,{name:file.name}).catch(()=>{});target.value='';}
+      if(aria==='Color scheme')this.setOptions({colorScheme:target.value});
+      if(aria==='Residues to color')this.setOptions({colorMode:target.value as ColorMode});
+      if(aria==='Statistics scope')this.setOptions({statisticsScope:target.value as 'all'|'filtered'});
+      if(aria==='Show frequency logo')this.setOptions({showLogo:target.checked});
+      if(aria==='Sequence order')void this.setSort(target.value as ViewState['sort']);
+      if(aria==='Export alignment'){void this.export(target.value);target.value='';}
+      if(aria==='Sequence alphabet'&&this.a){const old=this.a;void this.setAlignment(createAlignment(old.rows,{name:old.name,alphabet:target.value as Alignment['alphabet'],annotations:old.annotations,metadata:old.metadata})).catch(()=>{});}
+      if(aria==='Feature type')this.setAnnotationFilter({...this.annotationFilter,types:target.value?[target.value]:[]});
+      if(aria==='Feature consequence')this.setAnnotationFilter({...this.annotationFilter,consequences:target.value?[target.value]:[]});
+      if(aria==='Features with disease evidence')this.setAnnotationFilter({...this.annotationFilter,disease:target.checked});
+      if(aria==='Features with phenotype evidence')this.setAnnotationFilter({...this.annotationFilter,phenotype:target.checked});
+    });
+    on($(this.root,'[aria-label="Filter sequences"]'),'input',(event:Event)=>this.setFilter((event.target as HTMLInputElement).value));
+    on($(this.root,'[aria-label="Go to alignment column"]'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter'&&this.a){const c=Number((event.target as HTMLInputElement).value);if(Number.isInteger(c)&&c>=1&&c<=this.a.width)this.setSelection({start:c,end:c});else this.message(`Enter a column from 1 to ${this.a.width}.`);}});
+    on($(this.root,'[aria-label="Find literal motif"]'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter')void this.action('motif');});
+    on(this.scroll,'keydown',(event:KeyboardEvent)=>{
+      if(!this.a)return;const key=event.key,start=this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1;
+      if(['+','=','-','_'].includes(key)){event.preventDefault();this.zoom(this.options.cellWidth+(key==='+'||key==='='?2:-2));return;}
+      if(key==='Escape'){this.setSelection(null);return;}
+      if(['ArrowLeft','ArrowRight','Home','End','ArrowUp','ArrowDown'].includes(key)){
+        event.preventDefault();let column=start,rowId=this.selection?.rowId;
+        if(key==='ArrowLeft')column=Math.max(1,start-1);if(key==='ArrowRight')column=Math.min(this.a.width,(event.shiftKey?this.selection?.end??start:start)+1);if(key==='Home')column=1;if(key==='End')column=this.a.width;
+        if(key==='ArrowDown'||key==='ArrowUp'){const index=rowId?this.rows.findIndex(i=>this.a!.rows[i].id===rowId):Math.floor(this.scroll.scrollTop/this.options.rowHeight);const row=this.rows[bounded(index+(key==='ArrowDown'?1:-1),0,this.rows.length-1)];if(row!==undefined)rowId=this.a.rows[row].id;}
+        this.setSelection({start:event.shiftKey?Math.min(start,column):column,end:event.shiftKey?Math.max(this.selection?.end??start,column):column,rowId});
+      }
+    });
+    const overview=$(this.root,'.ak-overview');let dragging=false;
+    const navigate=(event:PointerEvent)=>{if(!this.a)return;const rect=overview.getBoundingClientRect(),ratio=bounded((event.clientX-rect.left)/rect.width,0,1);this.scroll.scrollLeft=ratio*this.a.width*this.options.cellWidth-(this.scroll.clientWidth-this.options.labelWidth)/2;this.schedule();};
+    on(overview,'pointerdown',(event:PointerEvent)=>{dragging=true;overview.setPointerCapture(event.pointerId);navigate(event);});on(overview,'pointermove',(event:PointerEvent)=>{if(dragging)navigate(event);});on(overview,'pointerup',()=>{dragging=false;});
+    on(overview,'keydown',(event:KeyboardEvent)=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();this.scroll.scrollLeft+=(event.key==='ArrowRight'?1:-1)*this.options.cellWidth*10;this.schedule();}});
+    const separator=$(this.root,'.ak-gutter-resize');let resizing=false,origin=0,gutter=0;
+    on(separator,'pointerdown',(event:PointerEvent)=>{resizing=true;origin=event.clientX;gutter=this.options.labelWidth;separator.setPointerCapture(event.pointerId);});on(separator,'pointermove',(event:PointerEvent)=>{if(resizing)this.setOptions({labelWidth:gutter+event.clientX-origin});});on(separator,'pointerup',()=>{resizing=false;});
+    on(separator,'keydown',(event:KeyboardEvent)=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();this.setOptions({labelWidth:this.options.labelWidth+(event.key==='ArrowRight'?10:-10)});}});
+    on(this.root,'dragover',(event:DragEvent)=>event.preventDefault());on(this.root,'drop',(event:DragEvent)=>{event.preventDefault();const file=event.dataTransfer?.files[0];if(file)void this.load(file,{name:file.name}).catch(()=>{});});
+  }
+  clear() {
+    this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();
+    this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.selectedRows.clear();this.annotationFilter={};this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
+    for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
+    $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an aligned FASTA, Stockholm or CLUSTAL file.';this.message('');this.layout();this.emit('selection',null);
+  }
+  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.controller.abort();this.resize.disconnect();cancelAnimationFrame(this.frame);this.listeners.clear();this.root.remove();}
+}
+export const createViewer=(element:HTMLElement,options:ViewerOptions={})=>new AlignmentViewer(element,options);

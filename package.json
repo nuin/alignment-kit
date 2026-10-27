@@ -1,0 +1,81 @@
+{
+  "name": "@alignment-kit/viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "An annotation-aware, virtualized multiple sequence alignment viewer for JavaScript, React and Svelte",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./svelte": {
+      "types": "./dist/svelte.d.ts",
+      "import": "./dist/svelte.js"
+    },
+    "./svelte/AlignmentViewer.svelte": {
+      "types": "./dist/svelte/AlignmentViewer.svelte.d.ts",
+      "svelte": "./dist/svelte/AlignmentViewer.svelte",
+      "default": "./dist/svelte/AlignmentViewer.svelte"
+    },
+    "./pavi": {
+      "types": "./dist/pavi.d.ts",
+      "import": "./dist/pavi.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "node scripts/build.mjs",
+    "build:demo": "vite build",
+    "test": "vitest run",
+    "check": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json",
+    "test:browser": "playwright test",
+    "benchmark": "node --expose-gc scripts/benchmark.mjs",
+    "check:package": "node scripts/check-package.mjs",
+    "preview:files": "node scripts/preview.mjs",
+    "check:datasets": "node scripts/check-datasets.mjs"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "svelte": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "svelte": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@types/node": "^25.0.10",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "esbuild": "^0.27.3",
+    "jsdom": "^26.1.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "svelte": "^5.55.5",
+    "svelte-check": "^4.4.6",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  }
+}

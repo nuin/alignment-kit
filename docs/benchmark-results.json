@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-27T11:20:57.169Z",
+  "environment": {
+    "platform": "darwin",
+    "release": "27.0.0",
+    "arch": "arm64",
+    "cpu": "Apple M3 Max",
+    "logicalCpus": 16,
+    "ramGiB": 64,
+    "node": "v26.12.1"
+  },
+  "method": "Single cold run per fixture in one Node process. Timings exclude browser layout, paint, worker messaging and file fetch. RSS delta is not peak/browser memory. Synthetic sequences use a repeated motif with a deterministic per-row change. No FPS or first-usable-browser claims.",
+  "realFixture": {
+    "rows": 838,
+    "columns": 160
+  },
+  "results": [
+    {
+      "rows": 10000,
+      "columns": 1000,
+      "annotations": 0,
+      "generationMs": 1.61,
+      "modelMs": 109.4,
+      "statisticsMs": 13.03,
+      "annotationIndexMs": 0.07,
+      "tenThousandQueriesMs": 1.01,
+      "rssIncreaseMiB": 28,
+      "statsRows": 10000
+    },
+    {
+      "rows": 1000,
+      "columns": 10000,
+      "annotations": 0,
+      "generationMs": 0.11,
+      "modelMs": 111.17,
+      "statisticsMs": 14.17,
+      "annotationIndexMs": 0.01,
+      "tenThousandQueriesMs": 0.49,
+      "rssIncreaseMiB": 5,
+      "statsRows": 1000
+    },
+    {
+      "rows": 50000,
+      "columns": 300,
+      "annotations": 0,
+      "generationMs": 4.84,
+      "modelMs": 201.45,
+      "statisticsMs": 23.24,
+      "annotationIndexMs": 0.01,
+      "tenThousandQueriesMs": 0.56,
+      "rssIncreaseMiB": 50.8,
+      "statsRows": 50000
+    },
+    {
+      "rows": 10000,
+      "columns": 1000,
+      "annotations": 100000,
+      "generationMs": 0.81,
+      "modelMs": 107.52,
+      "statisticsMs": 21.86,
+      "annotationIndexMs": 14.64,
+      "tenThousandQueriesMs": 1.5,
+      "rssIncreaseMiB": 51.8,
+      "statsRows": 10000
+    }
+  ]
+}

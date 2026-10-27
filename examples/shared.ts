@@ -1,0 +1,2 @@
+import { createAlignment } from '../src/model';
+export const sample=(count:number)=>createAlignment(Array.from({length:count},(_,i)=>({name:`Example sequence ${i+1}`,sequence:['MAKLVVVGAGGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQV','MAKLVVVGAGGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQV','MAKLVVVGAGG-GKSALTIQLIQNHFVDEYDPTIEDSYRKQV','MAKLVVVGAGGVGKSALTIELIQNHFVDEYDPTIEDSYRKQV','MAKLVVVGAGGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQV','MAKLVVVGAGG-GKSALTIQLIQNHFVDEYDPTIEDSYRKQV'][i]})),{name:'Synthetic integration fixture',alphabet:'protein'});

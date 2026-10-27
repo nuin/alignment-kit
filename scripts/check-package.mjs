@@ -1,0 +1,28 @@
+import { mkdtemp,writeFile,mkdir,readFile,symlink,realpath } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join,resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { build } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { build as esbuild } from 'esbuild';
+import { compile } from 'svelte/compiler';
+const tmp=await realpath(await mkdtemp(join(tmpdir(),'alignment-kit-package-')));
+const packed=JSON.parse(execFileSync('npm',['pack','--json','--cache',join(tmp,'cache'),'--pack-destination',tmp,'--logs-dir',join(tmp,'logs')],{encoding:'utf8'}));
+const tgz=join(tmp,packed[0].filename);
+await writeFile(join(tmp,'package.json'),JSON.stringify({private:true,type:'module',dependencies:{'@alignment-kit/viewer':`file:${tgz}`,react:'19.2.3','react-dom':'19.2.3',svelte:'5.55.5'}}));
+// Extract the actual package archive; reuse installed framework peers without registry access.
+const packageDir=join(tmp,'node_modules/@alignment-kit/viewer');await mkdir(packageDir,{recursive:true});
+execFileSync('tar',['-xzf',tgz,'--strip-components=1','-C',packageDir]);
+for(const peer of ['react','react-dom','svelte'])await symlink(resolve('node_modules',peer),join(tmp,'node_modules',peer),'dir');
+await writeFile(join(tmp,'index.html'),'<div id="app"></div><script type="module" src="/react.tsx"></script>');
+await writeFile(join(tmp,'svelte.html'),'<div id="app"></div><script type="module" src="/svelte.ts"></script>');
+await writeFile(join(tmp,'react.tsx'),`import {createRoot} from 'react-dom/client';import {AlignmentViewer} from '@alignment-kit/viewer/react';import {parseAlignment} from '@alignment-kit/viewer';import '@alignment-kit/viewer/style.css';createRoot(document.getElementById('app')!).render(<AlignmentViewer alignment={parseAlignment('>a\\nAC\\n>b\\nAT')}/>);`);
+await writeFile(join(tmp,'App.svelte'),`<script>import AlignmentViewer from '@alignment-kit/viewer/svelte/AlignmentViewer.svelte';import {parseAlignment} from '@alignment-kit/viewer';const a=parseAlignment('>a\\nAC\\n>b\\nAT');</script><AlignmentViewer alignment={a}/>`);
+await writeFile(join(tmp,'svelte.ts'),`import {mount} from 'svelte';import App from './App.svelte';import '@alignment-kit/viewer/style.css';mount(App,{target:document.getElementById('app')!});`);
+await build({configFile:false,root:tmp,plugins:[svelte()],logLevel:'warn',esbuild:{jsx:'automatic'},build:{outDir:join(tmp,'build'),rollupOptions:{input:{react:join(tmp,'index.html'),svelte:join(tmp,'svelte.html')}}}});
+const serverCode=`import {renderToString} from 'react-dom/server';import {createElement} from 'react';import {AlignmentViewer} from '@alignment-kit/viewer/react';import {parseAlignment} from '@alignment-kit/viewer';import {alignmentViewer} from '@alignment-kit/viewer/svelte';if(!renderToString(createElement(AlignmentViewer,{alignment:parseAlignment('>a\\nAC')})).includes('<div'))throw Error('SSR failed');if(typeof alignmentViewer!=='function')throw Error('Missing action');console.log('Packed React SSR and Svelte action imports pass');`;
+execFileSync('node',['--input-type=module','-e',serverCode],{cwd:tmp,stdio:'inherit'});
+await writeFile(join(tmp,'ssr.ts'),`import {render} from 'svelte/server';import App from './App.svelte';const result=render(App);if(!result.body.includes('<div'))throw Error('Svelte SSR failed');console.log('Packed Svelte component SSR passes');`);
+await esbuild({absWorkingDir:tmp,entryPoints:['ssr.ts'],outfile:join(tmp,'ssr.mjs'),bundle:true,platform:'node',format:'esm',conditions:['node'],plugins:[{name:'svelte-ssr',setup(builder){builder.onLoad({filter:/\.svelte$/},async({path})=>({contents:compile(await readFile(path,'utf8'),{filename:path,generate:'server'}).js.code,loader:'js',resolveDir:resolve(path,'..')}));}}]});
+execFileSync('node',[join(tmp,'ssr.mjs')],{cwd:tmp,stdio:'inherit'});
+console.log(`Packed package consumer builds passed. Inspection directory: ${tmp}`);

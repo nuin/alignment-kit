@@ -1,0 +1,10 @@
+import { build } from 'esbuild';
+import { execFileSync } from 'node:child_process';
+import { mkdir, cp, readFile, writeFile, rm } from 'node:fs/promises';
+await rm('dist',{recursive:true,force:true});await mkdir('dist',{recursive:true});
+await build({entryPoints:['src/index.ts','src/react.tsx','src/svelte.ts','src/pavi.ts','src/worker.js'],outdir:'dist',bundle:true,splitting:true,format:'esm',platform:'browser',target:'es2022',external:['react','react/jsx-runtime','svelte','svelte/*'],sourcemap:true,logLevel:'info'});
+execFileSync('node',['node_modules/typescript/bin/tsc','--project','tsconfig.build.json'],{stdio:'inherit'});
+await cp('src/svelte','dist/svelte',{recursive:true});await cp('src/fonts','dist/fonts',{recursive:true});
+await writeFile('dist/style.css',(await readFile('src/fonts.css','utf8'))+'\n'+(await readFile('src/style.css','utf8')));
+await cp('THIRD_PARTY_NOTICES.md','dist/THIRD_PARTY_NOTICES.md');
+console.log('Built core, worker, React, Svelte action/component, declarations, styles and fonts.');
