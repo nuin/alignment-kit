@@ -1,5 +1,6 @@
 import palettes from './palettes.json';
-export interface ColorScheme { id:string; label:string; description:string; colors:Record<string,string> }
+import type { Alphabet } from './types';
+export interface ColorScheme { id:string; label:string; description:string; colors:Record<string,string>; alphabets?:Alphabet[] }
 const registry=new Map<string,ColorScheme>();
 export function registerColorScheme(scheme:ColorScheme) {
   if(!/^[a-z0-9_-]+$/i.test(scheme.id)) throw new Error('Color scheme IDs must contain only letters, numbers, underscores or hyphens.');
@@ -10,11 +11,13 @@ const aliases:Record<string,string>={buried:'buried_index',helix:'helix_propensi
 const labels:Record<string,string>={clustal2:'Clustal2',clustal:'Clustal',hydro:'Hydrophobicity',buried_index:'Buried index',helix_propensity:'Helix propensity',strand_propensity:'Strand propensity',turn_propensity:'Turn propensity',mae:'MAE',cinema:'Cinema',purine:'Purine / pyrimidine'};
 for(const [name,colors] of Object.entries(palettes)) {
   const id=aliases[name]??name;
-  registerColorScheme({id,label:labels[id]??id[0].toUpperCase()+id.slice(1).replaceAll('_',' '),description:'Fixed residue colors from Nightingale. Color encodes residue identity or a residue property, not inferred biological function.',colors});
+  registerColorScheme({id,label:labels[id]??id[0].toUpperCase()+id.slice(1).replaceAll('_',' '),description:'Fixed residue colors from Nightingale. Color encodes residue identity or a residue property, not inferred biological function.',colors,alphabets:['nucleotide','purine'].includes(id)?['dna','rna']:['protein']});
 }
-registerColorScheme({id:'soft',label:'Residue classes',description:'Muted qualitative residue classes: hydrophobic, polar, positive, negative, and special residues.',colors:Object.fromEntries([['AILMVFWY','#c7d9ec'],['STNQ','#cfe5d7'],['KRH','#d3cbeb'],['DE','#f0c8c2'],['G','#eee2b7'],['P','#dfd0bd'],['C','#f4dda0']].flatMap(([letters,color])=>[...letters].map(letter=>[letter,color])))});
+registerColorScheme({id:'soft',label:'Residue classes',alphabets:['protein'],description:'Muted qualitative residue classes: hydrophobic, polar, positive, negative, and special residues.',colors:Object.fromEntries([['AILMVFWY','#c7d9ec'],['STNQ','#cfe5d7'],['KRH','#d3cbeb'],['DE','#f0c8c2'],['G','#eee2b7'],['P','#dfd0bd'],['C','#f4dda0']].flatMap(([letters,color])=>[...letters].map(letter=>[letter,color])))});
+registerColorScheme({id:'soft-nucleotide',label:'Nucleotide · muted',alphabets:['dna','rna'],description:'Muted base identities: A green, C gold, G rose, T/U blue. Ambiguity symbols are neutral; T and U share a color without changing the input sequence.',colors:{A:'#d8ead3',C:'#f3dfb3',G:'#e8c8cb',T:'#ccdef3',U:'#ccdef3',R:'#e0e5eb',Y:'#e0e5eb',S:'#e0e5eb',W:'#e0e5eb',K:'#e0e5eb',M:'#e0e5eb',B:'#e0e5eb',D:'#e0e5eb',H:'#e0e5eb',V:'#e0e5eb',N:'#e0e5eb'}});
+getColorScheme('nucleotide').label='Nucleotide · classic';
 registerColorScheme({id:'conservation',label:'Consensus support',description:'Modal non-gap residue count divided by all rows in the selected statistics scope. Gaps reduce support.',colors:{}});
-export const colorSchemes=()=>[getColorScheme('soft'),...Array.from(registry.values()).filter(s=>s.id!=='soft')];
+export const colorSchemes=(alphabet?:Alphabet)=>[getColorScheme('soft'),getColorScheme('soft-nucleotide'),...Array.from(registry.values()).filter(s=>s.id!=='soft'&&s.id!=='soft-nucleotide')].filter(s=>!alphabet||!s.alphabets||s.alphabets.includes(alphabet));
 export function getColorScheme(id:string):ColorScheme {const s=registry.get(id);if(!s) throw new Error(`Unknown color scheme “${id}”.`);return s;}
 export function residueColor(residue:string,scheme:ColorScheme,support?:number):string {
   if(residue==='-'||residue==='.') return '#f1f4f7';

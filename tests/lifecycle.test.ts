@@ -11,6 +11,19 @@ beforeAll(()=>{
 afterEach(()=>{disposers.splice(0).forEach(d=>d());document.body.replaceChildren();});
 const host=()=>{const el=document.createElement('div');document.body.append(el);return el;};
 const data=()=>parseAlignment('>a\nA-CG\n>b\nATCG\n>c\nAT-G',{alphabet:'dna'});
+it('updates palette choices and colors when the alignment alphabet changes',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());expect(viewer.getState().colorScheme).toBe('soft-nucleotide');
+  const palette=el.querySelector<HTMLSelectElement>('select[aria-label="Color scheme"]')!;
+  expect([...palette.options].map(o=>o.value)).toContain('purine');expect([...palette.options].map(o=>o.value)).not.toContain('taylor');
+  const type=el.querySelector<HTMLSelectElement>('select[aria-label="Sequence alphabet"]')!;
+  type.value='protein';type.dispatchEvent(new Event('change',{bubbles:true}));
+  await vi.waitFor(()=>expect(viewer.getAlignment()?.alphabet).toBe('protein'));
+  expect(viewer.getState().colorScheme).toBe('soft');expect([...palette.options].map(o=>o.value)).toContain('taylor');
+  expect(el.querySelector('[role=combobox][aria-label="Sequence alphabet"]')?.textContent).toBe('Protein');
+  await viewer.setAlignment(parseAlignment('>rna\nACGU',{alphabet:'rna'}));expect(viewer.getState().colorScheme).toBe('soft-nucleotide');
+  viewer.setOptions({theme:'dark',colorScheme:'soft'});expect(viewer.getState().colorScheme).toBe('soft-nucleotide');
+});
 it('emits ready only for the latest load of the same alignment object',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());const a=data(),ready=vi.fn(()=>expect(viewer.getStatistics()).toBeDefined());
   viewer.on('ready',ready);await Promise.all([viewer.setAlignment(a),viewer.setAlignment(a)]);expect(ready).toHaveBeenCalledOnce();

@@ -7,7 +7,7 @@ test('real protein and RNA alignments retain their dimensions and sources',async
     await page.getByRole('button',{name:label,exact:true}).click();
     await expect(page.locator('.ak-status')).toContainText(`${rows.toLocaleString()} sequences`,{timeout:30000});
     await expect(page.locator('.dataset-description')).toContainText(`${width} columns`);
-    await expect(page.getByLabel('Sequence alphabet')).toHaveValue(alphabet);
+    await expect(page.getByRole('combobox',{name:'Sequence alphabet'})).toHaveText(alphabet==='protein'?'Protein':alphabet.toUpperCase());
     await expect(page.getByRole('link',{name:'View source'})).toBeVisible();
     expect(await page.locator('.ak-row-label').count()).toBeLessThan(60);
   }

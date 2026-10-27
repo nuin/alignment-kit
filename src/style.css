@@ -13,3 +13,60 @@
 @media(max-width:800px){.ak-inspector{position:absolute;z-index:6;right:0;top:0;bottom:31px;box-shadow:-8px 0 20px #17273716;max-width:75%}.ak-workspace{position:relative}.ak-viewer[data-inspector=true] .ak-main{min-width:0}.ak-toolbar .ak-search{flex-basis:150px}.ak-overview-title{width:115px}.ak-tools{font-size:11px}.ak-tools select{max-width:140px}.ak-status{font-size:10px}.ak-status-detail{display:none}}
 @media(prefers-reduced-motion:reduce){.ak-viewer *{scroll-behavior:auto!important}}
 .ak-row-species{display:block;font-size:9px;color:var(--ak-muted);line-height:10px;font-weight:400;overflow:hidden;text-overflow:ellipsis}
+
+/* Match native inputs and selects across browsers; keep each label/control together. */
+.ak-tools label{flex-shrink:0;white-space:nowrap}
+.ak-tools :is(select,input:not([type=checkbox]),button),
+.ak-toolbar :is(select,input:not([type=checkbox]),button){
+  height:32px;min-height:32px;line-height:20px;padding:5px 9px;
+}
+.ak-tools :is(select,input:not([type=checkbox]),button){font-size:12px}
+.ak-tools input:not([type=checkbox]),.ak-toolbar input:not([type=checkbox]){-webkit-appearance:none;appearance:none}
+.ak-tools select,.ak-toolbar select{
+  -webkit-appearance:none;appearance:none;flex-shrink:0;
+  padding-right:28px;color:var(--ak-ink);
+  background-image:linear-gradient(45deg,transparent 50%,var(--ak-muted) 50%),linear-gradient(135deg,var(--ak-muted) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 50%,calc(100% - 9px) 50%;
+  background-size:4px 4px;background-repeat:no-repeat;
+}
+.ak-tools select{width:160px;max-width:none}
+.ak-toolbar .ak-scheme-label select{width:160px;max-width:none}
+.ak-toolbar>select{width:100px;max-width:none}
+.ak-toolbar .ak-zoom{height:32px;overflow:hidden}
+.ak-toolbar .ak-zoom button{height:30px;min-height:30px;padding:0;flex-shrink:0}
+.ak-tools select[aria-label="Residues to color"]{width:216px}
+.ak-tools select[aria-label="Sequence alphabet"]{width:88px}
+.ak-tools input[type=number]{width:64px}
+.ak-tools .ak-motif input{width:128px}
+
+/* Menus inherit viewer tokens instead of the operating system's select theme. */
+.ak-viewer .ak-select-trigger{
+  display:inline-flex;align-items:center;justify-content:space-between;gap:12px;
+  height:32px;min-height:32px;padding:5px 10px;line-height:20px;text-align:left;
+  color:var(--ak-ink);background:var(--ak-bg);white-space:nowrap;flex-shrink:0;
+}
+.ak-select-trigger::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--ak-muted);border-bottom:1.5px solid var(--ak-muted);transform:translateY(-2px) rotate(45deg);flex-shrink:0}
+.ak-viewer .ak-select-trigger[aria-expanded=true]{border-color:var(--ak-accent);background:var(--ak-hover)}
+.ak-tools .ak-select-trigger{width:160px;font-size:12px}
+.ak-tools .ak-select-trigger[aria-label="Residues to color"]{width:216px}
+.ak-tools .ak-select-trigger[aria-label="Sequence alphabet"]{width:88px}
+.ak-toolbar .ak-select-trigger[aria-label="Color scheme"]{width:160px}
+.ak-toolbar .ak-select-trigger[aria-label="Export alignment"]{width:100px}
+.ak-field .ak-select-trigger{width:100%}
+.ak-select-menu{
+  position:absolute;z-index:20;overflow:auto;overscroll-behavior:contain;
+  padding:5px;background:var(--ak-bg);color:var(--ak-ink);border:1px solid var(--ak-line);
+  border-radius:7px;box-shadow:0 8px 28px #0003;font-size:12px;line-height:20px;
+  scrollbar-width:thin;scrollbar-color:var(--ak-muted) transparent;
+}
+.ak-select-option{position:relative;min-height:32px;padding:6px 10px 6px 28px;border-radius:4px;cursor:pointer;overflow-wrap:anywhere}
+.ak-select-option[aria-selected=true]::before{content:"✓";position:absolute;left:9px;color:var(--ak-accent)}
+.ak-select-option[data-active=true],.ak-select-option:hover{background:var(--ak-hover)}
+.ak-select-option[aria-disabled=true]{opacity:.45;cursor:default}
+.ak-viewer .ak-row-label button[data-row]{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;font-size:12px;line-height:16px}
+.ak-row-name{display:block;width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ak-row-species{width:100%;font-size:10px;line-height:12px;margin-top:1px}
+.ak-viewer[data-compact-rows=true] .ak-row-species{display:none}
+.ak-row-label{padding-left:12px;gap:8px}
+.ak-row-label input{width:14px;height:14px}
+.ak-viewer .ak-row-label .ak-pin{flex-basis:24px}

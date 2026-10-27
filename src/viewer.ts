@@ -2,7 +2,8 @@ import type { Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEven
 import { createAlignment, sequenceToAlignment } from './model';
 import { readAlignmentInput } from './parsers';
 import { AnnotationIndex, filterAnnotations } from './annotations';
-import { getColorScheme } from './colors';
+import { getColorScheme, colorSchemes } from './colors';
+import { ThemedSelects } from './selects';
 import { Renderer, type RenderView } from './renderer';
 import { buildShell, $, download } from './controls';
 import { renderInspector } from './inspector';
@@ -18,7 +19,7 @@ export class AlignmentViewer {
   private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
   private filteredAnnotations:ReturnType<typeof filterAnnotations>={visible:[],unknown:0,excluded:0};private annotationIndex=new AnnotationIndex([]);
-  private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;
+  private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;private menus:ThemedSelects;
   private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private request?:AbortController;
   private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
   private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
@@ -26,9 +27,10 @@ export class AlignmentViewer {
   private motifCursor={query:'',row:0,start:0};
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:28,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',...options};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',...options};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
+    this.menus=new ThemedSelects(this.root);
     this.bind();this.resize=new ResizeObserver(()=>{this.overviewDirty=true;this.layout();});this.resize.observe(this.root);
     this.setOptions(options);this.layout();
     if(options.alignment) void this.setAlignment(options.alignment).catch(()=>{});
@@ -69,6 +71,9 @@ export class AlignmentViewer {
     this.assertAlive();++this.loadRevision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();const revision=++this.revision;
     if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw this.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
     this.a=alignment;this.stats=undefined;this.fullStats=undefined;this.reference=0;this.selection=null;this.selectedRows.clear();this.query='';this.sort='input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter={};this.featurePage=0;
+    this.menus.close();const schemes=colorSchemes(alignment.alphabet);
+    if(!schemes.some(s=>s.id===this.options.colorScheme))this.options.colorScheme=alignment.alphabet==='protein'?'soft':'soft-nucleotide';
+    const palette=$<HTMLSelectElement>(this.root,'select[aria-label="Color scheme"]');palette.replaceChildren(...schemes.map(s=>new Option(s.label,s.id)));palette.value=this.options.colorScheme;
     this.motifCursor={query:'',row:0,start:0};this.scroll.scrollLeft=0;this.scroll.scrollTop=0;
     $<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value='';
     $<HTMLSelectElement>(this.root,'[aria-label="Sequence alphabet"]').value=alignment.alphabet;
@@ -83,6 +88,7 @@ export class AlignmentViewer {
     const oldScope=this.options.statisticsScope;
     const {alignment:_,worker:__,workerUrl:___,...visual}=options;
     Object.assign(this.options,visual);
+    if(this.a&&!colorSchemes(this.a.alphabet).some(s=>s.id===this.options.colorScheme))this.options.colorScheme=this.a.alphabet==='protein'?'soft':'soft-nucleotide';
     this.options.cellWidth=bounded(this.options.cellWidth,3,32);this.options.rowHeight=bounded(this.options.rowHeight,18,48);this.options.labelWidth=bounded(this.options.labelWidth,100,420);this.options.height=bounded(this.options.height,360,2000);
     this.root.style.height=this.options.height+'px';this.root.dataset.theme=this.options.theme;this.root.dataset.inspector=String(this.options.showInspector);
     $(this.root,'.ak-toolbar').hidden=!this.options.showToolbar;$(this.root,'.ak-tools').hidden=!this.options.showToolbar;
@@ -151,6 +157,7 @@ export class AlignmentViewer {
   private layout() {
     if(this.disposed)return;const {labelWidth:gutter,rowHeight:rh,showLogo}=this.options;
     this.root.style.setProperty('--ak-gutter',gutter+'px');this.root.style.setProperty('--ak-row-height',rh+'px');
+    this.root.dataset.compactRows=String(rh<32);
     $(this.root,'.ak-tracks').style.height=(114+rh+(showLogo?45:0))+'px';$(this.root,'.ak-logo-label').hidden=!showLogo;
     $(this.root,'.ak-reference-label').style.top=(114+(showLogo?45:0))+'px';
     const spacer=$(this.root,'.ak-spacer');spacer.style.width=(gutter+(this.a?.width??0)*this.options.cellWidth)+'px';spacer.style.height=Math.max(1,this.rows.length*rh)+'px';
@@ -159,7 +166,7 @@ export class AlignmentViewer {
     $(this.root,'[aria-label="Zoom level"]').textContent=this.options.cellWidth+' px';
     this.schedule();
   }
-  private schedule() {if(!this.frame&&!this.disposed)this.frame=requestAnimationFrame(()=>{this.frame=0;this.render();});}
+  private schedule() {if(this.disposed)return;this.menus.sync();if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=0;this.render();});}
   private render() {
     if(!this.a||this.disposed)return;const width=this.scroll.clientWidth,height=this.scroll.clientHeight;if(width<1||height<1)return;
     const v=this.view();this.renderer.body($(this.root,'.ak-body-canvas'),v,width,height);this.renderer.tracks($(this.root,'.ak-tracks canvas'),v,width);
@@ -172,13 +179,13 @@ export class AlignmentViewer {
     if(this.labelKey!==key){this.labelKey=key;const fragment=document.createDocumentFragment();
       for(let i=first;i<last;i++){const row=this.a.rows[this.rows[i]],label=document.createElement('div');label.className='ak-row-label';label.dataset.index=String(i);
         const check=document.createElement('input');check.type='checkbox';check.checked=this.selectedRows.has(row.id);check.setAttribute('aria-label',`Select ${row.name}`);check.dataset.selectRow=row.id;
-        const button=document.createElement('button');button.type='button';button.dataset.row=row.id;button.title=row.name+(row.species?' · '+row.species:'');button.textContent=row.name;if(row.species){const species=document.createElement('small');species.className='ak-row-species';species.textContent=row.species;button.append(species);}
+        const button=document.createElement('button');button.type='button';button.dataset.row=row.id;button.title=row.name+(row.species?' · '+row.species:'');const name=document.createElement('span');name.className='ak-row-name';name.textContent=row.name;button.append(name);if(row.species){const species=document.createElement('small');species.className='ak-row-species';species.textContent=row.species;button.append(species);}
         const pin=document.createElement('button');pin.type='button';pin.dataset.pin=row.id;pin.className='ak-pin';pin.textContent='◇';pin.setAttribute('aria-label',`Pin ${row.name} as reference`);
         label.append(check,button,pin);fragment.append(label);
       }this.labels.replaceChildren(fragment);
     }
     for(const label of this.labels.children as HTMLCollectionOf<HTMLElement>)label.style.transform=`translateY(${Number(label.dataset.index)*v.rh-v.y}px)`;
-    if(this.inspectorDirty){this.inspectorDirty=false;renderInspector(this.inspector,{a:this.a,stats:this.stats,selection:this.selection,scheme:this.options.colorScheme,reference:this.reference,selectedRows:this.selectedRows,annotations:this.filteredAnnotations.visible,annotationFilter:this.annotationFilter,unknown:this.filteredAnnotations.unknown,excluded:this.filteredAnnotations.excluded,tab:this.tab,page:this.featurePage,scope:this.options.statisticsScope,identity:this.selection?.rowId?this.identityDetails?.[this.a.rows.findIndex(r=>r.id===this.selection!.rowId)]:undefined});for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-tab]'))button.setAttribute('aria-pressed',String(button.dataset.tab===this.tab));}
+    if(this.inspectorDirty){this.inspectorDirty=false;renderInspector(this.inspector,{a:this.a,stats:this.stats,selection:this.selection,scheme:this.options.colorScheme,reference:this.reference,selectedRows:this.selectedRows,annotations:this.filteredAnnotations.visible,annotationFilter:this.annotationFilter,unknown:this.filteredAnnotations.unknown,excluded:this.filteredAnnotations.excluded,tab:this.tab,page:this.featurePage,scope:this.options.statisticsScope,identity:this.selection?.rowId?this.identityDetails?.[this.a.rows.findIndex(r=>r.id===this.selection!.rowId)]:undefined});for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-tab]'))button.setAttribute('aria-pressed',String(button.dataset.tab===this.tab));this.menus.sync();}
     const start=Math.floor(v.x/v.cw)+1,end=Math.min(this.a.width,Math.ceil((v.x+width-v.gutter)/v.cw));
     $(this.root,'.ak-status-main').textContent=`${this.a.rows.length.toLocaleString()} sequences${this.query?` · ${this.filteredRows.length.toLocaleString()} filtered`:''} · ${this.a.width.toLocaleString()} columns`;
     $(this.root,'.ak-status-detail').textContent=`${start}–${end} · ${this.stats?`${this.options.statisticsScope} rows`:'statistics pending'} · ${this.a.alphabet.toUpperCase()}`;
@@ -292,6 +299,6 @@ export class AlignmentViewer {
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
     $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an aligned FASTA, Stockholm or CLUSTAL file.';this.message('');this.layout();this.emit('selection',null);
   }
-  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.controller.abort();this.resize.disconnect();cancelAnimationFrame(this.frame);this.listeners.clear();this.root.remove();}
+  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);this.listeners.clear();this.root.remove();}
 }
 export const createViewer=(element:HTMLElement,options:ViewerOptions={})=>new AlignmentViewer(element,options);
