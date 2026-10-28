@@ -1,7 +1,7 @@
 import {it,expect} from 'vitest';
 import {encodeViewLink,decodeViewLink} from '../src/link';
 import type {ViewState} from '../src/types';
-const state:ViewState={version:1,alignmentId:'abc-3-4-dna',referenceId:'seq-1',query:'human',sort:'name',start:5,rowOffset:2,cellWidth:12,selection:{start:2,end:3,rowId:'seq 2'},colorScheme:'soft-nucleotide',colorMode:'reference-differences',statisticsScope:'filtered',annotationFilter:{}};
+const state:ViewState={version:1,alignmentId:'abc-3-4-dna',referenceId:'seq-1',query:'human',sort:'name',start:5,rowOffset:2,cellWidth:12,selection:{start:2,end:3,rowId:'seq 2'},colorScheme:'soft-nucleotide',colorMode:'reference-differences',statisticsScope:'filtered',annotationFilter:{},hiddenRowIds:[],manualOrder:null,collapsedGroups:[]};
 it('round-trips the view fields through readable parameters',()=>{
   const text=encodeViewLink(state,'https://example.org/a.sto');
   expect(text).toBe('src=https%3A%2F%2Fexample.org%2Fa.sto&aln=abc-3-4-dna&sel=2-3&row=seq+2&ref=seq-1&scheme=soft-nucleotide&mode=reference-differences&zoom=12&q=human&sort=name&scope=filtered&x=5&y=2');

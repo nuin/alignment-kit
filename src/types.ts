@@ -83,6 +83,9 @@ export interface ViewerVisibility {
   clearRows?:boolean;
   messages?:boolean;
   emptyState?:boolean;
+  rowHiding?:boolean;
+  rowReordering?:boolean;
+  tree?:boolean;
 }
 export interface ViewerOptions {
   visibility?:ViewerVisibility;
@@ -96,12 +99,17 @@ export interface ViewerOptions {
   fasta?:FastaOptions;
   /** Keep location.hash in sync with the view and apply a link found there on the next load. */
   urlSync?:boolean;
+  /** A row.metadata key, or 'species', to group rows by. Rows without a value fall in "Ungrouped". An empty string turns grouping off. */
+  groupBy?:string;
+  /** Pixel width of the tree column, 0 to 400. 0 hides it. Default 120. */
+  treeWidth?:number;
 }
 export interface ViewState {
   visibility?:ViewerVisibility;
-  version:1; alignmentId:string; referenceId:string|null; query:string; sort:'input'|'name'|'identity';
+  version:1; alignmentId:string; referenceId:string|null; query:string; sort:'input'|'name'|'identity'|'manual'|'tree';
   start:number; rowOffset:number; cellWidth:number; selection:Selection|null;
   colorScheme:string; colorMode:ColorMode; statisticsScope:'all'|'filtered'; annotationFilter:AnnotationFilter;
+  hiddenRowIds:string[]; manualOrder:string[]|null; collapsedGroups:string[];
 }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
 export interface ViewerEvents { selection:Selection|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }

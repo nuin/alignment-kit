@@ -13,7 +13,7 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   positionTab:true, featuresTab:true, compareTab:true, colorsTab:true,
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
-  messages:true, emptyState:true,
+  messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true,
 });
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
@@ -27,14 +27,14 @@ const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
   positionTab:'[data-tab="position"]',featuresTab:'[data-tab="annotations"]',compareTab:'[data-tab="compare"]',colorsTab:'[data-tab="legend"]',
   pinReference:'[data-action="pin-selected"]',rowFeaturesToggle:'[data-action="toggle-row-features"]',featureType:'select[aria-label="Feature type"]',
   featureConsequence:'select[aria-label="Feature consequence"]',diseaseFilter:'[aria-label="Features with disease evidence"]',phenotypeFilter:'[aria-label="Features with phenotype evidence"]',
-  featurePagination:'.ak-feature-pagination',calculateIdentity:'[data-action="compare"]',clearRows:'[data-action="clear-rows"]',
+  featurePagination:'.ak-feature-pagination',rowHiding:'[data-hide],[data-action="show-hidden"]',tree:'.ak-tree-canvas',calculateIdentity:'[data-action="compare"]',clearRows:'[data-action="clear-rows"]',
 };
 export const inspectorTabs = {position:'positionTab',annotations:'featuresTab',compare:'compareTab',legend:'colorsTab'} as const;
 export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {
   for(const [key,selector] of Object.entries(selectors))for(const element of root.querySelectorAll<HTMLElement>(selector)) {
     let target=element;
     if(element.matches('select,input:not([data-select-row])'))target=element.closest('label')??(element.matches('select')?element.nextElementSibling as HTMLElement:element);
-    if(target)target.hidden=!v[key as keyof ViewerVisibility];
+    if(target)target.hidden=!v[key as keyof ViewerVisibility]||target.dataset.empty==='true';
   }
   const tabs=Object.values(inspectorTabs).some(key=>v[key]);
   root.querySelector<HTMLElement>('.ak-inspector')!.hidden=!v.inspector||!tabs;

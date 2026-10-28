@@ -9,7 +9,7 @@ export interface ViewLink {
   ignored?:string[];
 }
 const modes:ColorMode[]=['all','reference-differences','reference-matches','consensus-differences','consensus-matches'];
-const sorts:ViewState['sort'][]=['input','name','identity'];
+const sorts:ViewState['sort'][]=['input','name','identity','manual','tree'];
 const scopes:ViewState['statisticsScope'][]=['all','filtered'];
 const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y'];
 /** True when a fragment or query holds at least one link parameter; plain anchors such as `#viewer` do not. */
