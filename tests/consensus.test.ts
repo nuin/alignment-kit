@@ -15,3 +15,8 @@ it('applies the threshold to the modal frequency among non-gap rows and validate
   expect(consensusSequence(s,'dna',0.7)).toBe('AN');expect(consensusSequence(s,'dna',0.75)).toBe('AN');expect(consensusSequence(s,'dna',0.6,2,2)).toBe('C');
   expect(()=>consensusSequence(s,'dna',2)).toThrow('threshold');expect(()=>consensusSequence(s,'dna',0,2,1)).toThrow('range');
 });
+it('expands ambiguity codes in nucleotide ties and merges T with U',()=>{
+  expect(consensusSequence(stats('>a\nAAT\n>b\nRNU','dna'),'dna')).toBe('RNT');
+  expect(consensusSequence(stats('>a\nC*\n>b\nY-','dna'),'dna')).toBe('Y*');
+  expect(consensusSequence(stats('>a\nA\n>b\n*','dna'),'dna')).toBe('N');
+});

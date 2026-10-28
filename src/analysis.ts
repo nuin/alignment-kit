@@ -50,7 +50,8 @@ export function pairwiseMatrix(a:Alignment,rows:number[]) {
   return rows.map(rowA=>rows.map(rowB=>pairwiseIdentity(a,rowA,rowB)));
 }
 const iupac:Record<string,string>={AG:'R',CT:'Y',CG:'S',AT:'W',GT:'K',AC:'M',CGT:'B',AGT:'D',ACT:'H',ACG:'V',ACGT:'N'};
-/** Consensus symbol for a 0-based column: modal non-gap residue; X/N below `threshold` (modal frequency among non-gap rows); ties as IUPAC codes (DNA/RNA) or X; all-gap columns '-'. */
+const expand:Record<string,string>={A:'A',C:'C',G:'G',T:'T',U:'T',...Object.fromEntries(Object.entries(iupac).map(([bases,code])=>[code,bases]))};
+/** Consensus symbol for a 0-based column: modal non-gap residue; X/N below `threshold` (modal frequency among non-gap rows); ties as the IUPAC code covering every tied base, ambiguity codes expanded (DNA/RNA), or X; all-gap columns '-'. */
 export function consensusSymbol(s:AlignmentStats,alphabet:Alignment['alphabet'],column:number,threshold=0):string {
   const off=column*STRIDE,unknown=alphabet==='protein'?'X':'N';let max=0;const tied:string[]=[];
   for(let k=0;k<27;k++){const n=s.counts[off+k];if(n>max){max=n;tied.length=0;tied.push(SYMBOLS[k]);}else if(n&&n===max)tied.push(SYMBOLS[k]);}
@@ -58,8 +59,9 @@ export function consensusSymbol(s:AlignmentStats,alphabet:Alignment['alphabet'],
   if(max/(s.total-s.gaps[column])<threshold)return unknown;
   if(tied.length===1)return tied[0];
   if(alphabet==='protein')return 'X';
-  const bases=[...new Set(tied.map(b=>b==='U'?'T':b))].sort().join('');
-  return iupac[bases]??'N';
+  if(tied.some(b=>!expand[b]))return 'N';
+  const bases=[...new Set(tied.flatMap(b=>[...expand[b]]))].sort().join('');
+  return bases.length===1?bases:iupac[bases]??'N';
 }
 /** Consensus over inclusive 1-based columns `start`..`end`. */
 export function consensusSequence(s:AlignmentStats,alphabet:Alignment['alphabet'],threshold=0,start=1,end=s.width):string {
