@@ -5,7 +5,7 @@ export function buildShell(root:HTMLElement) {
   root.innerHTML=`
   <div class="ak-toolbar">
     <button type="button" data-action="open" class="ak-open"><span aria-hidden="true">＋</span> Open alignment</button>
-    <input class="ak-file" type="file" accept=".fa,.fasta,.faa,.fna,.aln,.sto,.stockholm,.phy,.phylip,.nex,.nexus,.nxs,.msf,.pir,.gz,.txt,.gff,.gff3,.bed,.gb,.gbk,.genbank,.embl" hidden aria-label="Alignment file">
+    <input class="ak-file" type="file" accept=".fa,.fasta,.faa,.fna,.aln,.sto,.stockholm,.phy,.phylip,.nex,.nexus,.nxs,.msf,.pir,.gz,.txt,.gff,.gff3,.bed,.gb,.gbk,.genbank,.embl,.json" hidden aria-label="Alignment file">
     <span class="ak-toolbar-divider"></span>
     <label class="ak-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Find a sequence…" aria-label="Filter sequences"></label>
     <label class="ak-scheme-label">Color <select aria-label="Color scheme">${colorSchemes().map(s=>`<option value="${escapeXml(s.id)}">${escapeXml(s.label)}</option>`).join('')}</select></label>

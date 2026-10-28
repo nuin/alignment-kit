@@ -282,7 +282,7 @@ Figures preserve the palette, match/difference emphasis and annotation filters. 
 
 - Every export has alignment columns and per-row sequence coordinates, both 1-based and inclusive. Sequence coordinates count ungapped residues from 1 at the first residue of the row. A row start such as `seqA/51-120` is not applied, which matches annotation import, so a GFF3 exported here reads back onto the same residues.
 - A row-attached annotation whose columns are all gaps in its row has alignment columns but no sequence coordinates. An annotation without a row (a global interval) has alignment columns only.
-- **GFF3** writes sequence coordinates with the row name as `seqid`. Unmapped annotations, annotations without a row and annotations with no residue in their row are skipped, each with a warning. The `aln_start` and `aln_end` attributes keep the alignment columns.
+- **GFF3** writes sequence coordinates with the row name as `seqid` (the row id when several rows share the name, with a warning). Unmapped annotations, annotations without a row and annotations with no residue in their row are skipped, each with a warning. The `aln_start` and `aln_end` attributes keep the alignment columns.
 - **TSV** has one line per annotation with the columns `id`, `label`, `kind`, `row_id`, `row_name`, `mapping`, `aln_start`, `aln_end`, `seq_start`, `seq_end`, `consequence`, `disease`, `phenotype`. Unmapped annotations are listed with empty coordinate cells.
 - **JSON** has `alignment`, a `coordinates` note and an `annotations` list with `alignmentStart`, `alignmentEnd`, `sequenceStart`, `sequenceEnd` (null when unmapped), consequence, disease, phenotype and metadata.
 

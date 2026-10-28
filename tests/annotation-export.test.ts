@@ -64,3 +64,20 @@ it('opens a UniProt JSON file as annotations and rejects other JSON',async()=>{
   expect(errors[0].message).toMatch(/not UniProt annotations/);expect(v.getAlignment()!.annotations).toHaveLength(1);
   v.destroy();
 });
+it('round-trips repeated row names by writing the row id as seqid',()=>{
+  const a=parseAlignment('>s\nACGT\n>s\nACGT',{alphabet:'dna'}),[r1,r2]=a.rows.map(r=>r.id),b=createAlignment(a.rows,{name:'aln',alphabet:'dna',annotations:[note('d1',r2,2,3)]}),w:string[]=[];
+  const text=exportAnnotationsGff3(b,{warnings:w});
+  expect(w.join(' ')).toMatch(/used by 2 rows/);
+  const back=importAnnotations(b,text).annotations;
+  expect(back.map(x=>[x.rowId,x.start,x.end])).toEqual([[r2,2,3]]);expect(r1).not.toBe(r2);
+});
+it('round-trips row names that start with # or >',()=>{
+  const a=parseAlignment('>#x\nACGT\n>y\nACGT',{alphabet:'dna'}),b=createAlignment(a.rows,{name:'aln',alphabet:'dna',annotations:[note('d1',a.rows[0].id,2,3)]});
+  const text=exportAnnotationsGff3(b);
+  expect(text.split('\n')[1].startsWith('#')).toBe(false);
+  expect(importAnnotations(b,text).annotations.map(x=>[x.rowId,x.start,x.end])).toEqual([[a.rows[0].id,2,3]]);
+});
+it('lists .json in the Open file picker',()=>{
+  const host=document.body.appendChild(document.createElement('div')),v=createViewer(host,{worker:false} as any);
+  expect(host.querySelector('input.ak-file')!.getAttribute('accept')).toContain('.json');v.destroy();
+});
