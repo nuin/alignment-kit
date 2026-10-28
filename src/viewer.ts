@@ -15,7 +15,7 @@ import { WorkerTask } from './worker-client';
 import { consensusSequence } from './analysis';
 import { validateTrack, validateTracks, checkTrackLength, stockholmTracks, trackHeight } from './tracks';
 import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './link';
-import { computeColumnMask, mergeColumnRanges, subtractColumnRange, buildColumnMap, identityColumns, type ColumnMap, type ColumnRange } from './mask';
+import { computeColumnMask, hidesEveryColumn, mergeColumnRanges, subtractColumnRange, buildColumnMap, identityColumns, type ColumnMap, type ColumnRange } from './mask';
 import { parseNewick, layoutTree, matchLeaves, leavesUnder, type TreeLayout } from './tree';
 
 const groupColors=['#2463a6','#3a8a5f','#b5651d','#8a4fa3','#c0392b','#2a9d8f','#9c8a1d','#5c6bc0'];
@@ -62,21 +62,25 @@ export class AlignmentViewer {
     this.colMap=undefined;this.overviewDirty=true;this.inspectorDirty=true;this.layout();
     this.scroll.scrollLeft=this.columns.before[Math.min(anchor,Math.max(0,this.columns.width-1))]*this.options.cellWidth;this.schedule();this.emit('state',this.getState());
   }
+  private maskOptions(hidden:readonly ColumnRange[]){return {gapFraction:this.options.hideGapColumns,allGap:this.options.hideAllGapColumns,hidden};}
   private setManualHidden(ranges:ColumnRange[]) {const anchor=this.a?this.firstColumn():0;this.manualHidden=ranges;this.maskChanged(anchor);}
   /** Hide columns `start` to `end` (one-based, inclusive) without changing the alignment. Selection, search hits, annotations, tracks and statistics keep original coordinates. Throws when the range is invalid or would leave no column visible. */
   hideColumns(start:number,end:number):void {
     this.assertAlive();const a=this.a;if(!a)throw new Error('Load an alignment before hiding columns.');
     if(!Number.isInteger(start)||!Number.isInteger(end)||start<1||end<start||end>a.width)throw new Error(`Hide columns needs a range inside 1 to ${a.width}.`);
     const ranges=mergeColumnRanges([...this.manualHidden,[start,end]]);
-    if(ranges.length===1&&ranges[0][0]===1&&ranges[0][1]===a.width)throw new Error('At least one column must stay visible.');
+    if(hidesEveryColumn(a,this.maskOptions(ranges)))throw new Error('At least one column must stay visible.');
     this.setManualHidden(ranges);
   }
   /** Show hidden columns. With no arguments, clears the manual ranges and turns off hideGapColumns and hideAllGapColumns; with a range, removes only that range from the manual ranges (gap-based hiding stays). */
   showColumns(start?:number,end?:number):void {
     this.assertAlive();
     if(start===undefined){const anchor=this.a?this.firstColumn():0;this.manualHidden=[];this.options.hideGapColumns=null;this.options.hideAllGapColumns=false;this.maskChanged(anchor);return;}
-    if(!Number.isInteger(start)||!Number.isInteger(end??start)||start<1||(end??start)<start)throw new Error('Show columns needs a valid one-based range.');
-    this.setManualHidden(subtractColumnRange(this.manualHidden,start,end??start));
+    const last=end??start,width=this.a?.width??0;
+    if(!Number.isInteger(start)||!Number.isInteger(last)||start<1||last<start||last>width)throw new Error(`Show columns needs a range inside 1 to ${width}.`);
+    const ranges=subtractColumnRange(this.manualHidden,start,last),mask=computeColumnMask(this.a!,this.maskOptions(ranges));
+    if(mask.subarray(start-1,last).includes(0))throw new Error('Some of these columns are hidden by hideGapColumns or hideAllGapColumns; call showColumns() with no arguments or change those options.');
+    this.setManualHidden(ranges);
   }
   /** 1 for a visible column, 0 for a hidden one; one entry per alignment column. Empty before an alignment is loaded. */
   getColumnMask():Uint8Array {this.assertAlive();return this.columns.mask.slice();}
@@ -434,7 +438,7 @@ export class AlignmentViewer {
     if(!this.a||state.version!==1||state.alignmentId!==this.a.id)throw new Error('View state belongs to a different alignment or unsupported version.');
     if(!Number.isFinite(state.start)||!Number.isFinite(state.rowOffset))throw new Error('Invalid view state.');
     const hiddenColumns=mergeColumnRanges(state.hiddenColumns??[]);
-    if(hiddenColumns.some(([s,e])=>!Number.isInteger(s)||!Number.isInteger(e)||s<1||e<s||e>this.a!.width)||(hiddenColumns.length===1&&hiddenColumns[0][0]===1&&hiddenColumns[0][1]===this.a.width))throw new Error('Invalid hidden columns in view state.');
+    if(hiddenColumns.some(([s,e])=>!Number.isInteger(s)||!Number.isInteger(e)||s<1||e<s||e>this.a!.width)||hidesEveryColumn(this.a,this.maskOptions(hiddenColumns)))throw new Error('Invalid hidden columns in view state.');
     this.manualHidden=hiddenColumns;this.colMap=undefined;
     this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,matchDisplay:state.matchDisplay??'letter',statisticsScope:state.statisticsScope,rulerCoordinates:state.rulerCoordinates??'alignment',visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);
     const known=new Set(this.a.rows.map(r=>r.id));this.hidden=new Set((state.hiddenRowIds??[]).filter(id=>known.has(id)));this.manualOrder=state.manualOrder?state.manualOrder.filter(id=>known.has(id)):null;this.collapsed=new Set(state.collapsedGroups??[]);
@@ -614,7 +618,8 @@ export class AlignmentViewer {
   private goToHit(index:number) {
     const state=this.searchState,hit=state?.result.hits[index];if(!state||!hit||!this.a)return;
     state.cursor=index;this.setSelection({start:hit.start,end:hit.end,rowId:hit.rowId},true,this.tab==='hits');
-    this.message(`Hit ${index+1} of ${state.result.hits.length.toLocaleString()} in ${this.a.rows[hit.row].name}, sequence positions ${hit.seqStart}–${hit.seqEnd}, ${hit.strand==='+'?'forward':'reverse'} strand.`);
+    const concealed=!this.columns.mask.subarray(hit.start-1,hit.end).includes(1);
+    this.message(`Hit ${index+1} of ${state.result.hits.length.toLocaleString()} in ${this.a.rows[hit.row].name}, sequence positions ${hit.seqStart}–${hit.seqEnd}, ${hit.strand==='+'?'forward':'reverse'} strand.${concealed?' The hit is in hidden columns. Use Show all columns to reveal it.':''}`);
   }
   /** Search for `motif` if it is not the active search, then select the next (1) or previous (-1) hit, wrapping around. Returns true when it started a new search. */
   findMotif(motif:string,direction:1|-1=1):boolean {

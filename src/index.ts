@@ -4,7 +4,7 @@ export { parseAlignment, readAlignmentInput } from './parsers';
 export { calculateStats, columnDetail, pairwiseIdentity, pairwiseMatrix, consensusSequence } from './analysis';
 export { registerColorScheme, getColorScheme, colorSchemes } from './colors';
 export { exportFasta, formatFastaRecord, exportClustal, exportStockholm, exportPhylip, exportNexus, exportStatistics, exportSvg, exportPng } from './export';
-export { computeColumnMask, mergeColumnRanges, buildColumnMap } from './mask';
+export { computeColumnMask, hidesEveryColumn, mergeColumnRanges, buildColumnMap } from './mask';
 export type { ColumnMap, ColumnRange, MaskOptions } from './mask';
 export { AnnotationIndex, filterAnnotations } from './annotations';
 export { parseGff3, parseBed, parseGenBank, parseEmbl, parseUniProtJson, importAnnotations, detectAnnotationFormat } from './annotation-import';

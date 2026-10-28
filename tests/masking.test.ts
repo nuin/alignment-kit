@@ -279,3 +279,17 @@ it('keeps the JSON schema in step with the masking options',async()=>{
   expect(schema.properties.fasta.properties.columns.enum).toEqual(['all','visible']);
   expect(Object.keys(schema.properties.visibility.properties).sort()).toEqual(Object.keys(defaultVisibility).sort());
 });
+it('keeps gap hiding when manual ranges would hide the rest',async()=>{
+  const a=align();
+  expect(hiddenOf(computeColumnMask(a,{gapFraction:0.5,hidden:[[1,2],[5,6],[9,10]]}))).toEqual([3,4,7,8]);
+  expect(hiddenOf(computeColumnMask(a,{gapFraction:0,hidden:[[2,3]]}))).toEqual([2,3]);
+  const v=await viewerFor({hideGapColumns:0.5});
+  v.hideColumns(1,2);v.hideColumns(5,6);expect(()=>v.hideColumns(9,10)).toThrow(/visible/);
+  expect(hiddenOf(v.getColumnMask())).toEqual([1,2,3,4,5,6,7,8]);expect(v.getState().hiddenColumns).toEqual([[1,2],[5,6]]);
+  await expect(v.setState({...v.getState(),hiddenColumns:[[1,2],[5,6],[9,10]]})).rejects.toThrow(/hidden columns/);
+});
+it('rejects showColumns ranges that stay hidden or exceed the width',async()=>{
+  const v=await viewerFor({hideGapColumns:0.5});
+  expect(()=>v.showColumns(3,3)).toThrow(/hideGapColumns/);expect(()=>v.showColumns(5,9999)).toThrow(/range/);
+  v.hideColumns(1,1);v.showColumns(1,1);expect(v.getState().hiddenColumns).toEqual([]);
+});

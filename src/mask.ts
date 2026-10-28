@@ -28,8 +28,15 @@ export function subtractColumnRange(ranges:readonly (readonly [number,number])[]
   for(const [s,e] of ranges){if(e<start||s>end){out.push([s,e]);continue;}if(s<start)out.push([s,start-1]);if(e>end)out.push([end+1,e]);}
   return out;
 }
-/** 1 for a kept column, 0 for a hidden one; length `a.width`. A mask that would hide every column keeps them all. */
+/** 1 for a kept column, 0 for a hidden one; length `a.width`. When the combined mask would hide every column, the gap rules alone apply, then the manual ranges alone, then all columns stay. */
 export function computeColumnMask(a:Alignment,options:MaskOptions={}):Uint8Array {
+  const full=rawColumnMask(a,options);if(full.includes(1))return full;
+  const gaps=rawColumnMask(a,{...options,hidden:[]});if(gaps.includes(1))return gaps;
+  const manual=rawColumnMask(a,{hidden:options.hidden});return manual.includes(1)?manual:manual.fill(1);
+}
+/** True when the gap rules and manual ranges together hide every column. */
+export function hidesEveryColumn(a:Alignment,options:MaskOptions={}):boolean {return !rawColumnMask(a,options).includes(1);}
+function rawColumnMask(a:Alignment,options:MaskOptions):Uint8Array {
   const threshold=options.gapFraction??null,mask=new Uint8Array(a.width).fill(1);
   if(threshold!==null&&!(threshold>=0&&threshold<=1))throw new Error('gapFraction must be a number from 0 to 1.');
   if(threshold!==null||options.allGap){
@@ -37,7 +44,7 @@ export function computeColumnMask(a:Alignment,options:MaskOptions={}):Uint8Array
     for(let c=0;c<a.width;c++)if(options.allGap&&gaps[c]===n||threshold!==null&&gaps[c]>=threshold*n-1e-9)mask[c]=0;
   }
   for(const [s,e] of options.hidden??[])mask.fill(0,Math.max(1,s)-1,Math.min(a.width,e));
-  return mask.includes(1)?mask:mask.fill(1);
+  return mask;
 }
 export function buildColumnMap(mask:Uint8Array):ColumnMap {
   const width=mask.length,before=new Int32Array(width+1),kept:number[]=[],edges:number[]=[];
