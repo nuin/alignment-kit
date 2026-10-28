@@ -98,6 +98,16 @@ Rows can start counting above 1. Stockholm names like `seqA/51-120` start at res
 
 To jump to a residue, type `seq-3:45` in **Go to** (row ID or exact row name, a colon, then the residue number). In Reference residues mode a plain number such as `123` means reference residue 123; in Alignment columns mode it means column 123. If the row or residue does not exist, a message appears above the alignment. Shared links carry the ruler setting as `ruler=ref`.
 
+## Hide gappy columns
+
+Hiding columns removes them from view and leaves the alignment unchanged. The remaining columns close up, and a dashed amber line marks each place where columns were collapsed. Numbers on the ruler are still the original column numbers (or reference residue numbers), so the numbers jump at a boundary.
+
+To hide columns by hand, select them (click, then Shift+click, or Shift+arrows) and press **Hide selected columns** in the second toolbar row. **Show all columns (n hidden)** appears once something is hidden; it brings back every column. To hide gappy columns automatically, a developer sets `hideGapColumns` (for example 0.5 for columns that are gaps in half the rows or more) or `hideAllGapColumns`. The gap fraction counts all rows, including hidden and filtered ones.
+
+Selections, search hits, features, Go to and the Position tab keep using original columns. A selection that crosses a boundary still includes the hidden columns inside it. Go to a hidden column shows a message instead of moving. Arrow keys skip hidden columns. Statistics and the consensus still use all columns.
+
+To export only what you see, choose **Export > Visible columns · FASTA**, or set **FASTA options > Columns** to **Visible columns only** so that FASTA exports, the consensus export and Ctrl/Cmd+C leave hidden columns out. The default exports always include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
+
 ## Find sequences and motifs
 
 **Find a sequence** filters names and supplied species labels, ignoring case. It changes the visible rows, not the underlying alignment. The pinned reference remains visible even if it does not match the filter.
@@ -247,13 +257,14 @@ Use the **Export** menu:
 | All rows · FASTA | Every original row, full aligned width, in input order. |
 | Selection · FASTA | Selected/visible columns and checked/visible rows, retaining gaps. |
 | All rows · CLUSTAL / Stockholm / PHYLIP / NEXUS | Every row, full width, in input order. CLUSTAL uses 60-column blocks and a `*` line for identical non-gap columns. PHYLIP is the relaxed variant, one line per sequence. NEXUS writes a DATA block with `gap=-` and `missing=?`. CLUSTAL, Stockholm and NEXUS rename repeated row names with `_2`, `_3` so the file can be reopened. |
+| Visible columns · FASTA | Every row, full alignment, without the columns hidden by **Hide selected columns** or the gap options. |
 | Selection · CLUSTAL / Stockholm / PHYLIP / NEXUS | The same formats for the selected/visible columns and checked/visible rows. |
 | Selection · SVG | Vector figure with palette, coordinate scope, legend, supplied provenance and visible annotations. |
 | Selection · PNG | Raster version of the selected figure. |
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
 | Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers, plus `entropy_bits`, `information_bits` and `quality` (`NA` when undefined). |
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
-| FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name). Press **Done** or Escape to close it. |
+| FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name) and columns (all, or visible only). Press **Done** or Escape to close it. |
 
 FASTA options apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. They last until the page is reloaded.
 
@@ -268,7 +279,7 @@ Tick **Dots for matches** in the second toolbar row to draw each residue that eq
 
 ## Share a view
 
-In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view. A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
 
 If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
 

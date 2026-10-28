@@ -15,19 +15,20 @@ import { WorkerTask } from './worker-client';
 import { consensusSequence } from './analysis';
 import { validateTrack, validateTracks, checkTrackLength, stockholmTracks, trackHeight } from './tracks';
 import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './link';
+import { computeColumnMask, mergeColumnRanges, subtractColumnRange, buildColumnMap, identityColumns, type ColumnMap, type ColumnRange } from './mask';
 import { parseNewick, layoutTree, matchLeaves, leavesUnder, type TreeLayout } from './tree';
 
 const groupColors=['#2463a6','#3a8a5f','#b5651d','#8a4fa3','#c0392b','#2a9d8f','#9c8a1d','#5c6bc0'];
 interface BoundTree { layout:TreeLayout; leafRow:Int32Array; treePos:Int32Array; note:string }
 /** View state that survives removeRows. */
-interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:ViewState['sort']; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter }
+interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:ViewState['sort']; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter; hiddenColumns:ColumnRange[] }
 
 const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 const textExports:Record<string,{ext:string;write:(a:Alignment,region:ExportRegion)=>string}>={clustal:{ext:'aln',write:exportClustal},stockholm:{ext:'sto',write:exportStockholm},phylip:{ext:'phy',write:(a,r)=>exportPhylip(a,r)},nexus:{ext:'nex',write:exportNexus}};
 export class AlignmentViewer {
   readonly element:HTMLElement;
   private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
-  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'>>;
+  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'>>;
   private a?:Alignment; private stats?:AlignmentStats;private fullStats?:AlignmentStats;
   private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
@@ -43,6 +44,46 @@ export class AlignmentViewer {
   private get matchDots(){return this.options.matchDisplay==='dot'&&(this.options.colorMode.startsWith('consensus')||this.pinned||this.filteredRows.includes(this.reference));}
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
+  private manualHidden:ColumnRange[]=[];private colMap?:ColumnMap;
+  /** Display to original column map; rebuilt when the alignment, the mask options or the hidden ranges change. */
+  private get columns():ColumnMap {
+    const a=this.a;if(!a)return identityColumns(0);
+    return this.colMap??=buildColumnMap(computeColumnMask(a,{gapFraction:this.options.hideGapColumns,allGap:this.options.hideAllGapColumns,hidden:this.manualHidden}));
+  }
+  /** Original zero-based column at the left edge of the viewport. */
+  private firstColumn():number {const m=this.columns;return m.cols[Math.min(m.count-1,Math.max(0,Math.floor(this.scroll.scrollLeft/this.options.cellWidth)))]??0;}
+  /** One-based column after stepping over kept columns from `column`; hidden columns are skipped. */
+  private stepColumn(column:number,step:1|-1):number {
+    const m=this.columns,c=column-1,d=step<0?m.before[c]-1:m.mask[c]?m.before[c]+1:m.before[c];
+    return m.cols[Math.max(0,Math.min(m.count-1,d))]+1;
+  }
+  /** Apply a new mask: rebuild the map, keep the same original column at the left edge and redraw. */
+  private maskChanged(anchor:number) {
+    this.colMap=undefined;this.overviewDirty=true;this.inspectorDirty=true;this.layout();
+    this.scroll.scrollLeft=this.columns.before[Math.min(anchor,Math.max(0,this.columns.width-1))]*this.options.cellWidth;this.schedule();this.emit('state',this.getState());
+  }
+  private setManualHidden(ranges:ColumnRange[]) {const anchor=this.a?this.firstColumn():0;this.manualHidden=ranges;this.maskChanged(anchor);}
+  /** Hide columns `start` to `end` (one-based, inclusive) without changing the alignment. Selection, search hits, annotations, tracks and statistics keep original coordinates. Throws when the range is invalid or would leave no column visible. */
+  hideColumns(start:number,end:number):void {
+    this.assertAlive();const a=this.a;if(!a)throw new Error('Load an alignment before hiding columns.');
+    if(!Number.isInteger(start)||!Number.isInteger(end)||start<1||end<start||end>a.width)throw new Error(`Hide columns needs a range inside 1 to ${a.width}.`);
+    const ranges=mergeColumnRanges([...this.manualHidden,[start,end]]);
+    if(ranges.length===1&&ranges[0][0]===1&&ranges[0][1]===a.width)throw new Error('At least one column must stay visible.');
+    this.setManualHidden(ranges);
+  }
+  /** Show hidden columns. With no arguments, clears the manual ranges and turns off hideGapColumns and hideAllGapColumns; with a range, removes only that range from the manual ranges (gap-based hiding stays). */
+  showColumns(start?:number,end?:number):void {
+    this.assertAlive();
+    if(start===undefined){const anchor=this.a?this.firstColumn():0;this.manualHidden=[];this.options.hideGapColumns=null;this.options.hideAllGapColumns=false;this.maskChanged(anchor);return;}
+    if(!Number.isInteger(start)||!Number.isInteger(end??start)||start<1||(end??start)<start)throw new Error('Show columns needs a valid one-based range.');
+    this.setManualHidden(subtractColumnRange(this.manualHidden,start,end??start));
+  }
+  /** 1 for a visible column, 0 for a hidden one; one entry per alignment column. Empty before an alignment is loaded. */
+  getColumnMask():Uint8Array {this.assertAlive();return this.columns.mask.slice();}
+  private columnHidden(column:number):boolean {
+    if(this.columns.mask[column-1]!==0)return false;
+    this.message(`Column ${column} is hidden. Use Show all columns to reveal it.`);return true;
+  }
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
   private searchState?:{pattern:string;options:SearchOptions;result:SearchResult;byRow:Map<number,Hit[]>;cursor:number;full?:SearchResult};
   private customTracks:CustomTrack[]=[];private drawn?:{a:Alignment;row:number;flag:boolean;user:CustomTrack[];list:CustomTrack[]};private trackKey='';private trackErrors=new Set<string>();
@@ -75,7 +116,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,...options,fasta:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -128,7 +169,7 @@ export class AlignmentViewer {
     this.sourceUrl=this.nextSource;this.nextSource=undefined;this.loading=true;
     const index=new Map(alignment.rows.map((r,i)=>[r.id,i])),known=(id:string)=>index.has(id);
     this.a=alignment;this.trackErrors.clear();this.checkTracks();this.stats=undefined;this.fullStats=undefined;this.reference=index.get(carry?.reference??'')??0;this.selection=carry?.selection??null;this.selectedRows=new Set(carry?.selectedRows.filter(known));this.query=carry?.query??'';this.sort=carry?.sort??'input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter=carry?.annotationFilter??{};this.featurePage=0;
-    this.hidden=new Set(carry?.hidden.filter(known));this.manualOrder=carry?.manualOrder?.filter(known)??null;this.collapsed=new Set(carry?.collapsed);this.groupMap=carry?.groupMap??null;this.tree=carry?.tree?this.bindTree(carry.tree):undefined;
+    this.hidden=new Set(carry?.hidden.filter(known));this.manualOrder=carry?.manualOrder?.filter(known)??null;this.collapsed=new Set(carry?.collapsed);this.groupMap=carry?.groupMap??null;this.tree=carry?.tree?this.bindTree(carry.tree):undefined;this.manualHidden=carry?.hiddenColumns??[];this.colMap=undefined;
     this.menus.close();const schemes=colorSchemes(alignment.alphabet);
     if(!schemes.some(s=>s.id===this.options.colorScheme))this.options.colorScheme=alignment.alphabet==='protein'?'soft':'soft-nucleotide';
     const palette=$<HTMLSelectElement>(this.root,'select[aria-label="Color scheme"]');palette.replaceChildren(...schemes.map(s=>new Option(s.label,s.id)));palette.value=this.options.colorScheme;
@@ -147,6 +188,10 @@ export class AlignmentViewer {
   setOptions(options:ViewerOptions) {
     this.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
     if(options.rulerCoordinates!==undefined&&!['alignment','reference'].includes(options.rulerCoordinates))throw new Error('Unknown ruler coordinate mode.');
+    const gap=options.hideGapColumns;
+    if(gap!==undefined&&gap!==null&&!(typeof gap==='number'&&gap>=0&&gap<=1))throw this.error(new Error('hideGapColumns must be null or a number from 0 to 1.'));
+    if(options.hideAllGapColumns!==undefined&&typeof options.hideAllGapColumns!=='boolean')throw this.error(new Error('hideAllGapColumns must be a boolean.'));
+    const maskSig=()=>`${this.options.hideGapColumns}|${this.options.hideAllGapColumns}`,maskBefore=maskSig(),anchor=this.a?this.firstColumn():0;
     const oldScope=this.options.statisticsScope;
     const wasPinned=this.pinned;
     const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,groupBy,...visual}=options;
@@ -164,6 +209,7 @@ export class AlignmentViewer {
     this.options.showInspector=this.visibility.inspector;this.options.showLogo=this.visibility.logo;
     if(this.a&&!colorSchemes(this.a.alphabet).some(s=>s.id===this.options.colorScheme))this.options.colorScheme=this.a.alphabet==='protein'?'soft':'soft-nucleotide';
     this.options.cellWidth=bounded(this.options.cellWidth,3,32);this.options.rowHeight=bounded(this.options.rowHeight,18,48);this.options.labelWidth=bounded(this.options.labelWidth,100,420);this.options.height=bounded(this.options.height,360,2000);this.options.consensusThreshold=bounded(this.options.consensusThreshold,0,1);{const w=Math.round(bounded(this.options.conservationWindow,1,51));this.options.conservationWindow=w%2?w:w-1;}this.options.treeWidth=bounded(this.options.treeWidth,0,400);
+    const masked=maskSig()!==maskBefore;if(masked)this.colMap=undefined;
     const regroup=groupBy!==undefined&&groupBy!==this.groupBy;if(regroup)this.groupBy=groupBy!;
     this.root.style.height=this.options.height+'px';this.root.dataset.theme=this.options.theme;this.root.dataset.inspector=String(this.options.showInspector);
     if(wasPinned!==this.pinned||regroup)this.rebuildRows();
@@ -176,8 +222,9 @@ export class AlignmentViewer {
     const f=this.options.fasta,width=$<HTMLSelectElement>(this.root,'[aria-label="FASTA line width"]'),lineWidth=String(f.lineWidth??80);
     if(![...width.options].some(o=>o.value===lineWidth))width.add(new Option(lineWidth,lineWidth));
     width.value=lineWidth;$<HTMLSelectElement>(this.root,'[aria-label="FASTA gaps"]').value=f.gaps??'keep';
-    $<HTMLSelectElement>(this.root,'[aria-label="FASTA letter case"]').value=f.letterCase??'original';$<HTMLSelectElement>(this.root,'[aria-label="FASTA header"]').value=f.header??'name';
+    $<HTMLSelectElement>(this.root,'[aria-label="FASTA letter case"]').value=f.letterCase??'original';$<HTMLSelectElement>(this.root,'[aria-label="FASTA header"]').value=f.header??'name';$<HTMLSelectElement>(this.root,'[aria-label="FASTA columns"]').value=f.columns??'all';
     this.labelKey='';this.overviewDirty=true;this.inspectorDirty=true;this.layout();
+    if(masked){this.scroll.scrollLeft=this.columns.before[Math.min(anchor,Math.max(0,this.columns.width-1))]*this.options.cellWidth;this.emit('state',this.getState());}
     const focused=this.root.ownerDocument.activeElement as HTMLElement|null;
     if(focused&&this.root.contains(focused)&&focused.closest('[hidden]')){const target=this.visibility.alignment?this.scroll:this.root;if(target===this.root)target.tabIndex=-1;target.focus();}
     if(oldScope!==this.options.statisticsScope&&this.a)void this.updateStats().catch(()=>{});
@@ -263,7 +310,7 @@ export class AlignmentViewer {
     if(!drop.size)return;if(drop.size>=a!.rows.length)throw new Error('At least one sequence must remain.');
     const next=createAlignment(a!.rows.filter(r=>!drop.has(r.id)),{name:a!.name,alphabet:a!.alphabet,metadata:a!.metadata,annotations:a!.annotations.filter(x=>!x.rowId||!drop.has(x.rowId))});
     const filter=this.annotationFilter,selected=this.selection?.rowId;
-    await this.replace(next,{reference:a!.rows[this.reference].id,selection:selected&&drop.has(selected)?null:this.selection,selectedRows:[...this.selectedRows],query:this.query,sort:this.sort==='identity'?'input':this.sort,hidden:[...this.hidden],manualOrder:this.manualOrder,collapsed:[...this.collapsed],groupMap:this.groupMap,tree:this.tree?.layout,annotationFilter:{...filter,hiddenRowIds:filter.hiddenRowIds?.filter(id=>!drop.has(id))}});
+    await this.replace(next,{reference:a!.rows[this.reference].id,selection:selected&&drop.has(selected)?null:this.selection,selectedRows:[...this.selectedRows],query:this.query,sort:this.sort==='identity'?'input':this.sort,hidden:[...this.hidden],manualOrder:this.manualOrder,collapsed:[...this.collapsed],groupMap:this.groupMap,tree:this.tree?.layout,annotationFilter:{...filter,hiddenRowIds:filter.hiddenRowIds?.filter(id=>!drop.has(id))},hiddenColumns:this.manualHidden});
     if(this.a===next&&this.tree?.note)this.message(this.tree.note);
   }
   /** Group rows by an explicit map of row ID to group name, or pass null to fall back to the groupBy option. Unlisted rows go to Ungrouped. */
@@ -322,6 +369,7 @@ export class AlignmentViewer {
     if(row<0){this.message(`No sequence with ID ${rowId}.`);return false;}
     const column=Number.isInteger(position)?residueToColumn(this.a,row,position):null;
     if(column===null){this.message(`${this.a.rows[row].name} has no residue ${position}.`);return false;}
+    if(this.columnHidden(column))return false;
     this.setSelection({start:column,end:column,rowId});return true;
   }
   private goTo(input:string):boolean {
@@ -331,9 +379,10 @@ export class AlignmentViewer {
       if(this.options.rulerCoordinates==='reference'){
         const column=residueToColumn(a,this.reference,n);
         if(column===null){this.message(`${a.rows[this.reference].name} has no residue ${n}.`);return false;}
+        if(this.columnHidden(column))return false;
         this.setSelection({start:column,end:column});return true;
       }
-      if(n>=1&&n<=a.width){this.setSelection({start:n,end:n});return true;}
+      if(n>=1&&n<=a.width){if(this.columnHidden(n))return false;this.setSelection({start:n,end:n});return true;}
       this.message(`Enter a column from 1 to ${a.width}.`);return false;
     }
     const key=text.slice(0,split).trim(),number=text.slice(split+1).trim();
@@ -345,7 +394,7 @@ export class AlignmentViewer {
     this.message('Enter a number or row:residue, for example 123 or seq-1:45.');return false;
   }
   private reveal(s:Selection) {
-    const available=this.scroll.clientWidth-this.gutter,x=(s.start-1)*this.options.cellWidth;
+    const available=this.scroll.clientWidth-this.gutter,x=this.columns.before[s.start-1]*this.options.cellWidth;
     if(x<this.scroll.scrollLeft||x+this.options.cellWidth>this.scroll.scrollLeft+available)this.scroll.scrollLeft=Math.max(0,x-available/2);
     if(s.rowId&&this.a){const r=this.a.rows.findIndex(x=>x.id===s.rowId),index=r<0?-1:this.rowPos[r],y=index*this.options.rowHeight;if(index>=0&&(y<this.scroll.scrollTop||y+this.options.rowHeight>this.scroll.scrollTop+this.scroll.clientHeight))this.scroll.scrollTop=y;}
   }
@@ -380,19 +429,24 @@ export class AlignmentViewer {
   }
   private refreshAnnotations() {this.rebuildAnnotations();this.featurePage=Math.min(this.featurePage,Math.max(0,Math.ceil(this.filteredAnnotations.visible.length/30)-1));this.inspectorDirty=true;this.overviewDirty=true;this.schedule();}
   private rebuildAnnotations() {this.filteredAnnotations=filterAnnotations(this.a?.annotations??[],this.annotationFilter);this.annotationIndex=new AnnotationIndex(this.filteredAnnotations.visible);}
-  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,matchDisplay:this.options.matchDisplay,statisticsScope:this.options.statisticsScope,rulerCoordinates:this.options.rulerCoordinates,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility(),hiddenRowIds:[...this.hidden],manualOrder:this.manualOrder?[...this.manualOrder]:null,collapsedGroups:[...this.collapsed]};}
+  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:this.firstColumn()+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,matchDisplay:this.options.matchDisplay,statisticsScope:this.options.statisticsScope,rulerCoordinates:this.options.rulerCoordinates,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility(),hiddenRowIds:[...this.hidden],manualOrder:this.manualOrder?[...this.manualOrder]:null,collapsedGroups:[...this.collapsed],hiddenColumns:this.manualHidden.map(r=>[...r] as ColumnRange)};}
   async setState(state:ViewState) {
     if(!this.a||state.version!==1||state.alignmentId!==this.a.id)throw new Error('View state belongs to a different alignment or unsupported version.');
     if(!Number.isFinite(state.start)||!Number.isFinite(state.rowOffset))throw new Error('Invalid view state.');
+    const hiddenColumns=mergeColumnRanges(state.hiddenColumns??[]);
+    if(hiddenColumns.some(([s,e])=>!Number.isInteger(s)||!Number.isInteger(e)||s<1||e<s||e>this.a!.width)||(hiddenColumns.length===1&&hiddenColumns[0][0]===1&&hiddenColumns[0][1]===this.a.width))throw new Error('Invalid hidden columns in view state.');
+    this.manualHidden=hiddenColumns;this.colMap=undefined;
     this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,matchDisplay:state.matchDisplay??'letter',statisticsScope:state.statisticsScope,rulerCoordinates:state.rulerCoordinates??'alignment',visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);
     const known=new Set(this.a.rows.map(r=>r.id));this.hidden=new Set((state.hiddenRowIds??[]).filter(id=>known.has(id)));this.manualOrder=state.manualOrder?state.manualOrder.filter(id=>known.has(id)):null;this.collapsed=new Set(state.collapsedGroups??[]);
     await this.setSort(state.sort==='tree'&&!this.tree?'input':state.sort);if(this.options.statisticsScope==='filtered')void this.updateStats().catch(()=>{});this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
-    this.scroll.scrollLeft=(state.start-1)*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
+    this.scroll.scrollLeft=this.columns.before[Math.min(Math.max(1,state.start),this.a.width)-1]*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
   }
-  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,matchDots:this.matchDots,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold,ruler:this.options.rulerCoordinates,hits:this.searchState?.byRow,activeHit:this.searchState?.result.hits[this.searchState.cursor],tracks:this.drawnTracks(),logoMode:this.options.logoMode,window:this.options.conservationWindow,groups:this.groupList,trackError:(id,error)=>{if(!this.trackErrors.has(id)){this.trackErrors.add(id);this.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
+  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,matchDots:this.matchDots,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold,ruler:this.options.rulerCoordinates,hits:this.searchState?.byRow,activeHit:this.searchState?.result.hits[this.searchState.cursor],columns:this.columns,tracks:this.drawnTracks(),logoMode:this.options.logoMode,window:this.options.conservationWindow,groups:this.groupList,trackError:(id,error)=>{if(!this.trackErrors.has(id)){this.trackErrors.add(id);this.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
   private layout() {
     if(this.disposed)return;const rh=this.options.rowHeight,gutter=this.gutter;
     const extra=this.drawnTracks(),tracks=trackLayout(this.visibility,rh,extra.map(t=>({height:trackHeight(t)})),this.a?.alphabet);
+    const showColumns=$(this.root,'[data-action="show-columns"]'),hiddenColumns=this.columns.width-this.columns.count;
+    showColumns.dataset.empty=String(!hiddenColumns);showColumns.textContent=`Show all columns (${hiddenColumns.toLocaleString()} hidden)`;
     const showHidden=$(this.root,'[data-action="show-hidden"]');showHidden.dataset.empty=String(!this.hidden.size);showHidden.textContent=`Show hidden (${this.hidden.size})`;
     $(this.root,'.ak-tree-canvas').dataset.empty=String(!this.treeW);$<HTMLOptionElement>(this.root,'select[aria-label="Sequence order"] option[value="tree"]').hidden=!this.tree;
     this.menus.sync();applyVisibility(this.root,this.visibility);
@@ -406,7 +460,7 @@ export class AlignmentViewer {
     if(key!==this.trackKey){this.trackKey=key;for(const old of strip.querySelectorAll('.ak-custom-label'))old.remove();
       extra.forEach((t,i)=>{const slot=tracks.custom[i];if(!slot)return;const node=document.createElement('span');node.className='ak-custom-label';node.textContent=t.label;node.title=t.label;node.style.top=(slot.offset+Math.max(0,(slot.height-20)/2))+'px';strip.append(node);});}
     const message=$(this.root,'.ak-message');message.hidden=!this.visibility.messages||!message.textContent;
-    const spacer=$(this.root,'.ak-spacer');spacer.style.width=(gutter+(this.a?.width??0)*this.options.cellWidth)+'px';spacer.style.height=Math.max(1,this.rows.length*rh)+'px';
+    const spacer=$(this.root,'.ak-spacer');spacer.style.width=(gutter+this.columns.count*this.options.cellWidth)+'px';spacer.style.height=Math.max(1,this.rows.length*rh)+'px';
     $(this.root,'.ak-empty').hidden=!this.visibility.emptyState||(!!this.a&&this.rows.length>0);
     if(this.a&&!this.rows.length)$(this.root,'.ak-empty').textContent=this.hidden.size&&!this.filteredRows.length&&!this.query?'No sequences are visible. Use Show hidden to restore them.':this.pinned?(this.filteredRows.length?'The reference is pinned above.':'No sequences match this filter. The reference remains pinned.'):'No sequences match this filter.';
     $(this.root,'[aria-label="Zoom level"]').textContent=this.options.cellWidth+' px';
@@ -417,8 +471,8 @@ export class AlignmentViewer {
     if(!this.a||this.disposed)return;const width=$(this.root,'.ak-main').clientWidth,height=this.scroll.clientHeight;if(width<1)return;
     const v=this.view();this.renderer.body($(this.root,'.ak-body-canvas'),v,width,height);this.renderer.tracks($(this.root,'.ak-tracks canvas'),v,width);
     const overview=$(this.root,'.ak-overview');if(this.overviewDirty&&this.visibility.overview){this.renderer.overview($(overview,'canvas'),v,overview.clientWidth);this.overviewDirty=false;}
-    const win=$(overview,'.ak-overview-window');const visible=Math.max(1,(width-v.gutter)/v.cw),left=v.x/v.cw/this.a.width;
-    win.style.left=Math.min(1,left)*100+'%';win.style.width=Math.min(1,visible/this.a.width)*100+'%';overview.setAttribute('aria-valuemax',String(this.a.width));overview.setAttribute('aria-valuenow',String(Math.floor(v.x/v.cw)+1));
+    const win=$(overview,'.ak-overview-window');const visible=Math.max(1,(width-v.gutter)/v.cw),count=this.columns.count,left=v.x/v.cw/count;
+    win.style.left=Math.min(1,left)*100+'%';win.style.width=Math.min(1,visible/count)*100+'%';overview.setAttribute('aria-valuemax',String(count));overview.setAttribute('aria-valuenow',String(Math.floor(v.x/v.cw)+1));
     this.treeHits=this.tree&&this.treeW?this.renderer.tree($(this.root,'.ak-tree-canvas'),v,this.tree.layout,this.tree.leafRow,this.rowPos,this.treeW,height):[];
     const ref=$(this.root,'.ak-reference-label');ref.textContent=this.a.rows[this.reference]?.name??'Reference';ref.title='Pinned reference: '+ref.textContent;
     const first=Math.max(0,Math.floor(v.y/v.rh)),last=Math.min(this.rows.length,Math.ceil((v.y+height)/v.rh));
@@ -446,10 +500,10 @@ export class AlignmentViewer {
     if(this.inspectorDirty){this.inspectorDirty=false;if(this.tab)renderInspector(this.inspector,{a:this.a,stats:this.stats,selection:this.selection,scheme:this.options.colorScheme,reference:this.reference,selectedRows:this.selectedRows,annotations:this.filteredAnnotations.visible,annotationFilter:this.annotationFilter,unknown:this.filteredAnnotations.unknown,excluded:this.filteredAnnotations.excluded,tab:this.tab,page:this.featurePage,scope:this.options.statisticsScope,hits:this.searchState?.result.hits??[],truncated:this.searchState?.result.truncated??false,pattern:this.searchState?.pattern??'',hit:this.searchState?.cursor??-1,identity:this.selection?.rowId?this.identityDetails?.[this.a.rows.findIndex(r=>r.id===this.selection!.rowId)]:undefined});for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-tab]'))button.setAttribute('aria-pressed',String(button.dataset.tab===this.tab));this.menus.sync();}
     if(!this.tab)this.inspector.replaceChildren();
     applyVisibility(this.root,this.visibility);
-    const start=Math.floor(v.x/v.cw)+1,end=Math.min(this.a.width,Math.ceil((v.x+width-v.gutter)/v.cw));
-    $(this.root,'.ak-status-main').textContent=`${this.a.rows.length.toLocaleString()} sequences${this.query?` · ${this.filteredRows.length.toLocaleString()} filtered`:''}${this.hidden.size?` · ${this.hidden.size.toLocaleString()} hidden`:''} · ${this.a.width.toLocaleString()} columns${this.searchState?` · ${hitCount(this.searchState.result)}`:''}`;
+    const m=this.columns,start=(m.cols[Math.min(m.count-1,Math.floor(v.x/v.cw))]??0)+1,end=(m.cols[Math.min(m.count,Math.ceil((v.x+width-v.gutter)/v.cw))-1]??this.a.width-1)+1;
+    $(this.root,'.ak-status-main').textContent=`${this.a.rows.length.toLocaleString()} sequences${this.query?` · ${this.filteredRows.length.toLocaleString()} filtered`:''}${this.hidden.size?` · ${this.hidden.size.toLocaleString()} hidden`:''} · ${this.a.width.toLocaleString()} columns${m.count<m.width?` · ${(m.width-m.count).toLocaleString()} hidden`:''}${this.searchState?` · ${hitCount(this.searchState.result)}`:''}`;
     $(this.root,'.ak-status-detail').textContent=`${start}–${end} · ${this.stats?`${this.options.statisticsScope} rows`:'statistics pending'} · ${this.a.alphabet.toUpperCase()}`;
-    this.scroll.setAttribute('aria-rowcount',String(this.a.rows.length));this.scroll.setAttribute('aria-colcount',String(this.a.width));
+    this.scroll.setAttribute('aria-rowcount',String(this.a.rows.length));this.scroll.setAttribute('aria-colcount',String(m.count));
     this.emit('viewport',{start,end,firstRow:first,lastRow:last,visibleRows:last-first,totalRows:this.a.rows.length});
   }
   private message(message:string,isError=false) {const target=$(this.root,'.ak-message');target.hidden=!message||!this.visibility.messages;target.textContent=message;target.dataset.error=String(isError);}
@@ -461,8 +515,8 @@ export class AlignmentViewer {
   }
   private eventAt(event:MouseEvent):Selection|null {
     const item=this.itemAt(event);if(!this.a||item===undefined||item<0)return null;
-    const column=Math.floor((event.clientX-this.scroll.getBoundingClientRect().left-this.gutter+this.scroll.scrollLeft)/this.options.cellWidth)+1;
-    return column<1||column>this.a.width?null:{start:column,end:column,rowId:this.a.rows[item].id};
+    const d=Math.floor((event.clientX-this.scroll.getBoundingClientRect().left-this.gutter+this.scroll.scrollLeft)/this.options.cellWidth);
+    return d<0||d>=this.columns.count?null:{start:this.columns.cols[d]+1,end:this.columns.cols[d]+1,rowId:this.a.rows[item].id};
   }
   private stepRow(index:number,step:number):number|undefined {for(let i=index+step;i>=0&&i<this.rows.length;i+=step)if(this.rows[i]>=0)return this.rows[i];return undefined;}
   private async action(action:string) {
@@ -471,7 +525,7 @@ export class AlignmentViewer {
       if(action==='open'){$<HTMLInputElement>(this.root,'.ak-file').click();return;}
       if(action==='zoom-in')this.zoom(this.options.cellWidth+2);
       if(action==='zoom-out')this.zoom(this.options.cellWidth-2);
-      if(action==='fit'&&this.a)this.zoom(Math.max(3,Math.floor((this.scroll.clientWidth-this.gutter)/this.a.width)));
+      if(action==='fit'&&this.a)this.zoom(Math.max(3,Math.floor((this.scroll.clientWidth-this.gutter)/this.columns.count)));
       if(action==='theme')this.setOptions({theme:this.options.theme==='light'?'dark':'light'});
       if(action==='inspect')this.setOptions({showInspector:!this.options.showInspector});
       if(action==='fullscreen'){if(document.fullscreenElement)await document.exitFullscreen();else if(this.root.requestFullscreen)await this.root.requestFullscreen();else this.message('Full screen is unavailable in this browser.');}
@@ -481,6 +535,8 @@ export class AlignmentViewer {
       if(action==='features-prev'){this.featurePage=Math.max(0,this.featurePage-1);this.inspectorDirty=true;this.schedule();}
       if(action==='features-next'){this.featurePage++;this.inspectorDirty=true;this.schedule();}
       if(action==='show-hidden')this.showRows();
+      if(action==='hide-columns'){const sel=this.selection;if(!sel){this.message('Select columns first, then hide them.');return;}this.hideColumns(sel.start,sel.end);this.setSelection(null,false);}
+      if(action==='show-columns')this.showColumns();
       if(action==='clear-rows'){this.selectedRows.clear();this.labelKey='';this.inspectorDirty=true;this.schedule();}
       if(action==='compare'&&this.a){const ids=new Map(this.a.rows.map((r,i)=>[r.id,i])),rows=[...this.selectedRows].map(id=>ids.get(id)!);const a=this.a,revision=this.revision,selectionKey=[...this.selectedRows].join(',');this.message('Calculating pairwise identity…');const matrix=await this.comparison.pairwise(a,rows);if(this.disposed||this.revision!==revision)return;this.message('');if(this.tab!=='compare'||selectionKey!==[...this.selectedRows].join(','))return;const target=$(this.inspector,'.ak-identity-result');target.innerHTML=`<div class="ak-matrix-scroll"><table><caption>Identity over canonical comparable positions</caption><thead><tr><th>Sequence</th>${rows.map(i=>`<th>${e(this.a!.rows[i].name)}</th>`).join('')}</tr></thead><tbody>${rows.map((row,i)=>`<tr><th>${e(this.a!.rows[row].name)}</th>${matrix[i].map(cell=>`<td title="${cell.matches} matches / ${cell.compared} compared">${cell.identity===null?'NA':(cell.identity*100).toFixed(1)+'%'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
       if(action==='motif'||action==='motif-prev'){
@@ -499,6 +555,9 @@ export class AlignmentViewer {
     if(link.cellWidth!==undefined)options.cellWidth=link.cellWidth;
     if(link.colorScheme){if(colorSchemes(a.alphabet).some(s=>s.id===link.colorScheme))options.colorScheme=link.colorScheme;else skipped.push('scheme');}
     this.setOptions(options);this.setFilter(link.query??'');
+    const hide=link.hiddenColumns??[];
+    if(hide.some(([,e])=>e>a.width)||hide.length===1&&hide[0][0]===1&&hide[0][1]===a.width){skipped.push('hide');this.manualHidden=[];}else this.manualHidden=hide;
+    this.colMap=undefined;this.overviewDirty=true;this.layout();
     if(link.referenceId){if(a.rows.some(r=>r.id===link.referenceId))this.setReference(link.referenceId);else skipped.push('ref');}
     let sort=link.sort??'input';if(sort==='tree'&&!this.tree){skipped.push('sort');sort='input';}
     await this.setSort(sort);
@@ -506,7 +565,7 @@ export class AlignmentViewer {
     const s=link.selection;
     if(s&&(s.end>a.width||(s.rowId&&!a.rows.some(r=>r.id===s.rowId)))){skipped.push('sel');this.setSelection(null,false);}
     else this.setSelection(s??null,link.start===undefined);
-    if((link.start??1)<=a.width)this.scroll.scrollLeft=((link.start??1)-1)*this.options.cellWidth;else skipped.push('x');
+    if((link.start??1)<=a.width)this.scroll.scrollLeft=this.columns.before[(link.start??1)-1]*this.options.cellWidth;else skipped.push('x');
     if((link.rowOffset??0)<Math.max(1,this.rows.length))this.scroll.scrollTop=(link.rowOffset??0)*this.options.rowHeight;else skipped.push('y');
     this.schedule();
     const notes=[link.alignmentId&&link.alignmentId!==a.id?'This link was made for a different version of this alignment.':'',skipped.length?`Skipped link settings: ${skipped.join(', ')}.`:''].filter(Boolean);
@@ -572,9 +631,11 @@ export class AlignmentViewer {
     }catch(error){this.error(error);return false;}
   }
   private exportRegion(a:Alignment):ExportRegion {
-    const start=this.selection?.start??Math.min(a.width,Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1);
-    return {start,end:this.selection?.end??Math.max(start,Math.min(a.width,Math.ceil((this.scroll.scrollLeft+this.scroll.clientWidth-this.gutter)/this.options.cellWidth))),rowIds:this.selectedRows.size?[...this.selectedRows]:[...(this.pinned?[a.rows[this.reference].id]:[]),...this.rows.slice(Math.floor(this.scroll.scrollTop/this.options.rowHeight),Math.ceil((this.scroll.scrollTop+this.scroll.clientHeight)/this.options.rowHeight)).filter(i=>i>=0).map(i=>a.rows[i].id)]};
+    const m=this.columns,start=this.selection?.start??this.firstColumn()+1;
+    return {start,end:this.selection?.end??Math.max(start,(m.cols[Math.max(0,Math.min(m.count,Math.ceil((this.scroll.scrollLeft+this.scroll.clientWidth-this.gutter)/this.options.cellWidth))-1)]??a.width-1)+1),rowIds:this.selectedRows.size?[...this.selectedRows]:[...(this.pinned?[a.rows[this.reference].id]:[]),...this.rows.slice(Math.floor(this.scroll.scrollTop/this.options.rowHeight),Math.ceil((this.scroll.scrollTop+this.scroll.clientHeight)/this.options.rowHeight)).filter(i=>i>=0).map(i=>a.rows[i].id)]};
   }
+  /** Attach the column mask when `visible` is set or the FASTA option columns is 'visible'. */
+  private fastaRegion(region:ExportRegion,visible=this.options.fasta.columns==='visible'):ExportRegion {return visible?{...region,columns:this.columns.mask}:region;}
   /** Rows to copy: checked rows in display order (filtered-out ones last), else the selected row, else the export rows. */
   private copyRegion(a:Alignment):ExportRegion {
     const region=this.exportRegion(a);
@@ -587,18 +648,19 @@ export class AlignmentViewer {
   }
   private copyPayload() {
     this.assertAlive();if(!this.a)throw new Error('No alignment is loaded.');
-    const region=this.copyRegion(this.a);if(!region.rowIds?.length)throw new Error('No sequences to copy.');
+    const region=this.fastaRegion(this.copyRegion(this.a));if(!region.rowIds?.length)throw new Error('No sequences to copy.');
     const resolved=resolveRegion(this.a,region);
-    return {text:(this.stats?this.consensusFasta(resolved.start,resolved.end):'')+exportFasta(this.a,region,this.options.fasta),region:resolved};
+    return {text:(this.stats?this.consensusFasta(resolved.start,resolved.end,!!resolved.columns):'')+exportFasta(this.a,region,this.options.fasta),region:resolved};
   }
   /** Consensus over all columns from the current statistics scope; `threshold` defaults to the consensusThreshold option. */
   getConsensus(options:{threshold?:number}={}):string {
     this.assertAlive();if(!this.a)throw new Error('No alignment is loaded.');if(!this.stats)throw new Error('Column statistics are still being calculated.');
     return consensusSequence(this.stats,this.a.alphabet,options.threshold??this.options.consensusThreshold);
   }
-  private consensusFasta(start:number,end:number) {
-    const s=this.stats!,t=this.options.consensusThreshold,sequence=consensusSequence(s,this.a!.alphabet,t,start,end);
-    return formatFastaRecord(`consensus columns ${start}-${end}; ${this.options.statisticsScope} rows (${s.total}); threshold ${t}`,sequence,this.options.fasta);
+  private consensusFasta(start:number,end:number,visible=false) {
+    const s=this.stats!,t=this.options.consensusThreshold,mask=this.columns.mask;let sequence=consensusSequence(s,this.a!.alphabet,t,start,end);
+    if(visible)sequence=[...sequence].filter((_,i)=>mask[start-1+i]).join('');
+    return formatFastaRecord(`consensus columns ${start}-${end}${visible?' (visible columns)':''}; ${this.options.statisticsScope} rows (${s.total}); threshold ${t}`,sequence,this.options.fasta);
   }
   /** Gapped FASTA for the rows and columns that Ctrl/Cmd+C copies, led by the consensus once statistics are ready. */
   getSelectionText():string {return this.copyPayload().text;}
@@ -620,13 +682,14 @@ export class AlignmentViewer {
     if(!this.a)return;
     try{
       const region=this.exportRegion(this.a);
-      if(kind==='fasta-all')download(exportFasta(this.a,{},this.options.fasta),'alignment.fasta');
-      if(kind==='fasta')download(exportFasta(this.a,region,this.options.fasta),'selection.fasta');
+      if(kind==='fasta-all')download(exportFasta(this.a,this.fastaRegion({}),this.options.fasta),'alignment.fasta');
+      if(kind==='fasta')download(exportFasta(this.a,this.fastaRegion(region),this.options.fasta),'selection.fasta');
+      if(kind==='fasta-visible')download(exportFasta(this.a,this.fastaRegion({},true),this.options.fasta),'visible-columns.fasta');
       const text=textExports[kind.replace(/-all$/,'')];
       if(text)download(text.write(this.a,kind.endsWith('-all')?{}:region),`${kind.endsWith('-all')?'alignment':'selection'}.${text.ext}`);
       if(kind==='state')download(JSON.stringify(this.getState(),null,2),'alignment-view.json','application/json');
       if(['svg','png','tsv','consensus'].includes(kind)&&!this.stats)throw new Error('Wait for column statistics to finish before exporting.');
-      if(kind==='consensus')download(this.consensusFasta(region.start!,region.end!),'consensus.fasta');
+      if(kind==='consensus')download(this.consensusFasta(region.start!,region.end!,this.options.fasta.columns==='visible'),'consensus.fasta');
       if(kind==='tsv')download(exportStatistics(this.stats!),'column-statistics.tsv','text/tab-separated-values');
       if(kind==='svg')download(exportSvg({...this.a,annotations:this.filteredAnnotations.visible},this.stats!,region,this.options.colorScheme,{colorMode:this.options.colorMode,matchDisplay:this.options.matchDisplay,referenceId:this.a.rows[this.reference].id}),'alignment.svg','image/svg+xml');
       if(kind==='png')download(await exportPng({...this.a,annotations:this.filteredAnnotations.visible},this.stats!,region,this.options.colorScheme,{colorMode:this.options.colorMode,matchDisplay:this.options.matchDisplay,referenceId:this.a.rows[this.reference].id}),'alignment.png');
@@ -656,8 +719,8 @@ export class AlignmentViewer {
       on(this.scroll,'click',(event:MouseEvent)=>{const item=this.itemAt(event);if(item!==undefined&&item<0){this.toggleGroup(this.groupList[-item-1].name);return;}pick(this.eventAt(event),event.shiftKey);});
     on($(this.root,'.ak-tracks'),'click',(event:MouseEvent)=>{
       if(!this.a||(event.target as HTMLElement).closest('button,[data-action]'))return;
-      const rect=$(this.root,'.ak-tracks').getBoundingClientRect(),x=event.clientX-rect.left-this.gutter,column=Math.floor((x+this.scroll.scrollLeft)/this.options.cellWidth)+1;
-      if(x<0||column<1||column>this.a.width)return;
+      const rect=$(this.root,'.ak-tracks').getBoundingClientRect(),x=event.clientX-rect.left-this.gutter,d=Math.floor((x+this.scroll.scrollLeft)/this.options.cellWidth);
+      if(x<0||d<0||d>=this.columns.count)return;const column=this.columns.cols[d]+1;
       const ref=trackLayout(this.visibility,this.options.rowHeight,[],this.a.alphabet).offsets.reference,onRef=ref!==null&&event.clientY-rect.top>=ref&&event.clientY-rect.top<ref+this.options.rowHeight;
       pick({start:column,end:column,...(onRef?{rowId:this.a.rows[this.reference].id}:{})},event.shiftKey);
     });
@@ -690,6 +753,7 @@ export class AlignmentViewer {
       if(aria==='FASTA letter case')this.setOptions({fasta:{letterCase:target.value as 'original'|'upper'|'lower'}});
       if(aria==='FASTA line width')this.setOptions({fasta:{lineWidth:Number(target.value)}});
       if(aria==='FASTA header')this.setOptions({fasta:{header:target.value as 'name'|'name-species'|'id-name'}});
+      if(aria==='FASTA columns')this.setOptions({fasta:{columns:target.value as 'all'|'visible'}});
       if(aria==='Sequence alphabet'&&this.a){const old=this.a;void this.setAlignment(createAlignment(old.rows,{name:old.name,alphabet:target.value as Alignment['alphabet'],annotations:old.annotations,metadata:old.metadata})).catch(()=>{});}
       if(aria==='Feature type')this.setAnnotationFilter({...this.annotationFilter,types:target.value?[target.value]:[]});
       if(aria==='Feature consequence')this.setAnnotationFilter({...this.annotationFilter,consequences:target.value?[target.value]:[]});
@@ -702,19 +766,19 @@ export class AlignmentViewer {
     on(motif,'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter')void this.action(event.shiftKey?'motif-prev':'motif');});
     on(motif,'input',()=>{if(!motif.value.trim())this.clearSearch();});
     on(this.scroll,'keydown',(event:KeyboardEvent)=>{
-      if(!this.a)return;const key=event.key,start=this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1;
+      if(!this.a)return;const key=event.key,start=this.selection?.start??this.firstColumn()+1;
       if(['+','=','-','_'].includes(key)){event.preventDefault();this.zoom(this.options.cellWidth+(key==='+'||key==='='?2:-2));return;}
       if(key==='Escape'){this.setSelection(null);return;}
       if((event.ctrlKey||event.metaKey)&&!event.shiftKey&&!event.altKey&&(key.toLowerCase()==='c'||event.code==='KeyC')&&!this.root.ownerDocument.getSelection()?.toString()){event.preventDefault();void this.copySelection().catch(()=>{});return;}
       if(['ArrowLeft','ArrowRight','Home','End','ArrowUp','ArrowDown'].includes(key)){
         event.preventDefault();let column=start,rowId=this.selection?.rowId;
-        if(key==='ArrowLeft')column=Math.max(1,start-1);if(key==='ArrowRight')column=Math.min(this.a.width,(event.shiftKey?this.selection?.end??start:start)+1);if(key==='Home')column=1;if(key==='End')column=this.a.width;
+        if(key==='ArrowLeft')column=this.stepColumn(start,-1);if(key==='ArrowRight')column=this.stepColumn(event.shiftKey?this.selection?.end??start:start,1);if(key==='Home')column=this.columns.cols[0]+1;if(key==='End')column=this.columns.cols[this.columns.count-1]+1;
         if(key==='ArrowDown'||key==='ArrowUp'){const index=rowId?this.rowPos[this.a.rows.findIndex(r=>r.id===rowId)]:Math.floor(this.scroll.scrollTop/this.options.rowHeight),row=this.stepRow(index,key==='ArrowDown'?1:-1);if(row!==undefined)rowId=this.a.rows[row].id;}
         this.setSelection({start:event.shiftKey?Math.min(start,column):column,end:event.shiftKey?Math.max(this.selection?.end??start,column):column,rowId});
       }
     });
     const overview=$(this.root,'.ak-overview');let dragging=false;
-    const navigate=(event:PointerEvent)=>{if(!this.a)return;const rect=overview.getBoundingClientRect(),ratio=bounded((event.clientX-rect.left)/rect.width,0,1);this.scroll.scrollLeft=ratio*this.a.width*this.options.cellWidth-(this.scroll.clientWidth-this.gutter)/2;this.schedule();};
+    const navigate=(event:PointerEvent)=>{if(!this.a)return;const rect=overview.getBoundingClientRect(),ratio=bounded((event.clientX-rect.left)/rect.width,0,1);this.scroll.scrollLeft=ratio*this.columns.count*this.options.cellWidth-(this.scroll.clientWidth-this.gutter)/2;this.schedule();};
     on(overview,'pointerdown',(event:PointerEvent)=>{dragging=true;overview.setPointerCapture(event.pointerId);navigate(event);});on(overview,'pointermove',(event:PointerEvent)=>{if(dragging)navigate(event);});on(overview,'pointerup',()=>{dragging=false;});
     on(overview,'keydown',(event:KeyboardEvent)=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();this.scroll.scrollLeft+=(event.key==='ArrowRight'?1:-1)*this.options.cellWidth*10;this.schedule();}});
     const separator=$(this.root,'.ak-gutter-resize');let resizing=false,origin=0,gutter=0;
@@ -726,7 +790,7 @@ export class AlignmentViewer {
   clear() {
     this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();
     this.loading=false;this.pendingLink=undefined;
-    this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.dropSearch();this.selectedRows.clear();this.annotationFilter={};this.hidden.clear();this.manualOrder=null;this.collapsed.clear();this.groupMap=null;this.groupList=[];this.tree=undefined;this.treeHits=[];this.rowPos=new Int32Array(0);if(this.sort==='tree'||this.sort==='manual'){this.sort='input';$<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';}
+    this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.dropSearch();this.selectedRows.clear();this.annotationFilter={};this.hidden.clear();this.manualHidden=[];this.colMap=undefined;this.manualOrder=null;this.collapsed.clear();this.groupMap=null;this.groupList=[];this.tree=undefined;this.treeHits=[];this.rowPos=new Int32Array(0);if(this.sort==='tree'||this.sort==='manual'){this.sort='input';$<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';}
     this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
     $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).';this.message('');this.layout();this.emit('selection',null);

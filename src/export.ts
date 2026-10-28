@@ -9,9 +9,15 @@ export function resolveRegion(a:Alignment,region:ExportRegion={}) {
   const byId=new Map(a.rows.map((r,i)=>[r.id,i]));
   const rows=region.rowIds?region.rowIds.map(id=>{const r=byId.get(id);if(r===undefined)throw new Error(`Unknown export sequence “${id}”.`);return r;}):a.rows.map((_,i)=>i);
   if(new Set(rows).size!==rows.length)throw new Error('Export rows must be unique.');
-  return {start,end,rows};
+  const mask=region.columns;
+  if(mask&&mask.length!==a.width)throw new Error('Export column mask must have one entry per alignment column.');
+  const columns=mask?Array.from({length:end-start+1},(_,i)=>start-1+i).filter(c=>mask[c]):undefined;
+  if(columns&&!columns.length)throw new Error('No visible columns in the export range.');
+  return {start,end,rows,columns};
 }
-const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name']};
+/** The columns of an aligned sequence that a resolved region keeps. */
+const cut=(sequence:string,r:ReturnType<typeof resolveRegion>)=>r.columns?r.columns.map(c=>sequence[c]).join(''):sequence.slice(r.start-1,r.end);
+const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name'],columns:['all','visible']};
 /** Validate FASTA settings from untrusted input; returns a copy. */
 export function validateFastaOptions(input:unknown):FastaOptions {
   if(typeof input!=='object'||input===null||Array.isArray(input))throw new Error('FASTA options must be an object.');
@@ -33,8 +39,8 @@ export function formatFastaRecord(header:string,sequence:string,options:FastaOpt
   return `>${header.replace(/[\r\n]/g,' ')}\n${lines.map(line=>line+'\n').join('')}`;
 }
 export function exportFasta(a:Alignment,region:ExportRegion={},options:FastaOptions={}):string {
-  const {start,end,rows}=resolveRegion(a,region),header=headers[options.header??'name'];
-  return rows.map(r=>formatFastaRecord(header(a.rows[r]),a.rows[r].sequence.slice(start-1,end),options)).join('');
+  const resolved=resolveRegion(a,region),header=headers[options.header??'name'];
+  return resolved.rows.map(r=>formatFastaRecord(header(a.rows[r]),cut(a.rows[r].sequence,resolved),options)).join('');
 }
 const plainName=(name:string)=>name.replace(/\s+/g,'_').replace(/^#/,'_')||'seq';
 const uniqueNames=(names:string[])=>{
@@ -46,9 +52,10 @@ const uniqueNames=(names:string[])=>{
   });
 };
 function textRows(a:Alignment,region:ExportRegion) {
-  const {start,end,rows}=resolveRegion(a,region);
+  const resolved=resolveRegion(a,region),{rows}=resolved;
   if(!rows.length)throw new Error('Select at least one row to export.');
-  return {width:end-start+1,rows:rows.map(r=>({name:a.rows[r].name,sequence:a.rows[r].sequence.slice(start-1,end)}))};
+  const sequences=rows.map(r=>cut(a.rows[r].sequence,resolved));
+  return {width:sequences[0].length,rows:rows.map((r,i)=>({name:a.rows[r].name,sequence:sequences[i]}))};
 }
 const padNames=(names:string[],extra:number)=>Math.max(...names.map(n=>n.length))+extra;
 /** CLUSTAL text with 60-column blocks; `*` marks columns where every row carries the same non-gap residue. Whitespace in names becomes `_` and repeated names get `_2`, `_3` suffixes. */

@@ -271,6 +271,9 @@
         },
         "tree": {
           "type": "boolean"
+        },
+        "columnMasking": {
+          "type": "boolean"
         }
       }
     },
@@ -320,6 +323,13 @@
             "name-species",
             "id-name"
           ]
+        },
+        "columns": {
+          "enum": [
+            "all",
+            "visible"
+          ],
+          "description": "visible leaves out columns hidden by column masking in FASTA exports and copy."
         }
       }
     },
@@ -421,6 +431,19 @@
           }
         }
       }
+    },
+    "hideGapColumns": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Hide columns whose gap fraction over all rows is at least this value. null turns it off."
+    },
+    "hideAllGapColumns": {
+      "type": "boolean",
+      "description": "Hide columns that are gaps in every row."
     }
   }
 }

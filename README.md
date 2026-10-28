@@ -187,6 +187,7 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 | Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `rulerCoordinates`, `alphabet` |
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`, `stockholmTracks` |
 | Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize` |
+| Column masking | `columnMasking` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
@@ -319,6 +320,33 @@ Statistics default to all loaded rows. Scrolling, pinning a reference and visual
 
 Ambiguity symbols are counted separately and never fractionally distributed. All-gap modal frequency/consensus and identity with zero comparable positions are unavailable. Pairwise identity excludes gaps, ambiguity and stops; it includes matched and compared-position counts. Its matrix is calculated only for selected rows, capped at 200, in a cancellable worker. Selecting **Identity to reference** computes and sorts reference identities; selecting a row then shows its identity and compared-position count.
 
+## Hide columns
+
+Column masking hides columns without changing the alignment. Hidden columns leave the grid, the tracks and the overview; the remaining columns close up. Coordinates stay original: selections, `getState().selection`, search hits, annotations, go-to, the Position tab, `hit.start`/`hit.end` and the ruler all use alignment columns (or reference residues in reference mode). Statistics and the consensus are still computed over all columns.
+
+```ts
+const viewer = createViewer(el, { hideGapColumns: 0.5 });   // hide columns that are gaps in at least half the rows
+viewer.setOptions({ hideGapColumns: null, hideAllGapColumns: true });
+viewer.hideColumns(10, 20);        // one-based, inclusive
+viewer.showColumns(12, 14);        // reveal part of a manual range
+viewer.showColumns();              // reveal everything, including gap-based hiding
+viewer.getColumnMask();            // Uint8Array, 1 = visible, 0 = hidden, one entry per column
+```
+
+- `hideGapColumns` (0 to 1, or `null` for off, default `null`) hides columns whose gap fraction is at least that value. The fraction counts gaps over all rows of the alignment, not only the filtered rows, and is independent of the statistics scope. `1` hides columns that are gaps in every row, and `0` would hide every column, so a mask that hides all columns is ignored and all columns stay visible.
+- `hideAllGapColumns` (default `false`) hides columns that are gaps in every row.
+- `hideColumns(start, end)` adds a manual range; overlapping and adjacent ranges merge. It throws for an invalid range or when it would hide every column. `getState().hiddenColumns` lists the merged manual `[start, end]` ranges, and `setState` restores them. Gap-based options are viewer options, not view state.
+- `showColumns()` clears the manual ranges and turns both gap options off. `showColumns(start, end)` removes only that range from the manual ranges; gap-based hiding stays.
+- `getColumnMask()` returns the effective mask, with the manual and gap-based rules combined.
+- The secondary toolbar has **Hide selected columns** (hides the selected columns and clears the selection) and **Show all columns (n hidden)**. `visibility.columnMasking` hides both.
+- Changing the mask keeps the column at the left edge of the viewport in place. Loading another alignment drops the manual ranges; `removeRows` keeps them.
+
+Rendering: a dashed amber line marks each collapsed boundary in the grid and the tracks, with a small tab on the ruler. Ruler labels show original column numbers. A label appears at the first column after a boundary when it has room (about 36 px from the previous label). In reference mode the residue numbers count residues in hidden columns, so the labels still match the sequence. A hit or annotation that spans hidden columns draws as one box over its visible columns, and one that lies entirely in hidden columns is not drawn. A selection draws over the visible part of its range and stays at least 2 px wide when all of it is hidden. Custom track `render` callbacks run once per run of adjacent visible columns, clipped to that run, with `start`, `end` and `offsetX` describing the run. Arrow keys step over hidden columns, Shift+arrows extends a selection across a boundary, and Go to refuses a hidden column with a message.
+
+Export: default exports contain every column. **Export > Visible columns · FASTA** writes every row without the hidden columns. The FASTA options panel has a **Columns** menu (`fasta: { columns: 'visible' }`) that applies the same rule to **Selection · FASTA**, **All rows · FASTA**, the consensus export and Ctrl/Cmd+C. In code, `exportFasta(a, { columns: viewer.getColumnMask() })` keeps only the visible columns inside `start` to `end`; the other text exporters accept the same `columns` region field. A range with no visible column throws. SVG, PNG and TSV exports are not masked.
+
+The link parameter is `hide=10-20,30-35` (manual ranges only). A link without `hide` shows all manually hidden columns again; a range beyond the alignment width is skipped and reported as `hide`. The helpers `computeColumnMask(alignment, { gapFraction, allGap, hidden })`, `mergeColumnRanges` and `buildColumnMap` are exported for use outside the viewer.
+
 ## Search motifs
 
 The motif box and `search()` accept three syntaxes. Auto mode picks one from the text:
@@ -393,6 +421,8 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `setFilter(query)` | Filter names and species |
 | `setSort('input' \| 'name' \| 'identity' \| 'manual' \| 'tree')` | Stable ordering; identity calculation is asynchronous; `tree` needs `setTree` first |
 | `hideRows(ids)` / `showRows(ids?)` | Hide rows from the grid / restore some or all hidden rows |
+| `hideColumns(start, end)` / `showColumns(start?, end?)` | Hide columns by one-based range / show a range, or everything when called with no arguments (see Hide columns) |
+| `getColumnMask()` | `Uint8Array` with 1 for each visible column and 0 for each hidden one |
 | `moveRow(id, index)` / `getRowOrder()` | Move a row to a zero-based position and switch to manual order / read all row IDs in the current order |
 | `removeRows(ids)` | Delete rows from a copy of the alignment and recompute statistics |
 | `setGroups(map \| null)` / `toggleGroup(name, collapsed?)` | Group rows by an ID-to-name map / collapse or expand a group |
@@ -416,7 +446,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 
 Events: `ready`, `selection`, `search` (`{ hits, truncated }`, or `null` after `clearSearch()` or a new alignment), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
-Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
 
@@ -470,7 +500,7 @@ Override scoped CSS properties (`--ak-bg`, `--ak-panel`, `--ak-ink`, `--ak-muted
 
 The toolbar exports all rows or a selected region as FASTA, CLUSTAL, Stockholm, PHYLIP (relaxed) or NEXUS, a selected region as SVG/PNG, or the consensus of the selected (or visible) columns as FASTA. Checked rows define exported rows; otherwise the pinned reference and currently visible rows are used. Selected columns define the range; otherwise the visible range is used. Figure exports preserve active annotation filters, palette and reference/consensus emphasis. Figures include coordinate scope, legend and source metadata when supplied.
 
-**FASTA options…** in the Export menu opens a panel with gap removal, letter case (original, upper, lower), line width (80, 60, unwrapped) and header (name; name and species; ID and name). The same settings apply to FASTA exports, the consensus export and Ctrl/Cmd+C. Set them in code with `setOptions({ fasta: { gaps: 'remove', letterCase: 'upper', lineWidth: 0, header: 'id-name' } })`; updates merge with the current settings. `lineWidth` is 0 (unwrapped) or 10 to 1000.
+**FASTA options…** in the Export menu opens a panel with gap removal, letter case (original, upper, lower), line width (80, 60, unwrapped) and header (name; name and species; ID and name). The same settings apply to FASTA exports, the consensus export and Ctrl/Cmd+C. `fasta.columns: 'visible'` leaves out hidden columns (see Hide columns); **Visible columns · FASTA** in the Export menu does the same for all rows. Set them in code with `setOptions({ fasta: { gaps: 'remove', letterCase: 'upper', lineWidth: 0, header: 'id-name' } })`; updates merge with the current settings. `lineWidth` is 0 (unwrapped) or 10 to 1000.
 
 The standalone `exportFasta(alignment, region?, fastaOptions?)`, `exportClustal(alignment, region?)` (60-column blocks, `*` under identical non-gap columns; CLUSTAL, Stockholm and NEXUS add `_2`, `_3` to repeated names so the file re-opens), `exportStockholm(alignment, region?)`, `exportPhylip(alignment, region?, { variant?: 'relaxed' | 'strict' })` (strict truncates names to 10 characters and adds numeric suffixes to keep them unique), `exportNexus(alignment, region?)` (DATA block, `gap=-`, `missing=?`, names quoted when needed), `formatFastaRecord`, `exportStatistics`, `exportSvg` and `exportPng` functions are also exported. SVG/PNG figures are capped at **200,000 cells**; PNG additionally caps raster dimensions/area. Use a smaller region or SVG when raster dimensions are excessive. TSV exports define denominators in column headers. JSON view state contains navigation/filter/selection settings, not alignment data or hosted sharing URLs.
 
@@ -484,7 +514,7 @@ Consensus sequence: the modal non-gap residue per column. With a `consensusThres
 
 `getViewLink()` returns readable parameters such as `src=…&aln=…&sel=50-60&row=seq-3&ref=seq-1&scheme=soft&zoom=16&q=human&x=41`. `src` appears only when the alignment came from `loadUrl`; links to local files carry the view without the data. `src` is the full URL passed to `loadUrl`, query string included; with `urlSync` it lands in the address bar, so do not use it with signed or token-bearing URLs. Hash changes without link parameters, such as in-page anchors, are ignored. If `history.replaceState` is blocked (for example in a sandboxed iframe), sync stops and an `error` event reports it. Annotation filters and visibility are not part of links.
 
-`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
+`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `hide`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
 
 With `urlSync: true` the viewer keeps `location.hash` in sync (via `history.replaceState`) and applies a hash link after the next load. The viewer never fetches `src` itself; the host decides what to load:
 

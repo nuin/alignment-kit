@@ -100,6 +100,7 @@ export interface ViewerVisibility {
   rowHiding?:boolean;
   rowReordering?:boolean;
   tree?:boolean;
+  columnMasking?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
 export interface TrackRenderInfo { start:number; end:number; cellWidth:number; offsetX:number; top:number; height:number; alignment:Alignment }
@@ -131,6 +132,10 @@ export interface ViewerOptions {
   groupBy?:string;
   /** Pixel width of the tree column, 0 to 400. 0 hides it. Default 120. */
   treeWidth?:number;
+  /** 0 to 1, or null for off (default). Hide columns whose gap fraction over all rows is at least this value. 1 hides columns that are gaps in every row. */
+  hideGapColumns?:number|null;
+  /** Hide columns that are gaps in every row. Default false. */
+  hideAllGapColumns?:boolean;
 }
 export interface ViewState {
   visibility?:ViewerVisibility;
@@ -139,6 +144,8 @@ export interface ViewState {
   colorScheme:string; colorMode:ColorMode; matchDisplay?:'letter'|'dot'; statisticsScope:'all'|'filtered'; annotationFilter:AnnotationFilter;
   /** Ruler numbering; omitted in older states, which mean 'alignment'. */
   rulerCoordinates?:RulerCoordinates;
+  /** Manually hidden columns as merged one-based inclusive [start, end] ranges. Gap-based hiding comes from options. */
+  hiddenColumns?:[number,number][];
   hiddenRowIds?:string[]; manualOrder?:string[]|null; collapsedGroups?:string[];
 }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
@@ -146,8 +153,9 @@ export interface ViewerEvents { selection:Selection|null; search:SearchResult|nu
 export type ViewerEvent = keyof ViewerEvents;
 export type EventHandler<K extends ViewerEvent> = (event:ViewerEvents[K])=>void;
 /** FASTA output settings shared by export and copy. Defaults: keep gaps, original case, 80 columns, name header. */
-export interface FastaOptions { gaps?:'keep'|'remove'; letterCase?:'original'|'upper'|'lower'; /** 0 writes each sequence on one line; otherwise 10 to 1000. */ lineWidth?:number; header?:'name'|'name-species'|'id-name' }
-export interface ExportRegion { rowIds?:string[]; start?:number; end?:number }
+export interface FastaOptions { gaps?:'keep'|'remove'; letterCase?:'original'|'upper'|'lower'; /** 0 writes each sequence on one line; otherwise 10 to 1000. */ lineWidth?:number; header?:'name'|'name-species'|'id-name'; /** 'visible' leaves out columns hidden by column masking in the viewer's FASTA exports and copy. Default 'all'. */ columns?:'all'|'visible' }
+/** `columns` is a mask of length alignment width (1 keeps a column, 0 drops it, as from getColumnMask) applied inside start to end. */
+export interface ExportRegion { rowIds?:string[]; start?:number; end?:number; columns?:ArrayLike<number> }
 export type SearchMode = 'auto'|'literal'|'iupac'|'regex'|'prosite';
 /** `rows` limits the search to those row indices, in that order; `limit` lowers the 10,000 hit cap. `strands` applies to DNA and RNA only. */
 export interface SearchOptions { mode?:SearchMode; strands?:'both'|'forward'; rows?:number[]; limit?:number }

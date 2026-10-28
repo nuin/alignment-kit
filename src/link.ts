@@ -1,3 +1,4 @@
+import { mergeColumnRanges } from './mask';
 import type { ColorMode, RulerCoordinates, Selection, ViewState } from './types';
 
 /** View fields a shareable link can carry. Annotation filters and visibility stay out of links. */
@@ -5,13 +6,15 @@ export interface ViewLink {
   source?:string; alignmentId?:string; selection?:Selection|null; referenceId?:string;
   colorScheme?:string; colorMode?:ColorMode; matchDisplay?:'letter'|'dot'; cellWidth?:number; query?:string;
   sort?:ViewState['sort']; statisticsScope?:ViewState['statisticsScope']; start?:number; rowOffset?:number; rulerCoordinates?:RulerCoordinates;
+  /** Manually hidden columns, from `hide=10-20,30-35`. */
+  hiddenColumns?:[number,number][];
   /** Parameter names present in the link but malformed. */
   ignored?:string[];
 }
 const modes:ColorMode[]=['all','reference-differences','reference-matches','consensus-differences','consensus-matches'];
 const sorts:ViewState['sort'][]=['input','name','identity','tree'];
 const scopes:ViewState['statisticsScope'][]=['all','filtered'];
-const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler'];
+const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide'];
 /** True when a fragment or query holds at least one link parameter; plain anchors such as `#viewer` do not. */
 export const isViewLink=(input:string):boolean=>{const p=new URLSearchParams(input.replace(/^[#?]/,''));return keys.some(key=>key==='ruler'?!!p.get(key):p.has(key));};
 
@@ -30,6 +33,7 @@ export function encodeViewLink(state:ViewState,source?:string):string {
   if(state.sort!=='input'&&state.sort!=='manual')p.set('sort',state.sort);
   if(state.statisticsScope!=='all')p.set('scope',state.statisticsScope);
   if(state.rulerCoordinates==='reference')p.set('ruler','ref');
+  if(state.hiddenColumns?.length)p.set('hide',state.hiddenColumns.map(([s,e])=>s===e?String(s):`${s}-${e}`).join(','));
   if(state.start>1)p.set('x',String(state.start));
   if(state.rowOffset>0)p.set('y',String(state.rowOffset));
   return p.toString();
@@ -49,6 +53,11 @@ export function decodeViewLink(input:string):ViewLink {
   link.colorMode=pick('mode',modes);link.sort=pick('sort',sorts);link.statisticsScope=pick('scope',scopes);
   const dots=p.get('dots');if(dots==='1')link.matchDisplay='dot';else if(dots==='0')link.matchDisplay='letter';else if(dots!==null)ignored.push('dots');
   link.rulerCoordinates=pick('ruler',['ref'] as const)&&'reference';
+  const hide=p.get('hide');
+  if(hide!==null){
+    const parts=hide.split(',').map(part=>part.match(/^(\d+)(?:-(\d+))?$/)),ranges=parts.map(m=>m&&[Number(m[1]),Number(m[2]??m[1])] as [number,number]);
+    if(ranges.length&&ranges.every(r=>r&&r[0]>=1&&r[1]>=r[0]))link.hiddenColumns=mergeColumnRanges(ranges as [number,number][]);else ignored.push('hide');
+  }
   link.cellWidth=int('zoom',1);link.start=int('x',1);link.rowOffset=int('y',0);
   for(const key of Object.keys(link) as (keyof ViewLink)[])if(link[key]===undefined)delete link[key];
   if(ignored.length)link.ignored=ignored;

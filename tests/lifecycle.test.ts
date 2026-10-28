@@ -101,7 +101,7 @@ it('collapses disabled track heights and supports legacy aliases and integration
 it('lists every export choice in the toolbar menu',()=>{
   const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
   const exportMenu=el.querySelector<HTMLSelectElement>('select[aria-label="Export alignment"]')!;
-  expect([...exportMenu.options].map(o=>o.value)).toEqual(['','fasta-all','fasta','clustal-all','clustal','stockholm-all','stockholm','phylip-all','phylip','nexus-all','nexus','svg','png','consensus','tsv','state','fasta-options']);
+  expect([...exportMenu.options].map(o=>o.value)).toEqual(['','fasta-all','fasta','fasta-visible','clustal-all','clustal','stockholm-all','stockholm','phylip-all','phylip','nexus-all','nexus','svg','png','consensus','tsv','state','fasta-options']);
 });
 it('keeps identity ordering when a pairwise comparison starts during the sort',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());const internal=viewer as any;

@@ -7,7 +7,7 @@ import { validateTracks } from './tracks';
 export type ViewerConfig = Omit<ViewerOptions, 'alignment'|'workerUrl'> & {workerUrl?:string};
 const ranges:Record<string,[number,number]>={height:[360,2000],cellWidth:[3,32],rowHeight:[18,48],labelWidth:[100,420],consensusThreshold:[0,1],treeWidth:[0,400]};
 const enums:Record<string,string[]>={logoMode:['frequency','bits'],theme:['light','dark'],colorMode:['all','reference-differences','reference-matches','consensus-differences','consensus-matches'],statisticsScope:['all','filtered'],matchDisplay:['letter','dot'],rulerCoordinates:['alignment','reference']};
-const bools=new Set(['worker','urlSync','showLogo','showInspector','showToolbar']);
+const bools=new Set(['worker','urlSync','showLogo','showInspector','showToolbar','hideAllGapColumns']);
 const object=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value)&&(Object.getPrototypeOf(value)===Object.prototype||Object.getPrototypeOf(value)===null);
 
 /** Parse and validate JSON or an already-parsed object without modifying the input. */
@@ -29,6 +29,7 @@ export function parseViewerConfig(input:string|unknown):ViewerConfig {
     if(key==='fasta'){result.fasta=validateFastaOptions(item);continue;}
     if(key==='tracks'){result.tracks=validateTracks(item,true);continue;}
     if(key==='conservationWindow'){if(typeof item!=='number'||!Number.isInteger(item)||item<1||item>51||item%2===0)throw new Error('conservationWindow must be an odd integer between 1 and 51.');result.conservationWindow=item;continue;}
+    if(key==='hideGapColumns'){if(item!==null&&(typeof item!=='number'||!(item>=0&&item<=1)))throw new Error('hideGapColumns must be null or a number between 0 and 1.');result.hideGapColumns=item;continue;}
     if(key==='$schema'){if(typeof item!=='string')throw new Error('$schema must be a string.');continue;}
     if(Object.hasOwn(ranges,key)){const [min,max]=ranges[key];if(typeof item!=='number'||!Number.isFinite(item)||item<min||item>max)throw new Error(`${key} must be a number between ${min} and ${max}.`);}
     else if(Object.hasOwn(enums,key)){if(typeof item!=='string'||!enums[key].includes(item))throw new Error(`Invalid ${key}.`);}
