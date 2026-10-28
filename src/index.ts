@@ -1,5 +1,5 @@
 export { AlignmentViewer, createViewer } from './viewer';
-export { createAlignment, alignmentToSequence, sequenceToAlignment, columnToResidue, residueToColumn, rowOffset } from './model';
+export { createAlignment, alignmentToSequence, sequenceToAlignment, columnToResidue, residueToColumn, rowOffset, detectAlphabet } from './model';
 export { parseAlignment, readAlignmentInput } from './parsers';
 export { calculateStats, columnDetail, pairwiseIdentity, pairwiseMatrix, consensusSequence } from './analysis';
 export { registerColorScheme, getColorScheme, colorSchemes } from './colors';

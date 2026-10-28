@@ -155,8 +155,9 @@ export class Renderer {
       if(offset.logo!==null&&v.cw>=6) {
         const counts=[];const n=v.stats.total-v.stats.gaps[c];
         for(let k=0;k<27;k++){const count=v.stats.counts[c*STRIDE+k];if(count)counts.push({r:SYMBOLS[k],n:count});}
-        counts.sort((a,b)=>a.n-b.n);let bottom=offset.logo+37;const scale=v.logoMode==='bits'?(v.stats.information[c]||0)/bitsMax:1;
-        for(const d of counts){const h=d.n/n*39*scale;if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(d.r,getColorScheme(v.scheme),1);ctx.fillText(d.r,8,17);ctx.restore();bottom-=h;}
+        // In bits mode the maximum information, log2 of the alphabet size, fills the 45 px track less 2 px padding top and bottom.
+        const bits=v.logoMode==='bits',full=bits?41*(v.stats.information[c]||0)/bitsMax:39;counts.sort((a,b)=>a.n-b.n);let bottom=offset.logo+(bits?43:37);
+        for(const d of counts){const h=d.n/n*full;if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(d.r,getColorScheme(v.scheme),1);ctx.fillText(d.r,8,17);ctx.restore();bottom-=h;}
       }
     }
     if(offset.reference!==null&&v.reference>=0)this.row(ctx,v,v.reference,offset.reference,width);

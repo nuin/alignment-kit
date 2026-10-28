@@ -44,6 +44,8 @@ Remote URL loading is available through the JavaScript API, not a separate URL f
 
 The **Type** menu controls interpretation and compatible palette choices. Files loaded without an explicit type use alphabet detection; short or ambiguous sequences can be misclassified, so check the menu.
 
+If you pick a type that conflicts with what the residues look like (protein data as DNA or RNA, or nucleotide data as protein), the viewer asks first in the message area above the alignment, for example: *This alignment looks like protein (83.3% of residues are not A, C, G, T/U, N). Treat it as DNA?* Press **Switch** to apply the new type or **Cancel** to keep the current one. Switching between DNA and RNA does not ask. The **Color** menu only lists palettes for the current type; if the active palette does not fit the new type, the viewer switches to the default palette for that type.
+
 - **Protein:** canonical positions for identity use the 20 standard amino acids.
 - **DNA:** canonical positions use A, C, G and T.
 - **RNA:** canonical positions use A, C, G and U.
@@ -71,7 +73,7 @@ At small cell widths, letters disappear to keep rendering legible. Zoom in to re
 
 ## Select a position or region
 
-Click a residue to select its row and alignment column. Dragging the grid pans the view and leaves the selection unchanged. **Shift-click** another column to select an inclusive range. The Position inspector reports the start of the selection and its full range.
+Click a residue to select its row and alignment column. Click the same residue again to clear the selection. Dragging the grid pans the view and leaves the selection unchanged. **Shift-click** another column to select an inclusive range. The Position inspector reports the start of the selection and its full range.
 
 Row checkboxes select sequences for pairwise comparison and region export. They are separate from the clicked residue: clicking a residue does not check its row. Checked sequences remain selected when you scroll or filter names.
 
@@ -151,7 +153,7 @@ Row IDs keep annotations attached to their original sequence when you reorder or
 
 **Group rows.** The embedding application sets `groupBy` (the species, or a metadata key) or calls `setGroups`. Each group gets a header band with its name and count, and a color bar beside its labels. Click a header to collapse or expand the group. Rows keep your chosen order inside each group. Sequences without a value go to **Ungrouped**, listed last.
 
-**Show a tree.** The application calls `setTree` with a Newick string. The tree appears left of the labels and the order switches to **Tree**. Each leaf lines up with its row as you scroll or filter. The pinned reference has no leaf in the column and a branch click does not check it; unpin it to see its leaf. Click a branch point to check the sequences below it. Leaves match sequences by ID, then by name. A message above the alignment lists leaves with no sequence and sequences with no leaf. With any other order the branches cross, because rows no longer follow the tree. Hide the tree with the `tree` visibility key or set `treeWidth` to 0.
+**Show a tree.** The application calls `setTree` with a Newick string. The tree appears left of the labels and the order switches to **Tree**. Each leaf lines up with its row as you scroll or filter. The pinned reference has no leaf in the column and a branch click does not check it; unpin it to see its leaf. Click a branch point to check the sequences below it. Leaves match sequences by ID, then by name. A message above the alignment lists leaves with no sequence and sequences with no leaf. With any other order the branches cross, because rows no longer follow the tree. Hide the tree with the `tree` visibility key or set `treeWidth` to 0. While rows are grouped the tree column is hidden, and a message says so. Removing or replacing the tree clears its leaf warning.
 
 Links keep the order only for `sort=tree`; a manual order is not in the link, so it opens in input order. Links also omit hidden rows, a manual sequence list or a tree. **Export > View state · JSON** keeps hidden rows, the manual order and collapsed groups; load a tree again with `setTree`.
 
@@ -198,7 +200,7 @@ Statistics default to **All sequences**. Scrolling, sorting, pinning and filteri
 | Consensus support | Most frequent non-gap symbol count divided by all rows in scope. |
 | Consensus | Unique most frequent non-gap symbol; ties are shown explicitly. |
 | Consensus track | Colored cells for the consensus sequence: ties shown as IUPAC codes (DNA/RNA) or X, columns below the consensus threshold as X or N. |
-| Frequency logo | Literal symbol frequencies among non-gap rows. With `logoMode: 'bits'` each stack is scaled by information content. |
+| Frequency logo | Literal symbol frequencies among non-gap rows. With `logoMode: 'bits'` the track is labelled **Information logo · bits** and each stack is scaled by information content: the maximum (log2 20 = 4.32 bits for protein, 2 bits for DNA/RNA) fills the track height. |
 | Entropy | Shannon entropy in bits of the non-gap residues. 0 means one residue; the maximum is 2 bits for DNA/RNA and about 4.32 for protein. |
 | Information | Maximum bits (2 for DNA/RNA, 4.32 for protein) minus entropy minus a small-sample correction `(s - 1) / (2 ln2 n)`, never below 0. Few rows give a large correction, so a column of 4 identical DNA rows scores 1.46 bits, not 2. |
 | Quality | Protein only. Mean BLOSUM62 score over all pairs of rows with a standard amino acid in the column, scaled so the lowest entry (-4) is 0 and the highest (11) is 1. Unavailable for DNA/RNA and for columns with fewer than two scored residues. |
@@ -213,7 +215,7 @@ Enable **Frequency logo** to add a frequency track. Ambiguity symbols keep their
 
 ### Stockholm tracks and custom tracks
 
-A Stockholm file with `#=GC` lines shows one track per line below the built-in tracks: secondary structure (`SS_cons`), reference annotation (`RF`), `seq_cons` and others as text, and `PP_cons` as grey shading from 0 (light) to 9 (dark). `#=GR` lines (per-sequence annotation) appear for the sequence you select, or for the pinned reference when nothing is selected, named like `SS Sequence name`. Turn them off with **Stockholm tracks** under **Customize viewer**. Click a track column to select that alignment column.
+A Stockholm file with `#=GC` lines shows one track per line below the built-in column tracks and above the pinned reference row: secondary structure (`SS_cons`), reference annotation (`RF`), `seq_cons` and others as text, and `PP_cons` as grey shading from 0 (light) to 9 (dark). `#=GR` lines (per-sequence annotation) appear for the sequence you select, or for the pinned reference when nothing is selected, named like `SS Sequence name`, directly above the reference row. Turn them off with **Stockholm tracks** under **Customize viewer**. Click a track column to select that alignment column.
 
 Developers can add their own tracks (bars, heatmaps, text or drawn by a callback) with `addTrack`, `removeTrack` and the `tracks` option. See the Tracks section of the README. When registered tracks are taller than 45% of the viewer, the track area scrolls. #=GR tracks follow the selected row, or the pinned reference when it is shown.
 
@@ -313,6 +315,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | Escape / matrix | Clear residue selection. |
 | Ctrl/Cmd + C / matrix | Copy the selection as gapped FASTA. |
 | Drag / matrix | Pan the view; a press that moves under 4 px is a click. |
+| Click / matrix | Select a residue; click it again to clear the selection. |
 | Enter / Go to | Navigate to the entered column, reference residue or `row:residue`. |
 | Enter / motif input | Find the next hit. Shift+Enter finds the previous hit. |
 | Left / Right / overview | Move the viewport horizontally. |

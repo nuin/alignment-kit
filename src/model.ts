@@ -1,4 +1,4 @@
-import type { Alignment, Sequence, SequenceInput, ParseOptions, Annotation, AlignmentMetadata } from './types';
+import type { Alignment, Alphabet, Sequence, SequenceInput, ParseOptions, Annotation, AlignmentMetadata } from './types';
 
 export const isGap = (c:string|number) => c === '-' || c === '.' || c === 45 || c === 46;
 export function createAlignment(input:SequenceInput[], options:ParseOptions & {annotations?:Annotation[];metadata?:AlignmentMetadata} = {}):Alignment {
@@ -65,4 +65,11 @@ export function columnToResidue(a:Alignment,row:number,column:number):number|nul
 /** Alignment column of a residue number in a row, honoring the row offset; null when the row has no such residue. */
 export function residueToColumn(a:Alignment,row:number,residue:number):number|null {
   validateRow(a,row);if(!Number.isInteger(residue))return null;const p=residue-rowOffset(a.rows[row])+1;return p<1?null:sequenceToAlignment(a,row,p);
+}
+/** Alphabet the residues suggest, ignoring the alphabet set on the alignment. Nucleotide when at least 90% of non-gap residues are A, C, G, T, U or N (RNA when U appears without T). `other` is the fraction of non-gap residues outside that set. Large alignments are sampled at about one million cells. */
+export function detectAlphabet(a:Pick<Alignment,'codes'>):{alphabet:Alphabet;other:number} {
+  const codes=a.codes,step=Math.max(1,Math.floor(codes.length/1_000_000));let residues=0,other=0,t=0,u=0;
+  for(let i=0;i<codes.length;i+=step){const c=codes[i];if(c===45)continue;residues++;if(c===84)t++;else if(c===85)u++;else if(c!==65&&c!==67&&c!==71&&c!==78)other++;}
+  const share=residues?other/residues:0;
+  return {alphabet:share>0.1?'protein':u&&!t?'rna':'dna',other:share};
 }

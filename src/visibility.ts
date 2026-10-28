@@ -31,10 +31,11 @@ const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
 };
 export const inspectorTabs = {position:'positionTab',annotations:'featuresTab',compare:'compareTab',legend:'colorsTab',hits:'hitsTab'} as const;
 export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {
+  const own=new Set<HTMLElement>();
   for(const [key,selector] of Object.entries(selectors))for(const element of root.querySelectorAll<HTMLElement>(selector)) {
     let target=element;
     if(element.matches('select,input:not([data-select-row])'))target=element.closest('label')??(element.matches('select')?element.nextElementSibling as HTMLElement:element);
-    if(target)target.hidden=!v[key as keyof ViewerVisibility]||target.dataset.empty==='true';
+    if(target){target.hidden=!v[key as keyof ViewerVisibility]||target.dataset.empty==='true';if(target.hidden)own.add(target);}
   }
   const tabs=Object.values(inspectorTabs).some(key=>v[key]);
   root.querySelector<HTMLElement>('.ak-inspector')!.hidden=!v.inspector||!tabs;
@@ -43,20 +44,21 @@ export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {
   for(const parent of root.querySelectorAll<HTMLElement>('.ak-toolbar,.ak-tools,.ak-inspector-actions,.ak-checks')) {
     const children=[...parent.children].filter(child=>!child.matches('input.ak-file,.ak-toolbar-divider,select')) as HTMLElement[];
     const enabled=parent.matches('.ak-toolbar')?v.toolbar:parent.matches('.ak-tools')?v.tools:true;
-    parent.hidden=!enabled||!children.some(child=>!child.hidden);
+    parent.hidden=own.has(parent)||!enabled||!children.some(child=>!child.hidden);
   }
   for(const button of root.querySelectorAll<HTMLElement>('[data-row]'))button.hidden=!v.rowNames&&!v.rowSpecies;
 }
 export type TrackName='ruler'|'modalFrequency'|'gapFraction'|'entropy'|'quality'|'consensus'|'logo'|'reference';
 export const trackNames:readonly TrackName[]=['ruler','modalFrequency','gapFraction','entropy','quality','consensus','logo','reference'];
-/** One geometry source for both canvas tracks and their DOM labels. Built-ins come first, then `extra` tracks in order. Quality needs a protein alignment. */
+/** One geometry source for both canvas tracks and their DOM labels. Column tracks come first, then `extra` tracks in order, then the pinned reference row so it sits directly above the body. Quality needs a protein alignment. */
 export function trackLayout(v:Required<ViewerVisibility>,rowHeight:number,extra:readonly {height:number}[]=[],alphabet?:Alphabet) {
   const offsets:Record<TrackName,number|null>={ruler:null,modalFrequency:null,gapFraction:null,entropy:null,quality:null,consensus:null,logo:null,reference:null};
   const custom:{offset:number;height:number}[]=[];
   let height=0;
-  for(const [name,size] of [['ruler',26],['modalFrequency',26],['gapFraction',26],['entropy',26],['quality',26],['consensus',36],['logo',45],['reference',rowHeight]] as const) {
+  for(const [name,size] of [['ruler',26],['modalFrequency',26],['gapFraction',26],['entropy',26],['quality',26],['consensus',36],['logo',45]] as const) {
     if(v.tracks&&v[name]&&!(name==='quality'&&alphabet&&alphabet!=='protein')){offsets[name]=height;height+=size;}
   }
   if(v.tracks)for(const t of extra){custom.push({offset:height,height:t.height});height+=t.height;}
+  if(v.tracks&&v.reference){offsets.reference=height;height+=rowHeight;}
   return {offsets,custom,height};
 }

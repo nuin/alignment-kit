@@ -388,11 +388,11 @@ hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match
 
 ## Tracks
 
-Built-in tracks, top to bottom: `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`. `entropy` and `quality` default to hidden. `quality` is only drawn for protein alignments. Registered and Stockholm tracks draw after the built-ins, with labels in the label gutter. Clicking any track column selects that column (`Shift` extends the range); clicking the reference row also selects that row.
+Track area, top to bottom: the built-in column tracks `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`; then Stockholm `#=GC` tracks and registered tracks; then the `#=GR` tracks of the selected or reference row; then the pinned `reference` row, directly above the alignment body. `entropy` and `quality` default to hidden. `quality` is only drawn for protein alignments. Labels sit in the label gutter. The track area grows to fit its tracks and has no scrollbar of its own. Clicking any track column selects that column (`Shift` extends the range); clicking the reference row also selects that row.
 
 `entropy`, `information` and `quality` are `Float32Array`s on `AlignmentStats` (`NaN` where undefined), appear in the Position tab, and are the last three columns of the Column statistics TSV (`entropy_bits`, `information_bits`, `quality`; `NA` when undefined). Two options shape them:
 
-- `logoMode: 'frequency' | 'bits'` (default `'frequency'`). `'bits'` scales each letter stack by `information / log2(s)`.
+- `logoMode: 'frequency' | 'bits'` (default `'frequency'`). `'bits'` scales each letter stack by `information / log2(s)`, where `s` is 20 for protein and 4 for DNA/RNA, so a column with the maximum information (4.32 or 2 bits) fills the 41 px stack area of the logo track. The track label reads `Information logo · bits` in this mode and `Frequency logo · non-gap` otherwise.
 - `conservationWindow` (odd integer 1 to 51, default 1). Centered moving average of the entropy and quality bars, skipping `NaN`. `setOptions` rounds an even value down to the next odd one; JSON configuration rejects it.
 
 ### Custom tracks
@@ -448,6 +448,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
 | `getState()` / `setState(state)` | Serialize/restore view state for the same dataset |
 | `getAlignment()` / `getStatistics()` | Read model / current exact statistics (may be pending) |
+| `getDetectedAlphabet()` | Alphabet suggested by the residues (`protein`, `dna` or `rna`), whatever alphabet the alignment is shown as. Throws before a load. `detectAlphabet(alignment)` is exported for use without a viewer |
 | `getSelectedRowIds()` | Read checked sequence IDs |
 | `copySelection()` / `getSelectionText()` | Copy the selection to the clipboard as gapped FASTA / return that text |
 | `getViewLink()` / `applyViewLink(link)` | Encode the view as URL parameters / apply a link, skipping settings that do not fit |
@@ -460,9 +461,11 @@ Events: `ready`, `selection`, `search` (`{ hits, truncated }` when a scan finish
 
 Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
-Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off.
+Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Clicking a residue selects its column and row; clicking the same cell again, without Shift, while it is the whole selection clears the selection. The same applies to a track column. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
+
+Alphabet guard: the viewer detects the alphabet from the residues on load (`getDetectedAlphabet()`). Nucleotide means at least 90% of non-gap residues are A, C, G, T, U or N. When the **Type** select is changed across the protein/nucleotide line from the detected alphabet, the message area asks first, for example `This alignment looks like protein (83.3% of residues are not A, C, G, T/U, N). Treat it as DNA?`, with **Switch** and **Cancel** buttons. Switch reloads the alignment with the new alphabet; Cancel restores the select. DNA to RNA and back switch without asking. The prompt shows even when `visibility.messages` is off. Programmatic alphabets (`load`, `parseAlignment` or `createAlignment` with `alphabet`, then `setAlignment`) are not gated. The Color select lists only schemes for the current alphabet (`colorSchemes(alphabet)`), and a scheme that no longer fits falls back to `soft` (protein) or `soft-nucleotide` (DNA/RNA).
 
 ## Dots for matches
 
@@ -490,7 +493,7 @@ await viewer.removeRows(['seq-2']);     // new alignment copy, new alignment ID,
 
 Groups: `groupBy` takes `'species'` or a `row.metadata` key. `setGroups({ rowId: 'name' })` overrides it, and `setGroups(null)` returns to `groupBy`. Rows order by group (alphabetical, `Ungrouped` last), then by the current order inside each group. Each group has a header row with its name and visible row count, and a color bar on its labels. Click a header, in the label gutter or on the grid, to collapse or expand it; `toggleGroup(name)` does the same. The pinned reference stays above the groups.
 
-Tree: `setTree(newick)` parses one Newick tree, orders rows by it (`sort: 'tree'`) and draws it in a column left of the labels, `treeWidth` pixels wide (0 hides it, the `tree` visibility key hides it too). Leaves match rows by ID, then by name; a message lists unmatched leaves and rows. Newick names, branch lengths, quoted labels, `[comments]` and numeric internal labels (kept as support values) are read. Underscores stay literal. The pinned reference has no leaf in the column and is not checked by a branch click. Support values are parsed but not drawn. Click a branch point to check the visible rows under it. With a sort other than `tree`, branches cross. `parseNewick` and `leafOrder` are exported for use without a viewer.
+Tree: `setTree(newick)` parses one Newick tree, orders rows by it (`sort: 'tree'`) and draws it in a column left of the labels, `treeWidth` pixels wide (0 hides it, the `tree` visibility key hides it too). While groups are active (`groupBy` or `setGroups`) the tree column collapses to 0 px and a message says so once. Leaves match rows by ID, then by name; a message lists unmatched leaves and rows, and `setTree(null)` or a new tree clears it. Newick names, branch lengths, quoted labels, `[comments]` and numeric internal labels (kept as support values) are read. Underscores stay literal. The pinned reference has no leaf in the column and is not checked by a branch click. Support values are parsed but not drawn. Click a branch point to check the visible rows under it. With a sort other than `tree`, branches cross. `parseNewick` and `leafOrder` are exported for use without a viewer.
 
 ```ts
 viewer.setOptions({ groupBy: 'species', treeWidth: 160 });
