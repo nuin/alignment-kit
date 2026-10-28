@@ -283,7 +283,7 @@ viewer.addAnnotations(annotations);
 const records = parseGff3(text); // { seqid, start, end, kind, label, metadata }[] in 1-based ungapped coordinates
 ```
 
-- `seqid` is matched to a row by ID, then by display name (GenBank, EMBL and UniProt also try accession, version and entry name), then falls back to `rowId`.
+- `seqid` is matched to a row by ID, then by display name, then by the first word of the name or any `|`-separated part of it (GenBank, EMBL and UniProt also try accession, version and entry name), then falls back to `rowId`.
 - `coordinates: 'sequence'` (default) counts ungapped residues and converts them to alignment columns. `'alignment'` uses 1-based columns as given.
 - Records with no matching row, or beyond the sequence, become `mapping: 'unmapped'` and add a warning.
 - BED12 blocks become one `exon` annotation each. GenBank and EMBL `join()` locations become one annotation spanning the lowest to highest position, with `<`, `>` and `complement()` kept in `metadata`. Labels come from `/gene`, `/product`, `/note`, `/label`, then the feature key.

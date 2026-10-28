@@ -100,3 +100,28 @@ it('imports annotations from an opened file instead of replacing the alignment',
   expect(viewer.getAlignment()!.rows).toHaveLength(2);expect(viewer.getAlignment()!.annotations).toHaveLength(0);
   viewer.destroy();
 });
+it('matches described FASTA headers by first token and pipe segments',()=>{
+  const a=parseAlignment('>P12345 desc here\nACGT\n>sp|Q9XYZ|NAME_HUMAN other\nACGA',{alphabet:'dna'});
+  const r=importAnnotations(a,'P12345\t0\t2\tx\nQ9XYZ\t0\t2\ty\nNAME_HUMAN\t0\t2\tz\n');
+  expect(r.annotations.map(x=>x.rowId)).toEqual(['seq-1','seq-2','seq-2']);expect(r.warnings).toEqual([]);
+});
+it('keeps records whose seqid starts with track or browser',()=>{
+  expect(parseBed('trackA\t0\t5\ty')).toHaveLength(1);expect(parseBed('browser-x\t0\t5\ty')).toHaveLength(1);
+  expect(parseBed('track name=t\na\t0\t2\ty')).toHaveLength(1);expect(detectAnnotationFormat('track_1\t0\t5\ty')).toBe('bed');
+});
+it('handles all-gap rows, single-row alignments and alignment coordinates with rowId',()=>{
+  const a=parseAlignment('>a\n----\n>b\nACGT',{alphabet:'dna'});
+  const r=importAnnotations(a,'a\t0\t2\tx\n');expect(r.annotations[0].mapping).toBe('unmapped');expect(r.warnings).toHaveLength(1);
+  const s=parseAlignment('>only\nA-CG',{alphabet:'dna'});
+  expect(importAnnotations(s,'only\t0\t3\tx\n').annotations[0]).toMatchObject({rowId:'seq-1',start:1,end:4,mapping:'mapped'});
+  expect(importAnnotations(a,'q\t2\t3\tx\n',{coordinates:'alignment',rowId:'seq-2',format:'bed'}).annotations[0]).toMatchObject({rowId:'seq-2',start:3,end:3});
+});
+it('clamps the feature page when annotations are removed',async()=>{
+  const el=document.createElement('div');document.body.append(el);const viewer=createViewer(el,{worker:false});
+  await viewer.setAlignment(aln());
+  viewer.addAnnotations(Array.from({length:100},(_,i)=>({id:`n${i}`,label:`n${i}`,start:1,end:2,mapping:'mapped' as const,rowId:'seq-1'})));
+  (viewer as any).featurePage=3;viewer.removeAnnotations(Array.from({length:70},(_,i)=>`n${i}`));
+  expect((viewer as any).featurePage).toBe(0);
+  viewer.removeAnnotations();expect((viewer as any).featurePage).toBe(0);
+  viewer.destroy();
+});

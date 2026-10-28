@@ -8,7 +8,7 @@ export function detectAnnotationFormat(text:string):AnnotationFormat {
   if(/^LOCUS\s/m.test(clean)||/^FEATURES\s/m.test(clean)) return 'genbank';
   if(/^ID {3}/m.test(clean)&&/^FT {3}/m.test(clean)) return 'embl';
   if(/^##gff-version/m.test(clean)) return 'gff3';
-  const first=lines(clean).find(l=>l.trim()&&!/^(#|track|browser)/.test(l));
+  const first=lines(clean).find(l=>l.trim()&&!/^(#|track\s|browser\s)/.test(l));
   if(first){const f=first.split('\t');if(f.length===9&&integer(f[3])&&integer(f[4]))return 'gff3';const b=first.trim().split(/\s+/);if(b.length>=3&&b.length<=12&&integer(b[1])&&integer(b[2]))return 'bed';}
   throw new Error('Unrecognized annotation format. Use GFF3, BED, GenBank, EMBL or UniProt JSON.');
 }
@@ -27,7 +27,7 @@ export function parseGff3(text:string,warnings:string[]=[]):AnnotationRecord[] {
 export function parseBed(text:string,warnings:string[]=[]):AnnotationRecord[] {
   const out:AnnotationRecord[]=[];
   for(const [i,line] of lines(text).entries()) {
-    if(!line.trim()||/^(#|track|browser)/.test(line)) continue;
+    if(!line.trim()||/^(#|track\s|browser\s)/.test(line)) continue;
     const f=line.includes('\t')?line.split('\t'):line.trim().split(/\s+/);
     if(f.length<3||!integer(f[1])||!integer(f[2])||Number(f[1])>=Number(f[2])){warnings.push(`BED line ${i+1} skipped: expected chrom, start and end with start < end.`);continue;}
     const start=Number(f[1])+1,end=Number(f[2]),name=f[3]||'',base={source:'bed',score:f[4],strand:f[5]};
@@ -111,6 +111,8 @@ export function importAnnotations(alignment:Alignment,text:string,options:Annota
   if(options.rowId!==undefined&&fallback<0) throw new Error(`Unknown sequence “${options.rowId}”.`);
   const byId=new Map(alignment.rows.map((r,i)=>[r.id,i])),byName=new Map<string,number>();
   alignment.rows.forEach((r,i)=>{if(!byName.has(r.name))byName.set(r.name,i);});
+  const byToken=new Map<string,number>();
+  alignment.rows.forEach((r,i)=>{for(const t of [r.name.split(/\s+/)[0],...r.name.split(/\s+/)[0].split('|')])if(t&&!byToken.has(t))byToken.set(t,i);});
   const columns=new Map<number,Int32Array>(),columnsOf=(row:number):Int32Array=>{
     let map=columns.get(row);
     if(!map){const list:number[]=[];for(let c=0;c<alignment.width;c++)if(alignment.codes[row*alignment.width+c]!==45)list.push(c+1);map=Int32Array.from(list);columns.set(row,map);}
@@ -123,6 +125,7 @@ export function importAnnotations(alignment:Alignment,text:string,options:Annota
     let row=-1;
     for(const id of ids){const i=byId.get(id);if(i!==undefined){row=i;break;}}
     if(row<0)for(const id of ids){const i=byName.get(id);if(i!==undefined){row=i;break;}}
+    if(row<0)for(const id of ids){const i=byToken.get(id);if(i!==undefined){row=i;break;}}
     if(row<0)row=fallback;
     const base={id:nextId(),label:r.label,kind:r.kind,metadata:{...r.metadata,seqid:r.seqid,sourceStart:r.start,sourceEnd:r.end,format}};
     const rowId=row>=0?alignment.rows[row].id:undefined;

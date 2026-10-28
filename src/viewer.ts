@@ -207,7 +207,7 @@ export class AlignmentViewer {
     }
     await this.load(file,{name:file.name}).catch(()=>{});
   }
-  private refreshAnnotations() {this.rebuildAnnotations();this.inspectorDirty=true;this.overviewDirty=true;this.schedule();}
+  private refreshAnnotations() {this.rebuildAnnotations();this.featurePage=Math.min(this.featurePage,Math.max(0,Math.ceil(this.filteredAnnotations.visible.length/30)-1));this.inspectorDirty=true;this.overviewDirty=true;this.schedule();}
   private rebuildAnnotations() {this.filteredAnnotations=filterAnnotations(this.a?.annotations??[],this.annotationFilter);this.annotationIndex=new AnnotationIndex(this.filteredAnnotations.visible);}
   getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,statisticsScope:this.options.statisticsScope,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility()};}
   async setState(state:ViewState) {
