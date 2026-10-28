@@ -1,6 +1,7 @@
 import type { Alignment, Identity } from '../types';
 import { $ } from '../controls';
 import { type Core } from './core';
+import { showWarnings } from './warnings';
 const cell=(tag:'th'|'td',text:string,title?:string)=>{const node=document.createElement(tag);node.textContent=text;if(title)node.title=title;return node;};
 /** Pairwise identity table built from DOM nodes, so sequence names are never parsed as markup. */
 function identityMatrix(a:Alignment,rows:number[],matrix:Identity[][]):HTMLElement {
@@ -15,7 +16,8 @@ export async function action(v:Core, action:string):Promise<void> {
   try {
     if(action==='close-fasta-options'){v.fastaPanel(false);return;}
     if(action==='alphabet-switch'){const next=v.pendingAlphabet;v.pendingAlphabet=undefined;v.message('');if(next&&v.a)v.applyAlphabet(next);return;}
-    if(action==='alphabet-cancel'){v.message('');return;}
+    if(action==='alphabet-cancel'||action==='warnings-close'){v.message('');return;}
+    if(action==='warnings'){showWarnings(v);return;}
     if(action==='open'){$<HTMLInputElement>(v.root,'.ak-file').click();return;}
     if(action==='zoom-in')v.zoom(v.options.cellWidth+2);
     if(action==='zoom-out')v.zoom(v.options.cellWidth-2);

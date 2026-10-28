@@ -46,7 +46,7 @@ export function buildShell(root:HTMLElement) {
     </div>
     <aside class="ak-inspector" aria-label="Alignment inspector"><div class="ak-tabs"><button type="button" data-tab="position" aria-pressed="true">Position</button><button type="button" data-tab="annotations">Features</button><button type="button" data-tab="compare">Compare</button><button type="button" data-tab="legend">Colors</button><button type="button" data-tab="hits">Hits</button></div><div class="ak-inspector-content"></div></aside>
   </div>
-  <footer class="ak-status"><span class="ak-status-main">No alignment loaded</span><span class="ak-status-detail"></span></footer>
+  <footer class="ak-status"><span class="ak-status-main">No alignment loaded</span><span class="ak-status-detail"></span><button type="button" class="ak-warnings" data-action="warnings" data-empty="true" hidden></button></footer>
   <div class="ak-live ak-sr-only" aria-live="polite"></div>`;
 }
 export function download(content:string|Blob,name:string,type='text/plain') {

@@ -69,10 +69,20 @@ export function exportClustal(a:Alignment,region:ExportRegion={}):string {
   }
   return out.join('').replace(/\n\n$/,'\n');
 }
-/** Stockholm 1.0 with one unwrapped sequence line per row. */
+/** Stockholm 1.0 with one unwrapped sequence line per row. An alignment parsed from Stockholm also writes back its comment lines and every #=GF, #=GS, #=GR and #=GC tag, known or not, cut to the exported rows and columns. */
 export function exportStockholm(a:Alignment,region:ExportRegion={}):string {
-  const {rows}=textRows(a,region),names=uniqueNames(rows.map(r=>plainName(r.name))),pad=padNames(names,2);
-  return `# STOCKHOLM 1.0\n${rows.map((r,i)=>names[i].padEnd(pad)+r.sequence+'\n').join('')}//\n`;
+  const {rows}=textRows(a,region),names=uniqueNames(rows.map(r=>plainName(r.name))),pad=padNames(names,2),st=a.metadata.stockholm;
+  if(!st)return `# STOCKHOLM 1.0\n${rows.map((r,i)=>names[i].padEnd(pad)+r.sequence+'\n').join('')}//\n`;
+  const resolved=resolveRegion(a,region),orig=resolved.rows.map(r=>a.rows[r].name),out=[`# STOCKHOLM 1.0\n`];
+  const gr=names.flatMap((n,i)=>Object.entries(st.GR[orig[i]]??{}).map(([tag,v])=>[`#=GR ${n} ${tag}`,cut(v,resolved)] as const));
+  const gc=Object.entries(st.GC).map(([tag,v])=>[`#=GC ${tag}`,cut(v,resolved)] as const);
+  const w=Math.max(pad,...gr.map(([l])=>l.length+1),...gc.map(([l])=>l.length+1));
+  for(const h of a.metadata.headers?.slice(1)??[])out.push(h+'\n');
+  for(const [tag,values] of Object.entries(st.GF))for(const v of values)out.push(`#=GF ${tag} ${v}\n`);
+  names.forEach((n,i)=>{for(const [tag,values] of Object.entries(st.GS[orig[i]]??{}))for(const v of values)out.push(`#=GS ${n} ${tag} ${v}\n`);});
+  rows.forEach((r,i)=>{out.push(names[i].padEnd(w)+r.sequence+'\n');for(const [label,v] of gr.filter(([l])=>l.startsWith(`#=GR ${names[i]} `)))out.push(label.padEnd(w)+v+'\n');});
+  for(const [label,v] of gc)out.push(label.padEnd(w)+v+'\n');
+  return out.join('')+'//\n';
 }
 const uniqueStrictNames=(names:string[])=>{
   const used=new Set<string>();

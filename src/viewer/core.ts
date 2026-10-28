@@ -90,7 +90,7 @@ export interface Core {
   rebuildAnnotations():void;
   rebuildRows():void;
   refreshAnnotations():void;
-  replace(alignment:Alignment,carry?:Carry):Promise<void>;
+  replace(alignment:Alignment,carry?:Carry,quiet?:boolean):Promise<void>;
   requestAlphabet(next:Alphabet):void;
   reveal(s:Selection):void;
   rowIndexes(ids:string[]):number[];

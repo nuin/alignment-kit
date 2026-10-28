@@ -21,7 +21,7 @@ const preview=(window as any).__ALIGNMENT_PREVIEW__;
 const viewer=createViewer(document.querySelector('#viewer')!,{height:740,showInspector:window.innerWidth>800,workerUrl:preview?.workerUrl,urlSync:!preview});
 const customize=document.querySelector<HTMLDetailsElement>('.demo-customize')!;
 const groups:Record<string,(keyof ViewerVisibility)[]>={
-  'Layout':['toolbar','tools','overview','overviewTitle','tracks','alignment','inspector','inspectorTabs','status','statusSummary','statusDetails','messages','emptyState'],
+  'Layout':['toolbar','tools','overview','overviewTitle','tracks','alignment','inspector','inspectorTabs','status','statusSummary','statusDetails','warnings','messages','emptyState'],
   'Main controls':['open','search','colorScheme','zoom','fit','theme','inspectorToggle','fullscreen','export'],
   'Navigation and analysis':['goTo','motif','order','colorMode','logoToggle','statisticsScope','alphabet'],
   'Tracks and residues':['ruler','modalFrequency','gapFraction','consensus','logo','entropy','quality','stockholmTracks','reference','residueLetters','annotationMarks','selectionOverlay'],
