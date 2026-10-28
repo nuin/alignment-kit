@@ -84,7 +84,7 @@ off();
 viewer.destroy();
 ```
 
-`parseAlignment` accepts aligned FASTA, Stockholm and CLUSTAL. `createAlignment` accepts `{ id?, name, sequence, species?, metadata? }[]`. All sequences must have equal aligned lengths. FASTA records with duplicate display names are retained; supplied IDs must be unique. Interleaved blocks must be separated by blank lines, contain the same row names and have equal chunk widths within each block. Stockholm GF/GS/GC/GR annotations are retained and coordinate lengths validated.
+`parseAlignment` accepts aligned FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF and PIR/NBRF, detected from the content (or forced with `options.format`). PHYLIP may be sequential or interleaved, with relaxed or strict 10-character names. NEXUS reads the MATRIX of a DATA or CHARACTERS block, honoring FORMAT `datatype`, `gap`, `missing`, `matchchar` and `interleave`, quoted names and `[comments]`; missing characters (`missing`, default `?`) become gaps and `matchchar` expands to the first row's residue. MSF (GCG) reads `Name:` lines and turns `.` and `~` into gaps. PIR reads `>P1;ID`, the description line (may be empty) and sequence lines up to `*`; a file whose first record has no line ending in `*` is read as FASTA. `createAlignment` accepts `{ id?, name, sequence, species?, metadata? }[]`. All sequences must have equal aligned lengths. FASTA records with duplicate display names are retained; supplied IDs must be unique. Interleaved blocks must be separated by blank lines, contain the same row names and have equal chunk widths within each block. Stockholm GF/GS/GC/GR annotations are retained and coordinate lengths validated.
 
 A3M insertion notation is unsupported. Known `.a3m` files/URLs are rejected. Anonymous strings cannot reliably distinguish lowercase A3M insertions from lowercase aligned FASTA: callers must provide rectangular aligned input. Case is preserved in source rows and normalized for comparisons. `.` and `-` are gaps.
 
@@ -292,20 +292,41 @@ const records = parseGff3(text); // { seqid, start, end, kind, label, metadata }
 
 ## Coordinates and statistics
 
-Public positions are **1-based, inclusive alignment columns**. Sequence coordinates require a row identity and count only non-gap symbols. UseSearch motifs
+Public positions are **1-based, inclusive alignment columns**. Sequence coordinates require a row identity and count only non-gap symbols. Use `alignmentToSequence(alignment, rowIndex, column)` and `sequenceToAlignment(alignment, rowIndex, position)`; a gap maps to `null`.
+
+### Reference ruler and residue go-to
+
+`rulerCoordinates: 'reference'` (or the **Ruler** menu, **Reference residues**) labels the ruler with the ungapped residue numbers of the pinned reference row instead of alignment columns. Columns where the reference has a gap get no number or tick. Labels fall on multiples of the tick step, plus the first residue. The Position tab shows both the alignment column and the reference residue number.
+
+A row starts counting at `row.metadata.start` when that is a positive integer, otherwise at 1. The Stockholm parser sets it from names of the form `NAME/START-END` (START at least 1 and not above END) and does not rename the row. Reverse-strand ranges (START above END) are not numbered backwards. This numbering applies to the ruler, the Position tab and go-to; `alignmentToSequence` and `sequenceToAlignment` stay offset-free.
+
+The **Go to** box accepts `123` (an alignment column, or a reference residue number when the ruler is in reference mode) and `rowIdOrName:45` (residue 45 of that row; the ID is tried before the name, and the last `:` splits the text). Out-of-range numbers and unknown rows show a message. `goToResidue(rowId, position)` does the same by row ID. The view link carries `ruler=ref` in reference mode, and `getState()` includes `rulerCoordinates`. Hide the menu with `visibility.rulerCoordinates`.
+
+Statistics default to all loaded rows. Scrolling, pinning a reference and visually filtering rows do not change that scope. Select **Filtered sequences** explicitly to recompute for a subset. Each row receives one vote; no deduplication, phylogenetic weighting or sampling is implicit.
+
+| Quantity | Definition |
+|---|---|
+| Gap fraction | Gap count / rows in statistics scope |
+| Modal frequency | Largest non-gap symbol count / non-gap rows |
+| Consensus support | Largest non-gap symbol count / all scoped rows |
+| Consensus | Unique most frequent non-gap symbol; ties are explicit |
+| Consensus sequence | Track, export, copy and `getConsensus()`: modal non-gap residue; ties as IUPAC codes (DNA/RNA) or `X`; `X`/`N` below `consensusThreshold` |
+| Frequency logo | Literal symbol frequencies among non-gap rows; not information content |
+| Pairwise identity | Exact matches / columns with canonical residues in both rows |
+
+Ambiguity symbols are counted separately and never fractionally distributed. All-gap modal frequency/consensus and identity with zero comparable positions are unavailable. Pairwise identity excludes gaps, ambiguity and stops; it includes matched and compared-position counts. Its matrix is calculated only for selected rows, capped at 200, in a cancellable worker. Selecting **Identity to reference** computes and sorts reference identities; selecting a row then shows its identity and compared-position count.
+
+## Search motifs
 
 The motif box and `search()` accept three syntaxes. Auto mode picks one from the text:
 
-| `alignmentToSequence(alignment,Text rowIndex, column)`Mode | Example and|
+| Text | Mode | Example |
 |---|---|---|
-| `sequenceToAlignment(alignment, rowIndex, position)/.../`; a gap maps to `null`.
+| `/.../` | Regular expression | `/N[^P][ST]/` |
+| `-` between elements, a whole `x` element, `{...}`, `[...]`, `(n)`, `<` or `>` | PROSITE | `N-{P}-[ST]-{P}` |
+| Anything else | IUPAC letters | `ACGNACGG` |
 
-### Reference| Regular rulerexpression and| residue`/N[^P][ST]/` go-to
-
-`rulerCoordinates: 'reference'` (or the **Ruler** menu, **Reference-` residues**)between labelselements, thea rulerwhole `x` theelement, ungapped`{...}`, residue`[...]`, numbers`(n)`, of the pinned reference`<` rowor instead`>` of| alignmentPROSITE columns.| Columns`N-{P}-[ST]-{P}` where|
-| the referenceAnything haselse a| gapIUPAC getletters no| number`ACGNACGG` or|
-
-- tick.IUPAC Labelsfor DNA/RNA: fall`R onY multiplesS ofW theK tickM step,B plusD theH firstV residue.N`; The`U` Positionequals tab`T`. showsAn bothambiguity theletter alignmentin columnthe pattern also matches itself in the data, so `R` matches `A`, `G` and a literal `R`. A lowercase string such as `acx` is IUPAC; `x` is PROSITE only as an element (`x`, `x(2)`, `A-x-G`). For protein: `X` is any residue, `B` is D or N, `Z` is E or Q, `J` is I or L.
+- IUPAC for DNA/RNA: `R Y S W K M B D H V N`; `U` equals `T`. An ambiguity letter in the pattern also matches itself in the data, so `R` matches `A`, `G` and a literal `R`. A lowercase string such as `acx` is IUPAC; `x` is PROSITE only as an element (`x`, `x(2)`, `A-x-G`). For protein: `X` is any residue, `B` is D or N, `Z` is E or Q, `J` is I or L.
 - PROSITE: `x` any residue, `[ST]` one of, `{P}` any except, `x(2,4)` repeat, `<` N-terminus, `>` C-terminus, `[G>]` G or C-terminus. A trailing `.` is ignored.
 - Regular expressions are case-insensitive and run on each ungapped sequence. Gaps never break a match.
 - DNA/RNA searches also scan the reverse complement unless `strands: 'forward'` is set. A site that reads the same on both strands (`ACGT`) is reported once, as `+`.
@@ -333,42 +354,11 @@ hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match
 | `setOptions(options)` | Update visual/analysis options |
 | `setReference(rowId)` | Pin a stable row as reference |
 | `setFilter(query)` | Filter names and species |
-| `setSort('input' and the reference residue number.
-
-A row starts counting at `row.metadata.start` when that is a positive integer, otherwise at 1. The Stockholm parser sets it from names of the form `NAME/START-END` (START at least 1 and not above END) and does not rename the row. Reverse-strand ranges `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif; highlight hits; return `{ hits, truncated }` |
-| `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
-| `findMotif(START above ENDtext, direction?) are not numbered backwards. This numbering applies toSearch if `text` is new, then select the ruler, the(`1`, Positiondefault) tabor andprevious go-to;(`-1`) `alignmentToSequence`hit, wrapping around; returns `true` when it started a new search and `sequenceToAlignment` stay offset-free.
-
-The **Go to** box accepts `123` (an alignment column, or a reference residue number when the ruler is in reference mode) and `rowIdOrName:45` (residue 45 of that row; the ID is tried before the name, and the last `:` splits the text). Out-of-range numbers and unknown rows show a message. `goToResidue(rowId, position)` does the same by row ID. The view link carries `ruler=ref` in reference mode, and `getState()` includes `rulerCoordinates`. Hide the menu with `visibility.rulerCoordinates`.
-
-Statistics default to all loaded rows. Scrolling, pinning a reference and visually filtering rows do not change that scope. Select **Filtered sequences** explicitly to recompute for a subset. Each row receives one vote; no deduplication, phylogenetic weighting or sampling is implicit.
-
-| Quantity | Definition |
-|---|---|
-| Gap fraction | Gap count / rows in statistics scope |
-| Modal frequency | Largest non-gap symbol count / non-gap rows |
-| Consensus support | Largest non-gap symbol count / all scoped rows |
-| Consensus | Unique most frequent non-gap symbol; ties are explicit |
-| Consensus sequence | Track, export, copy and `getConsensus()`: modal non-gap residue; ties as IUPAC codes (DNA/RNA) or `X`; `X`/`N` below `consensusThreshold` |
-| Frequency logo | Literal symbol frequencies among non-gap rows; not information content |
-| Pairwise identity | Exact matches / columns with canonical residues in both rows |
-
-Ambiguity symbols are counted separately and never fractionally distributed. All-gap modal frequency/consensus and identity with zero comparable positions are unavailable. Pairwise identity excludes gaps, ambiguity and stops; it includes matched and compared-position counts. Its matrix is calculated only for selected rows, capped at 200, in a cancellable worker. Selecting **Identity to reference** computes and sorts reference identities; selecting a row then shows its identity and compared-position count.
-
-## API and controls
-
-| Method | Purpose |
-|---|---|
-| `load(input, parseOptions?)` | Parse text, a file or bytes; await exact statistics |
-| `loadUrl(url, parseOptions?)` | Fetch and load with cancellation/CORS diagnostics |
-| `setAlignment(alignment)` | Replace data; await exact statistics |
-| `clear()` / `destroy()` | Clear data / permanently dispose resources |
-| `setOptions(options)` | Update visual/analysis options |
-| `setReference(rowId)` | Pin a stable row as reference |
-| `setFilter(query)` | Filter names and species |
 | `setSort('input' \| 'name' \| 'identity')` | Stable ordering; identity calculation is asynchronous |
 | `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range |
-| `findMotif(text)` | Find the next literal ungapped motif within filtered rows |
+| `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif; highlight hits; return `{ hits, truncated }` |
+| `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
+| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; returns `true` when it started a new search |
 | `addAnnotations(list)` / `removeAnnotations(ids?)` | Add annotations / remove some by ID (all when omitted) |
 | `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
@@ -381,7 +371,7 @@ Ambiguity symbols are counted separately and never fractionally distributed. All
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
-Events: `ready`, `selection`, `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
+Events: `ready`, `selection`, `search` (`{ hits, truncated }`, or `null` after `clearSearch()` or a new alignment), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
 Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
@@ -389,7 +379,7 @@ Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, H
 
 ## Dots for matches
 
-`matchDisplay: 'dot'` draws a residue identical to the comparison residue as `.search` (`{ hits, truncated }`, or `null` after `clearSearch()` or a new alignment), `viewport`; the cell keeps its color. The comparison is the consensus when `colorMode` starts with `consensus`, otherwise the pinned reference row. The reference row always shows letters. Gaps, `?` and mismatches keep their symbol. The **Dots for matches** checkbox in the secondary toolbar sets the option, and `visibility.matchDots: false` hides the checkbox. Dots need a cell width of 9 or more, like letters. Canvas, SVG and PNG figures use dots; FASTA, copy and the other text exports keep real residues. `getState()` carries `matchDisplay` and links carry `dots=1`. When the reference row is not shown (reference hidden or filtered out by a name filter), the viewer and `exportSvg` fall back to letters, so a dot never refers to an invisible row.
+`matchDisplay: 'dot'` draws a residue identical to the comparison residue as `.`; the cell keeps its color. The comparison is the consensus when `colorMode` starts with `consensus`, otherwise the pinned reference row. The reference row always shows letters. Gaps, `?` and mismatches keep their symbol. The **Dots for matches** checkbox in the secondary toolbar sets the option, and `visibility.matchDots: false` hides the checkbox. Dots need a cell width of 9 or more, like letters. Canvas, SVG and PNG figures use dots; FASTA, copy and the other text exports keep real residues. `getState()` carries `matchDisplay` and links carry `dots=1`. When the reference row is not shown (reference hidden or filtered out by a name filter), the viewer and `exportSvg` fall back to letters, so a dot never refers to an invisible row.
 
 ```ts
 viewer.setOptions({ matchDisplay: 'dot', colorMode: 'consensus-differences' });
@@ -410,11 +400,13 @@ Override scoped CSS properties (`--ak-bg`, `--ak-panel`, `--ak-ink`, `--ak-muted
 
 ## Export
 
-The toolbar exports all rows as FASTA, a selected region as FASTA/SVG/PNG, or the consensus of the selected (or visible) columns as FASTA. Checked rows define exported rows; otherwise the pinned reference and currently visible rows are used. Selected columns define the range; otherwise the visible range is used. Figure exports preserve active annotation filters, palette and reference/consensus emphasis. Figures include coordinate scope, legend and source metadata when supplied.
+The toolbar exports all rows or a selected region as FASTA, CLUSTAL, Stockholm, PHYLIP (relaxed) or NEXUS, a selected region as SVG/PNG, or the consensus of the selected (or visible) columns as FASTA. Checked rows define exported rows; otherwise the pinned reference and currently visible rows are used. Selected columns define the range; otherwise the visible range is used. Figure exports preserve active annotation filters, palette and reference/consensus emphasis. Figures include coordinate scope, legend and source metadata when supplied.
 
 **FASTA options…** in the Export menu opens a panel with gap removal, letter case (original, upper, lower), line width (80, 60, unwrapped) and header (name; name and species; ID and name). The same settings apply to FASTA exports, the consensus export and Ctrl/Cmd+C. Set them in code with `setOptions({ fasta: { gaps: 'remove', letterCase: 'upper', lineWidth: 0, header: 'id-name' } })`; updates merge with the current settings. `lineWidth` is 0 (unwrapped) or 10 to 1000.
 
-The standalone `exportFasta(alignment, region?, fastaOptions?)`, `formatFastaRecord`, `exportStatistics`, `exportSvg` and `exportPng` functions are also exported. SVG/PNG figures are capped at **200,000 cells**; PNG additionally caps raster dimensions/area. Use a smaller region or SVG when raster dimensions are excessive. TSV exports define denominators in column headers. JSON view state contains navigation/filter/selection settings, not alignment data or hosted sharing URLs.
+The standalone `exportFasta(alignment, region?, fastaOptions?)`, `exportClustal(alignment, region?)` (60-column blocks, `*` under identical non-gap columns; CLUSTAL, Stockholm and NEXUS add `_2`, `_3` to repeated names so the file re-opens), `exportStockholm(alignment, region?)`, `exportPhylip(alignment, region?, { variant?: 'relaxed' | 'strict' })` (strict truncates names to 10 characters and adds numeric suffixes to keep them unique), `exportNexus(alignment, region?)` (DATA block, `gap=-`, `missing=?`, names quoted when needed), `formatFastaRecord`, `exportStatistics`, `exportSvg` and `exportPng` functions are also exported. SVG/PNG figures are capped at **200,000 cells**; PNG additionally caps raster dimensions/area. Use a smaller region or SVG when raster dimensions are excessive. TSV exports define denominators in column headers. JSON view state contains navigation/filter/selection settings, not alignment data or hosted sharing URLs.
+
+Pasting text (Ctrl/Cmd+V) anywhere in the viewer, except into an input, textarea, select or editable element, loads it as an alignment in any supported format. Parse errors go to the `error` event and the status line. Names with whitespace become `_` in CLUSTAL, Stockholm and PHYLIP exports.
 
 Ctrl/Cmd+C on the focused matrix copies gapped FASTA for the selected columns (or the visible columns). Rows are the checked rows in display order, with checked rows hidden by the filter appended; else the clicked row; else the export rows. Once statistics are ready, the copy starts with a `consensus` record for the same columns. Copy requires a secure context (HTTPS or localhost); otherwise the viewer reports an error.
 

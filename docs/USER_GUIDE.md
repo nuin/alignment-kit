@@ -21,7 +21,9 @@ The annotated example and large benchmark buttons are explicitly synthetic. Thei
 
 ## Open your own file
 
-Choose **Open alignment**, or drop a file onto the viewer. Supported formats are aligned FASTA, Stockholm and CLUSTAL, including gzip-compressed files. A filename ending in `.gz` is convenient; gzip detection uses the file bytes.
+Choose **Open alignment**, or drop a file onto the viewer. Supported formats are aligned FASTA, Stockholm, CLUSTAL, PHYLIP (`.phy`, `.phylip`), NEXUS (`.nex`, `.nexus`, `.nxs`), MSF (`.msf`) and PIR/NBRF (`.pir`), including gzip-compressed files. The format is detected from the content. A file starting with `>XX;` is read as PIR only when its first record has a line ending in `*`; otherwise it is FASTA. NEXUS `?` is a gap even when FORMAT has no `MISSING`.
+
+To load text without a file, click the viewer and press **Ctrl+V** (**Cmd+V** on macOS). The viewer reads the clipboard text and loads it like a file. Pasting into the search boxes or other form fields does nothing special. A parse error appears in the status message. A filename ending in `.gz` is convenient; gzip detection uses the file bytes.
 
 Every sequence must have the same aligned length. Use `-` or `.` for a gap. A minimal DNA alignment is:
 
@@ -90,7 +92,17 @@ Alignment column 3 has no sequence position for this row. Column 4 corresponds t
 
 ## Number the ruler by reference residues
 
-Choose **Ruler > Reference residues** in the second toolbar row to number the ruler with the residues of the pinned reference sequence. Columns where the reference has a gap show no number. Pin a different row tothe filtered rows for renumber frompattern. Press **Find next** (or Enter) to jump to the next hit, **Previous** (or Shift+Enter) to go back. Both wrap around. Gaps are ignored: `ACG` matches `A-C-G`, and the hit spans the intervening columns.
+Choose **Ruler > Reference residues** in the second toolbar row to number the ruler with the residues of the pinned reference sequence. Columns where the reference has a gap show no number. Pin a different row to renumber from that row. The Position tab shows the alignment column and the reference residue number together.
+
+Rows can start counting above 1. Stockholm names like `seqA/51-120` start at residue 51, and the row keeps its full name. Residue numbers in the ruler, the Position tab and Go to use that start.
+
+To jump to a residue, type `seq-3:45` in **Go to** (row ID or exact row name, a colon, then the residue number). In Reference residues mode a plain number such as `123` means reference residue 123; in Alignment columns mode it means column 123. If the row or residue does not exist, a message appears above the alignment. Shared links carry the ruler setting as `ruler=ref`.
+
+## Find sequences and motifs
+
+**Find a sequence** filters names and supplied species labels, ignoring case. It changes the visible rows, not the underlying alignment. The pinned reference remains visible even if it does not match the filter.
+
+**Find a motif** searches the filtered rows for a pattern. Press **Find next** (or Enter) to jump to the next hit, **Previous** (or Shift+Enter) to go back. Both wrap around. Gaps are ignored: `ACG` matches `A-C-G`, and the hit spans the intervening columns.
 
 The viewer picks the syntax from what you type:
 
@@ -106,23 +118,9 @@ The viewer picks the syntax from what you type:
 
 **Example: a primer.** In a DNA alignment, `ACGNACGG` finds the primer with any base at position 4. DNA and RNA alignments are also searched on the reverse complement; those hits have a dashed outline and the strand `-` in the Hits tab. Hit columns are always forward alignment columns. A site that reads the same on both strands, such as `ACGT`, is listed once, as `+`.
 
-Every hit is outlined in the grid, and the status bar shows the count, such as `12 hits`. The **Hits** inspector tab lists the first 200 hits with row name, columns, strand and match. Click one to jump thatto row.it. TheOverlapping Positionhits tabare showsall thelisted. alignmentThe columnsearch andstops theat reference10,000 residuehits numberor together.
+Every hit is outlined in the grid, and the status bar shows the count, such as `12 hits`. The **Hits** inspector tab lists the first 200 hits with row name, columns, strand and match. Click one to jump to it. Overlapping hits are all listed. The search stops at 10,000 hits or after 2 seconds and the count then reads `10,000+ hits`. Regular expressions with a repeated group that contains a repeat, such as `(A+)+B`, are rejected with a message because they can freeze the page. Clearing the box removes the highlights. Changing the sequence filter or order updates the hits without a new scan. Loading another alignment clears the search and the box. An invalid pattern shows an error and leaves the current hits and tab as they were.
 
-Rowsafter 2 seconds and can startcount countingthen abovereads 1.`10,000+ hits`. StockholmRegular names likeexpressions with a repeated group that contains a repeat, such as `seqA/51-120(A+)+B`, are rejected with a message start atthey residuecan 51, andfreeze the rowpage. keepsClearing the box itsremoves fullthe namehighlights. Changing Residuethe numberssequence filter or order updates the hits without in thenew ruler,scan. theLoading Positionanother tabalignment andclears Gothe tosearch useand thatthe box. An start.
-
-Toinvalid jumppattern shows to aerror residue,and typeleaves `seq-3:45`the incurrent hits and tab as they were.
-
-An **Goinvalid to**pattern (rowshows IDa ormessage exactthat rownames the problem, such as an unbalanced bracket.
-
-## name, a colon, then the residue number). In Reference residues mode a plain number such as `123` means reference residue 123; in Alignment columns mode it means column 123. If the row or residue does not exist, a message appears above the alignment. Shared links carry the ruler setting as `ruler=ref`.
-
-## Find sequences and motifs
-
-**Find a sequence** filters names and supplied species labels, ignoring case. It changes the visible rows, not the underlying alignment. The pinned reference remains visible even if it does not match the filter.
-
-**Find a motif** searches for a literal, ungapped sequence of letters, optionally including `*`. Press **Find next** to move through matches among the filtered rows. Searching `ACG` can match `A-C-G` because gaps are ignored; the selected alignment range includes those intervening gaps.
-
-Motif search is not a regular-expression search. IUPAC ambiguity letters are literal here: searching `N` looks for an actual N, not any nucleotide. The same rule applies to protein X.
+An invalid pattern shows a message that names the problem, such as an unbalanced bracket.
 
 ## Pin a reference and order rows
 
@@ -223,6 +221,8 @@ Use the **Export** menu:
 |---|---|
 | All rows · FASTA | Every original row, full aligned width, in input order. |
 | Selection · FASTA | Selected/visible columns and checked/visible rows, retaining gaps. |
+| All rows · CLUSTAL / Stockholm / PHYLIP / NEXUS | Every row, full width, in input order. CLUSTAL uses 60-column blocks and a `*` line for identical non-gap columns. PHYLIP is the relaxed variant, one line per sequence. NEXUS writes a DATA block with `gap=-` and `missing=?`. CLUSTAL, Stockholm and NEXUS rename repeated row names with `_2`, `_3` so the file can be reopened. |
+| Selection · CLUSTAL / Stockholm / PHYLIP / NEXUS | The same formats for the selected/visible columns and checked/visible rows. |
 | Selection · SVG | Vector figure with palette, coordinate scope, legend, supplied provenance and visible annotations. |
 | Selection · PNG | Raster version of the selected figure. |
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
@@ -236,7 +236,7 @@ For selection exports, a selected column range takes precedence over the horizon
 
 Figures preserve the palette, match/difference emphasis and annotation filters. They use their own fixed figure layout, not a screenshot of the entire application. SVG/PNG exports are limited to **200,000 cells** (rows × selected columns). PNG also limits dimensions to 16,384px per side and total area to 32 million pixels. Narrow the region when an export exceeds a limit.
 
-FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button; see **Share a view** for links.
+Names containing whitespace are written with `_` in CLUSTAL, Stockholm and PHYLIP; NEXUS quotes them. The API also offers strict PHYLIP (`exportPhylip(a, region, { variant: 'strict' })`). FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button; see **Share a view** for links.
 
 ## Show dots for matches
 Tick **Dots for matches** in the second toolbar row to draw each residue that equals the comparison residue as a dot. The comparison is the consensus when **Residues to color** is set to a consensus option, and the pinned reference row otherwise. The reference row keeps its letters, so you can read the sequence the dots refer to. Cells keep their colors, and gaps and differences keep their letters. Dots need a zoom of 9 px or more, the same as letters. SVG and PNG exports use dots when the box is ticked. FASTA export and copy always contain the real residues. The setting is part of shared links (`dots=1`). If the reference row is hidden or removed by the name filter, residues show as letters again, because the dots would refer to a row you cannot see.
@@ -294,7 +294,7 @@ Controls have accessible names and focus indicators, and selections have textual
 |---|---|
 | Unequal-length error | Supply an existing rectangular alignment; do not mix raw and aligned sequences. |
 | Stockholm/CLUSTAL block error | Check blank-line block separation, row membership, per-block widths and annotation lengths. |
-| File is not recognized | Use aligned FASTA, Stockholm or CLUSTAL. A3M, FASTQ, VCF and tree files are not alignment inputs here. |
+| File is not recognized | Use aligned FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR. A3M, FASTQ, VCF and tree files are not alignment inputs here. |
 | Colors look wrong | Check Type, Color and the Colors legend. Type changes interpretation, not letters. |
 | A palette disappeared | The Color menu filters schemes by alphabet. |
 | No motif found | Search ignores gaps and covers only filtered rows. `N` (DNA) and `X` (protein) match any residue; use `/regex/` or PROSITE for finer control. |

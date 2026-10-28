@@ -1,10 +1,10 @@
 import { createAlignment } from './model';
-import type { Alignment, AlignmentMetadata, ParseOptions, SequenceInput } from './types';
+import type { Alignment, AlignmentMetadata, Alphabet, ParseOptions, SequenceInput } from './types';
 
 export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
   const clean=text.replace(/^\uFEFF/,'').trim();
-  const format=options.format??(clean.startsWith('>')?'fasta':clean.startsWith('# STOCKHOLM')?'stockholm':/^(CLUSTAL|MUSCLE)/i.test(clean)?'clustal':undefined);
-  if(!format) throw new Error('Unrecognized alignment format. Use aligned FASTA, Stockholm or CLUSTAL. A3M insertion notation is not supported.');
+  const format=options.format??detectFormat(clean);
+  if(!format) throw new Error('Unrecognized alignment format. Use aligned FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR. A3M insertion notation is not supported.');
   const rows:SequenceInput[]=[], metadata:AlignmentMetadata={format,headers:[]};
   if(format==='fasta') {
     let current:SequenceInput|undefined;
@@ -18,7 +18,11 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
         current.sequence+=line.replace(/\s/g,'');
       }
     });
-  } else {
+  } else if(format==='phylip') rows.push(...parsePhylip(clean));
+  else if(format==='pir') rows.push(...parsePir(clean));
+  else if(format==='msf') {const msf=parseMsf(clean);rows.push(...msf.rows);options={...options,alphabet:options.alphabet??msf.alphabet};}
+  else if(format==='nexus') {const nexus=parseNexus(clean);rows.push(...nexus.rows);options={...options,alphabet:options.alphabet??nexus.alphabet};}
+  else {
     const byName=new Map<string,SequenceInput>();
     const dict = <T>():Record<string,T> => Object.create(null);
     const st={GF:dict<string[]>(),GS:dict<Record<string,string[]>>(),GC:dict<string>(),GR:dict<Record<string,string>>()};
@@ -73,6 +77,125 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
     }
   }
   return createAlignment(rows,{...options,metadata});
+}
+
+function detectFormat(t:string):ParseOptions['format'] {
+  if(/^>[A-Za-z0-9]{2};/.test(t)&&/\*[ \t]*$/m.test(t.split(/\r?\n>/,1)[0]))return 'pir';
+  if(t.startsWith('>'))return 'fasta';
+  if(t.startsWith('# STOCKHOLM'))return 'stockholm';
+  if(/^(CLUSTAL|MUSCLE)/i.test(t))return 'clustal';
+  if(/^#NEXUS\b/i.test(t))return 'nexus';
+  if(/^!!(AA|NA)_MULTIPLE_ALIGNMENT/.test(t)||/\bMSF:\s*\d+.*\bCheck:\s*\d+.*\.\.\s*$/m.test(t))return 'msf';
+  if(/^\d+\s+\d+(\s+[A-Za-z]+)?\s*$/.test(t.split(/\r?\n/,1)[0]))return 'phylip';
+}
+const strip=(s:string)=>s.replace(/\s/g,'');
+const checkRows=(rows:SequenceInput[],n:number|undefined,m:number|undefined,label:string)=>{
+  if((n!==undefined&&rows.length!==n)||rows.some(r=>!r.name||(m!==undefined&&r.sequence.length!==m)))throw new Error(`${label} does not contain ${n??'the expected number of'} sequences of ${m??'equal'} columns.`);
+  return rows;
+};
+function parsePhylip(text:string):SequenceInput[] {
+  const [head,...body]=text.split(/\r?\n/).filter(l=>l.trim()),h=head.trim().split(/\s+/),n=Number(h[0]),m=Number(h[1]);
+  if(!(n>0&&m>0))throw new Error('Malformed PHYLIP header. Expected the sequence count and the column count.');
+  const attempt=(strict:boolean,interleaved:boolean)=>{
+    const rows:SequenceInput[]=[],named=(line:string)=>{const [name,rest]=strict?[line.slice(0,10).trim(),line.slice(10)]:line.trim().match(/^(\S+)\s*(.*)$/)!.slice(1);return {name,sequence:strip(rest)};};
+    for(const [i,line] of body.entries()) {
+      if(interleaved){if(i<n)rows.push(named(line));else rows[(i-n)%n].sequence+=strip(line);}
+      else if(rows.length&&rows[rows.length-1].sequence.length<m)rows[rows.length-1].sequence+=strip(line);
+      else rows.push(named(line));
+    }
+    return checkRows(rows,n,m,'PHYLIP data');
+  };
+  for(const [strict,interleaved] of [[false,false],[false,true],[true,false],[true,true]])try{return attempt(strict,interleaved);}catch{}
+  throw new Error(`Malformed PHYLIP alignment. Expected ${n} sequences of ${m} columns, with relaxed or 10-character names, sequential or interleaved.`);
+}
+function parsePir(text:string):SequenceInput[] {
+  const rows:SequenceInput[]=[];let current:SequenceInput|undefined,state=0;
+  for(const [i,raw] of text.split(/\r?\n/).entries()) {
+    const line=raw.trim(),m=line.match(/^>[A-Za-z0-9]{2};\s*(.*)$/);
+    if(m){if(!m[1])throw new Error(`Missing PIR identifier at line ${i+1}.`);current={name:m[1],sequence:''};rows.push(current);state=1;continue;}
+    if(!line){if(state===1)state=2;continue;}
+    if(!current)throw new Error(`Sequence before PIR header at line ${i+1}.`);
+    if(state===1){state=2;continue;}
+    if(state===2){const end=line.indexOf('*');current.sequence+=strip(end<0?line:line.slice(0,end));if(end>=0)state=3;}
+  }
+  return checkRows(rows,undefined,undefined,'PIR data');
+}
+function parseMsf(text:string):{rows:SequenceInput[];alphabet?:Alphabet} {
+  const lines=text.split(/\r?\n/),cut=lines.findIndex(l=>l.trim()==='//');
+  if(cut<0)throw new Error('MSF alignment is missing its // separator.');
+  const rows=new Map<string,SequenceInput>(),type=lines.slice(0,cut).join('\n').match(/\bType:\s*([PN])/i)?.[1].toUpperCase();
+  for(const line of lines.slice(0,cut)){const m=line.match(/^\s*Name:\s*(\S+)/);if(m)rows.set(m[1],{name:m[1],sequence:''});}
+  for(const line of lines.slice(cut+1)) {
+    if(!line.trim()||/^\s*\d+(\s+\d+)?\s*$/.test(line))continue;
+    const m=line.trim().match(/^(\S+)\s+(.+)$/);if(!m)throw new Error(`Malformed MSF sequence line “${line.trim()}”.`);
+    let row=rows.get(m[1]);if(!row)rows.set(m[1],row={name:m[1],sequence:''});
+    row.sequence+=strip(m[2]).replace(/[.~]/g,'-');
+  }
+  return {rows:checkRows([...rows.values()],undefined,undefined,'MSF data'),alphabet:type==='P'?'protein':undefined};
+}
+const stripNexusComments=(text:string)=>{
+  let out='',depth=0,quote=false;
+  for(const c of text){
+    if(depth===0&&c==="'")quote=!quote;
+    if(!quote&&c==='['){depth++;continue;}
+    if(!quote&&c===']'&&depth){depth--;continue;}
+    if(!depth)out+=c;
+  }
+  return out;
+};
+const nexusCommands=(text:string)=>{
+  const out:string[]=[];let cur='',quote=false;
+  for(const c of text){if(c==="'")quote=!quote;if(c===';'&&!quote){out.push(cur);cur='';}else cur+=c;}
+  return out;
+};
+function nexusName(line:string):[string,string] {
+  const q=line.match(/^\s*'((?:[^']|'')*)'\s*(.*)$/);
+  if(q)return [q[1].replace(/''/g,"'"),q[2]];
+  const m=line.trim().match(/^(\S+)\s*(.*)$/);
+  return m?[m[1],m[2]]:['',''];
+}
+function parseNexus(text:string):{rows:SequenceInput[];alphabet?:Alphabet} {
+  const block=nexusCommands(stripNexusComments(text).replace(/^\s*#NEXUS/i,'')).map(c=>c.trim());
+  const begin=block.findIndex(c=>/^begin\s+(data|characters)$/i.test(c));
+  if(begin<0)throw new Error('NEXUS file has no DATA or CHARACTERS block.');
+  const opts:Record<string,string>={};let matrix:string|undefined,ntax:number|undefined,nchar:number|undefined;
+  for(const cmd of block.slice(begin+1)) {
+    const key=cmd.match(/^(\w+)\s*([\s\S]*)$/);if(!key)continue;
+    const word=key[1].toLowerCase(),rest=key[2];
+    if(word==='end'||word==='endblock')break;
+    if(word==='matrix'){matrix=rest;break;}
+    if(word==='dimensions'){ntax=Number(rest.match(/ntax\s*=\s*(\d+)/i)?.[1])||undefined;nchar=Number(rest.match(/nchar\s*=\s*(\d+)/i)?.[1])||undefined;}
+    if(word==='format')for(const m of rest.matchAll(/(\w+)\s*=\s*(?:"([^"]*)"|(\S+))/g))opts[m[1].toLowerCase()]=m[2]??m[3];
+    if(word==='format'&&/\binterleave\b(?!\s*=)/i.test(rest))opts.interleave='yes';
+  }
+  if(matrix===undefined)throw new Error('NEXUS block has no MATRIX command.');
+  const lines=matrix.split(/\r?\n/).filter(l=>l.trim());
+  const attempt=(wrapped:boolean)=>{
+    const rows:SequenceInput[]=[],byName=new Map<string,SequenceInput>();
+    for(const line of lines) {
+      const last=rows[rows.length-1];
+      if(wrapped&&last&&nchar!==undefined&&last.sequence.length<nchar){last.sequence+=strip(line);continue;}
+      const [name,rest]=nexusName(line);let row=byName.get(name);
+      if(!row){row={name,sequence:''};byName.set(name,row);rows.push(row);}
+      row.sequence+=strip(rest);
+    }
+    return checkRows(rows,ntax,nchar,'NEXUS matrix');
+  };
+  let rows:SequenceInput[]|undefined;
+  for(const wrapped of /^(yes|true|on)$/i.test(opts.interleave??'')?[false]:[false,true])try{rows=attempt(wrapped);break;}catch{}
+  if(!rows)throw new Error(`NEXUS matrix does not contain ${ntax??'the declared number of'} sequences of ${nchar??'equal'} columns.`);
+  const match=opts.matchchar,gap=opts.gap,missing=opts.missing??'?',first=rows[0].sequence;
+  for(const [r,row] of rows.entries()) {
+    let seq='';
+    for(let c=0;c<row.sequence.length;c++) {
+      let ch=row.sequence[c];
+      if(match&&ch===match){if(!r)throw new Error('NEXUS matchchar cannot appear in the first sequence.');ch=first[c];}
+      seq+=(gap&&ch===gap)||(missing&&ch===missing)?'-':ch;
+    }
+    row.sequence=seq;
+  }
+  const type=opts.datatype?.toLowerCase();
+  return {rows,alphabet:type==='protein'?'protein':type==='dna'?'dna':type==='rna'?'rna':undefined};
 }
 
 export async function readAlignmentInput(input:Blob|ArrayBuffer|string):Promise<string> {

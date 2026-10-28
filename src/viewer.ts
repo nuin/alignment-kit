@@ -10,12 +10,13 @@ import { ThemedSelects } from './selects';
 import { Renderer, type RenderView } from './renderer';
 import { buildShell, $, download } from './controls';
 import { renderInspector } from './inspector';
-import { exportFasta, formatFastaRecord, validateFastaOptions, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
+import { exportFasta, exportClustal, exportStockholm, exportPhylip, exportNexus, formatFastaRecord, validateFastaOptions, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
 import { WorkerTask } from './worker-client';
 import { consensusSequence } from './analysis';
 import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './link';
 
 const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
+const textExports:Record<string,{ext:string;write:(a:Alignment,region:ExportRegion)=>string}>={clustal:{ext:'aln',write:exportClustal},stockholm:{ext:'sto',write:exportStockholm},phylip:{ext:'phy',write:(a,r)=>exportPhylip(a,r)},nexus:{ext:'nex',write:exportNexus}};
 export class AlignmentViewer {
   readonly element:HTMLElement;
   private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
@@ -463,6 +464,8 @@ export class AlignmentViewer {
       const region=this.exportRegion(this.a);
       if(kind==='fasta-all')download(exportFasta(this.a,{},this.options.fasta),'alignment.fasta');
       if(kind==='fasta')download(exportFasta(this.a,region,this.options.fasta),'selection.fasta');
+      const text=textExports[kind.replace(/-all$/,'')];
+      if(text)download(text.write(this.a,kind.endsWith('-all')?{}:region),`${kind.endsWith('-all')?'alignment':'selection'}.${text.ext}`);
       if(kind==='state')download(JSON.stringify(this.getState(),null,2),'alignment-view.json','application/json');
       if(['svg','png','tsv','consensus'].includes(kind)&&!this.stats)throw new Error('Wait for column statistics to finish before exporting.');
       if(kind==='consensus')download(this.consensusFasta(region.start!,region.end!),'consensus.fasta');
@@ -474,6 +477,12 @@ export class AlignmentViewer {
   private bind() {
     const signal=this.controller.signal,on=(target:EventTarget,event:string,handler:(event:any)=>void)=>target.addEventListener(event,handler,{signal});
     on(this.scroll,'scroll',()=>this.schedule());
+    on(this.root,'paste',(event:ClipboardEvent)=>{
+      const target=event.target as HTMLElement|null;
+      if(target?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])'))return;
+      const text=event.clipboardData?.getData('text/plain');if(!text?.trim())return;
+      event.preventDefault();void this.load(text,{name:'Pasted alignment'}).catch(()=>{});
+    });
     on(this.root,'click',(event:MouseEvent)=>{
       const target=event.target as HTMLElement,button=target.closest<HTMLElement>('[data-action],[data-tab],[data-row],[data-pin],[data-feature],[data-hit]');if(!button)return;
       if(button.dataset.hit)this.goToHit(Number(button.dataset.hit));
@@ -538,7 +547,7 @@ export class AlignmentViewer {
     this.loading=false;this.pendingLink=undefined;
     this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.dropSearch();this.selectedRows.clear();this.annotationFilter={};this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
-    $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an aligned FASTA, Stockholm or CLUSTAL file.';this.message('');this.layout();this.emit('selection',null);
+    $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).';this.message('');this.layout();this.emit('selection',null);
   }
   destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);clearTimeout(this.linkTimer);this.listeners.clear();this.root.remove();}
 }
