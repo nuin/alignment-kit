@@ -74,7 +74,7 @@ Row checkboxes select sequences for pairwise comparison and region export. They 
 
 Use **Escape** while the matrix is focused to clear the residue/range selection. Use **Clear rows** in the Compare tab to clear checked sequences.
 
-Press **Ctrl+C** (**Cmd+C** on macOS) while the matrix is focused to copy the selection as gapped FASTA. Checked rows are copied in their on-screen order, followed by checked rows hidden by the name filter. Without checked rows, the clicked row is copied; without either, the rows that Export uses. Copying works on HTTPS pages and localhost.
+Press **Ctrl+C** (**Cmd+C** on macOS) while the matrix is focused to copy the selection as gapped FASTA, led by the consensus of the same columns once statistics are ready. Checked rows are copied in their on-screen order, followed by checked rows hidden by the name filter. Without checked rows, the clicked row is copied; without either, the rows that Export uses. Copying works on HTTPS pages and localhost.
 
 ## Alignment columns versus sequence positions
 
@@ -146,11 +146,12 @@ Statistics default to **All sequences**. Scrolling, sorting, pinning and filteri
 | Modal frequency | Most frequent non-gap symbol count divided by non-gap rows. |
 | Consensus support | Most frequent non-gap symbol count divided by all rows in scope. |
 | Consensus | Unique most frequent non-gap symbol; ties are shown explicitly. |
+| Consensus track | Colored cells for the consensus sequence: ties shown as IUPAC codes (DNA/RNA) or X, columns below the consensus threshold as X or N. |
 | Frequency logo | Literal symbol frequencies among non-gap rows; not information content. |
 
 For a column `A, A, C, -`, modal frequency is 2/3 (66.7%), support is 2/4 (50%), and gap fraction is 1/4 (25%). The consensus is A. A high modal frequency with many gaps is not the same as broad support.
 
-An all-gap column has no modal residue and an unavailable modal frequency; its support is zero if the scope contains rows. An empty statistics scope has unavailable fractions. Tied top counts produce a tied consensus rather than an arbitrary winner. Each row gets one vote: no sampling, deduplication, sequence weighting or phylogenetic correction is implicit.
+An all-gap column has no modal residue and an unavailable modal frequency; its support is zero if the scope contains rows. An empty statistics scope has unavailable fractions. Tied top counts produce a tied consensus rather than an arbitrary winner; the consensus track and consensus exports write a tie as an IUPAC ambiguity code for DNA/RNA (A+G = R) or X for protein. Applications can set a consensus threshold: columns whose modal frequency is below it become X or N. Each row gets one vote: no sampling, deduplication, sequence weighting or phylogenetic correction is implicit.
 
 Enable **Frequency logo** to add a frequency track. Ambiguity symbols keep their own counts. Interpret the logo together with gap fraction, because its denominator excludes gaps.
 
@@ -185,6 +186,7 @@ Use the **Export** menu:
 | Selection · FASTA | Selected/visible columns and checked/visible rows, retaining gaps. |
 | Selection · SVG | Vector figure with palette, coordinate scope, legend, supplied provenance and visible annotations. |
 | Selection · PNG | Raster version of the selected figure. |
+| Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
 | Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers. |
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
 
@@ -192,7 +194,7 @@ For selection exports, a selected column range takes precedence over the horizon
 
 Figures preserve the palette, match/difference emphasis and annotation filters. They use their own fixed figure layout, not a screenshot of the entire application. SVG/PNG exports are limited to **200,000 cells** (rows × selected columns). PNG also limits dimensions to 16,384px per side and total area to 32 million pixels. Narrow the region when an export exceeds a limit.
 
-FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button and does not create a hosted share link.
+FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button; see **Share a view** for links.
 
 ## Share a view
 

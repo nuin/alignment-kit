@@ -3,11 +3,11 @@ import type { ViewerVisibility } from './types';
 import type { Alignment, AlignmentStats, ColorMode, Selection } from './types';
 import { getColorScheme, residueColor, textColor } from './colors';
 import { AnnotationIndex } from './annotations';
-import { STRIDE, SYMBOLS } from './analysis';
+import { STRIDE, SYMBOLS, consensusSymbol } from './analysis';
 export interface RenderView {
   a:Alignment; stats?:AlignmentStats; rows:number[]; reference:number; x:number; y:number;
   cw:number; rh:number; gutter:number; scheme:string; mode:ColorMode; dark:boolean;
-  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>;
+  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number;
 }
 export function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
   const dpr=Math.min(window.devicePixelRatio||1,3);
@@ -72,11 +72,15 @@ export class Renderer {
     const tick=v.cw<5?50:v.cw<10?20:10;
     for(let c=start;c<end;c++) {
       const x=v.gutter+c*v.cw-v.x;
-      if(offset.ruler!==null&&(c===0||(c+1)%tick===0)){ctx.fillStyle=ink;ctx.fillText(String(c+1),x+v.cw/2,17);ctx.fillStyle=line;ctx.fillRect(x+v.cw/2,23,1,height-23);}
+      if(offset.ruler!==null&&(c===0||(c+1)%tick===0)){ctx.fillStyle=ink;ctx.font='11px "Alignment Mono", monospace';ctx.fillText(String(c+1),x+v.cw/2,17);ctx.fillStyle=line;ctx.fillRect(x+v.cw/2,23,1,height-23);}
       if(!v.stats)continue;
       if(offset.modalFrequency!==null){ctx.fillStyle='#3a7da4';ctx.fillRect(x,offset.modalFrequency+22-(v.stats.frequency[c]||0)*20,Math.max(1,v.cw-1),(v.stats.frequency[c]||0)*20);}
       if(offset.gapFraction!==null){ctx.fillStyle='#c5a278';const gap=v.stats.total?v.stats.gaps[c]/v.stats.total:0;ctx.fillRect(x,offset.gapFraction+22-gap*18,Math.max(1,v.cw-1),gap*18);}
-      if(offset.consensus!==null&&v.cw>=9&&v.visibility?.residueLetters!==false){const code=v.stats.consensus[c];ctx.fillStyle=ink;ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.fillText(code===45?'·':String.fromCharCode(code),x+v.cw/2,offset.consensus+21);}
+      if(offset.consensus!==null){
+        const symbol=consensusSymbol(v.stats,v.a.alphabet,c,v.threshold??0),color=residueColor(symbol,getColorScheme(v.scheme),v.stats.support[c]);
+        ctx.fillStyle=color;ctx.fillRect(x,offset.consensus+4,v.cw,27);
+        if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=symbol==='-'?ink:textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.fillText(symbol==='-'?'·':symbol,x+v.cw/2,offset.consensus+22);}
+      }
       if(offset.logo!==null&&v.cw>=6) {
         const counts=[];const n=v.stats.total-v.stats.gaps[c];
         for(let k=0;k<27;k++){const count=v.stats.counts[c*STRIDE+k];if(count)counts.push({r:SYMBOLS[k],n:count});}
