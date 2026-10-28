@@ -82,6 +82,10 @@ it('applies the Visible columns only checkbox to every export and copy',async()=
   box.checked=false;box.dispatchEvent(new Event('change',{bubbles:true}));
   expect(v.getSelectionText()).toContain('>b\nACG-GT--AC\n');
 });
+it('puts Visible columns only in the toolbar beside Export, outside the FASTA panel',async()=>{
+  const r=rootOf(await viewerFor()),box=r.querySelector('input[aria-label="Visible columns only"]')!;
+  expect(box.closest('.ak-toolbar')).not.toBeNull();expect(box.closest('.ak-fasta-options')).toBeNull();
+});
 it('keeps fasta.columns as an alias of export.columns and validates both',async()=>{
   const v=await viewerFor(),box=rootOf(v).querySelector<HTMLInputElement>('input[aria-label="Visible columns only"]')!;
   v.setOptions({fasta:{columns:'visible'}});expect(box.checked).toBe(true);expect((v as any).options.export.columns).toBe('visible');
@@ -132,6 +136,7 @@ it('reruns the search when a link applies and clears it when the link has none',
   expect(await v.applyViewLink('find=GT&strands=forward')).toEqual([]);
   expect((v as any).searchState).toMatchObject({pattern:'GT',options:{strands:'forward'}});
   expect(await v.applyViewLink('find=/(/&findmode=regex')).toEqual(['find']);
+  expect((v as any).searchState).toBeUndefined();expect(rootOf(v).querySelector<HTMLInputElement>('[aria-label="Find motif"]')!.value).toBe('');
   expect(await v.applyViewLink('zoom=16')).toEqual([]);expect((v as any).searchState).toBeUndefined();expect(v.getViewLink()).not.toContain('find');
   expect(await v.applyViewLink('find=AC&findmode=bogus')).toEqual(['findmode']);expect((v as any).searchState.pattern).toBe('AC');
 });

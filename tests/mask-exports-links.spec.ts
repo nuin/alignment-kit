@@ -5,19 +5,16 @@ const ready=(page:import('@playwright/test').Page)=>page.waitForFunction(()=>(wi
 test('Visible columns only collapses hidden columns in the SVG export',async({page})=>{
   await page.goto('/');await ready(page);
   await page.evaluate(()=>(window as any).alignmentDemo.viewer.setOptions({hideGapColumns:0.9}));
-  await page.getByRole('combobox',{name:'Export alignment',exact:true}).click();
-  await page.getByRole('option',{name:'Export options…'}).click();
   const box=page.getByLabel('Visible columns only');
   await expect(box).toBeVisible();await box.check();
   expect(await page.evaluate(()=>(window as any).alignmentDemo.viewer.getSelectionText().length)).toBeGreaterThan(0);
-  await page.getByRole('button',{name:'Done'}).click();
   const download=async()=>{
     const [file]=await Promise.all([page.waitForEvent('download'),(async()=>{await page.getByRole('combobox',{name:'Export alignment',exact:true}).click();await page.getByRole('option',{name:'Selection · SVG'}).click();})()]);
     return (await import('node:fs')).readFileSync((await file.path())!,'utf8');
   };
   const masked=await download();
   expect(masked).toContain('hidden column');expect(masked).toContain('<line ');
-  await page.getByRole('combobox',{name:'Export alignment',exact:true}).click();await page.getByRole('option',{name:'Export options…'}).click();await box.uncheck();await page.getByRole('button',{name:'Done'}).click();
+  await box.uncheck();
   expect(await download()).not.toContain('<line ');
 });
 

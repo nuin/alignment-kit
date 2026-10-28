@@ -88,3 +88,5 @@
 .ak-group-count{color:var(--ak-muted);font-weight:400;font-size:11px}
 .ak-viewer .ak-row-label .ak-hide{flex:0 0 22px;padding:0;text-align:center;font-size:15px;color:var(--ak-muted);opacity:.5}
 .ak-row-label:hover .ak-hide,.ak-viewer .ak-row-label .ak-hide:focus-visible{opacity:1}
+
+.ak-toolbar .ak-export-columns{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap}.ak-toolbar .ak-export-columns input{margin:0}

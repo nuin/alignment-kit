@@ -109,7 +109,7 @@ To hide columns by hand, select them (click, then Shift+click, or Shift+arrows) 
 
 Selections, search hits, features, Go to and the Position tab keep using original columns. A selection that crosses a boundary still includes the hidden columns inside it. Go to a hidden column shows a message instead of moving. A search hit inside hidden columns is still selected, and the status line says it is hidden. Gap-based hiding is not saved in links or view state. Arrow keys skip hidden columns. Statistics and the consensus still use all columns.
 
-To export only what you see, choose **Export > Visible columns · FASTA**, or tick **Export options… > Visible columns only**. The checkbox applies to every export (FASTA, CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG, PNG, column statistics TSV, consensus) and to Ctrl/Cmd+C. In SVG and PNG figures the hidden columns collapse and a dashed red line marks each collapsed boundary; hover it in the SVG to see which columns are hidden. With the box cleared, exports include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
+To export only what you see, choose **Export > Visible columns · FASTA**, or tick **Visible columns only** beside the Export menu. The checkbox applies to every export (FASTA, CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG, PNG, column statistics TSV, consensus) and to Ctrl/Cmd+C. In SVG and PNG figures the hidden columns collapse and a dashed red line marks each collapsed boundary; hover it in the SVG to see which columns are hidden. With the box cleared, exports include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
 
 ## Find sequences and motifs
 

@@ -15,8 +15,10 @@ export function clearSearch(v:Core):void {
 /** Make the active search match a stored view: no pattern clears it, otherwise the pattern runs again in the search worker. Returns false when the pattern is invalid or the run failed; a run replaced by a newer one counts as done. */
 export async function restoreSearch(v:Core, pattern:string|undefined,mode?:SearchMode,strands?:'both'|'forward'):Promise<boolean> {
   if(!pattern){if(v.searchState||v.searchBusy)v.clearSearch();return true;}
+  const options={mode:mode==='auto'?undefined:mode,strands:strands==='both'?undefined:strands};
+  try{if(v.a)compilePattern(pattern,{alphabet:v.a.alphabet,mode:options.mode});}catch{v.clearSearch();return false;}
   $<HTMLInputElement>(v.root,'[aria-label="Find motif"]').value=pattern;
-  try{await v.runSearch(pattern,{mode:mode==='auto'?undefined:mode,strands:strands==='both'?undefined:strands});return true;}
+  try{await v.runSearch(pattern,options);return true;}
   catch(error){return (error as Error).name==='AbortError';}
 }
 export function dropSearch(v:Core):void {
