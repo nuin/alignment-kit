@@ -140,7 +140,7 @@ it('shows an error when the filter leaves no rows',async()=>{
   const v=await viewer({statisticsScope:'filtered'}),root=(v as any).root as HTMLElement;
   v.setFilter('zzz');(v as any).tab='summary';
   renderPanel((v as any).core);await new Promise(r=>setTimeout(r,5));renderPanel((v as any).core);
-  expect(root.querySelector('.ak-inspector-content')!.textContent).toContain('at least one row');
+  expect(root.querySelector('.ak-inspector-content')!.textContent).toContain('No sequences match the filter');
 });
 it('exports the variable columns of the selected block as TSV',async()=>{
   const v=await viewer(),files:{name:string;blob:Blob}[]=[];
@@ -150,7 +150,32 @@ it('exports the variable columns of the selected block as TSV',async()=>{
   const read=(blob:Blob)=>new Promise<string>(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.readAsText(blob);});
   await (v as any).export('variants');
   v.setSelection({start:3,end:6});await (v as any).export('variants');
-  expect(files.map(f=>f.name)).toEqual(['variable-columns.tsv','variable-columns.tsv']);
+  expect(files.map(f=>f.name)).toEqual(['variable-columns.tsv','variable-columns-3-6.tsv']);
   expect((await read(files[0].blob)).trim().split('\n').length).toBe(4);
   expect((await read(files[1].blob)).trim().split('\n').slice(1).map(l=>l.split('\t')[0])).toEqual(['3','6']);
+});
+it('keeps unrelated pending requests alive',async()=>{
+  const v=await viewer();
+  const [small,big,block,whole]=await Promise.all([v.getVariableColumns({limit:1}),v.getSummary(),v.getSummary({start:1,end:3}),v.getSummary()]);
+  expect(small.columns.length).toBe(1);expect(big.columns).toBe(6);expect(block.columns).toBe(3);expect(whole.columns).toBe(6);
+  const [list,summary]=await Promise.allSettled([v.getVariableColumns({limit:1}),v.getVariableColumns()]);
+  expect(list.status).toBe('fulfilled');expect(summary.status).toBe('fulfilled');
+  expect((summary as PromiseFulfilledResult<any>).value.columns.length).toBe(3);
+});
+it('does not compute the variable list for getSummary and recomputes for a larger limit',async()=>{
+  const v=await viewer(),cache=(v as any).summaryCache as Map<string,any>;
+  await v.getSummary();expect([...cache.values()][0].data.variable.columns.length).toBe(0);
+  expect((await v.getVariableColumns()).columns.length).toBe(3);
+});
+it('retries after a failed analysis',async()=>{
+  const v=await viewer();let fail=true;
+  const real=(await import('../src/worker-client')).WorkerTask.prototype.summary;
+  const spy=vi.spyOn((await import('../src/worker-client')).WorkerTask.prototype,'summary').mockImplementation(function(this:any,...args:[any,any]){return fail?Promise.reject(new Error('worker down')):real.apply(this,args);});
+  await expect(v.getSummary()).rejects.toThrow('worker down');
+  fail=false;expect(await v.getSummary()).toMatchObject({rows:4});spy.mockRestore();
+});
+it('rejects getSummary with a clear message when the filter matches nothing',async()=>{
+  const v=await viewer({statisticsScope:'filtered'});v.setFilter('zzz');
+  await expect(v.getSummary()).rejects.toThrow(/No sequences match the filter/);
+  expect(await v.getSummary({rows:'all'})).toMatchObject({rows:4});
 });
