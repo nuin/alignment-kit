@@ -1,9 +1,10 @@
 import { type Alignment, type ExportRegion, type FastaOptions } from '../types';
 import { $, download } from '../controls';
-import { exportFasta, exportClustal, exportStockholm, exportPhylip, exportNexus, formatFastaRecord, exportStatistics, exportSvg, exportPng, resolveRegion } from '../export';
+import { exportFasta, exportClustal, exportStockholm, exportPhylip, exportNexus, formatFastaRecord, exportStatistics, exportVariableColumns, exportSvg, exportPng, resolveRegion } from '../export';
 import { consensusSequence } from '../analysis';
 import { reverseComplementSequence } from '../strand';
 import { type Core } from './core';
+import { getVariableColumns } from './summary';
 const textExports:Record<string,{ext:string;write:(a:Alignment,region:ExportRegion)=>string}>={clustal:{ext:'aln',write:exportClustal},stockholm:{ext:'sto',write:exportStockholm},phylip:{ext:'phy',write:(a,r)=>exportPhylip(a,r)},nexus:{ext:'nex',write:exportNexus}};
 export function exportRegion(v:Core, a:Alignment):ExportRegion {
   const m=v.columns,left=v.firstColumn()+1,right=(m.cols[Math.max(0,Math.min(m.count,Math.ceil((v.scroll.scrollLeft+v.scroll.clientWidth-v.gutter)/v.options.cellWidth))-1)]??a.width-1)+1,start=v.selection?.start??Math.min(left,right);
@@ -65,6 +66,7 @@ export async function exportKind(v:Core, kind:string):Promise<void> {
     if(kind==='state')download(JSON.stringify(v.getState(),null,2),'alignment-view.json','application/json');
     if(['svg','png','tsv','consensus'].includes(kind)&&!v.stats)throw new Error('Wait for column statistics to finish before exporting.');
     if(kind==='consensus')download(v.consensusFasta(region.start!,region.end!,v.options.fasta.columns==='visible'),'consensus.fasta');
+    if(kind==='variants'){const block=v.selection&&v.selection.end>v.selection.start?{start:v.selection.start,end:v.selection.end}:{};download(exportVariableColumns(await getVariableColumns(v,{...block,limit:2**31})),`variable-columns${block.start?`-${block.start}-${block.end}`:''}.tsv`,'text/tab-separated-values');}
     if(kind==='tsv')download(exportStatistics(v.stats!),'column-statistics.tsv','text/tab-separated-values');
     if(kind==='svg')download(exportSvg({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,colorThreshold:v.options.colorThreshold,consensusThreshold:v.options.consensusThreshold,referenceId:v.a.rows[v.reference].id}),'alignment.svg','image/svg+xml');
     if(kind==='png')download(await exportPng({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,colorThreshold:v.options.colorThreshold,consensusThreshold:v.options.consensusThreshold,referenceId:v.a.rows[v.reference].id}),'alignment.png');

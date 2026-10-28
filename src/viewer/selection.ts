@@ -11,7 +11,7 @@ export function setSelection(v:Core, selection:Selection|null,scrollIntoView=tru
   v.assertAlive();if(!v.a)return;
   if(selection&&(!Number.isInteger(selection.start)||!Number.isInteger(selection.end)||selection.start<1||selection.end<selection.start||selection.end>v.a.width||(selection.rowId&&!v.a.rows.some(r=>r.id===selection.rowId))))throw new Error('Invalid selection coordinates or row ID.');
   const before=v.drawnTracks();
-  v.selection=selection?{...selection}:null;if(v.drawnTracks()!==before)v.layout();if(!keepTab)v.tab='position';v.ensureTab();v.inspectorDirty=true;
+  v.selection=selection?{...selection}:null;if(v.drawnTracks()!==before)v.layout();if(!keepTab&&v.tab!=='summary')v.tab='position';v.ensureTab();v.inspectorDirty=true;
   if(selection){$<HTMLInputElement>(v.root,'[aria-label="Go to alignment column"]').value=v.goToText(selection.start);if(scrollIntoView)v.reveal(selection);$(v.root,'.ak-live').textContent=`Column ${selection.start}${selection.end!==selection.start?` through ${selection.end}`:''}${selection.rowId?`, ${v.a.rows.find(r=>r.id===selection.rowId)?.name}`:''}`;}
   v.schedule();v.emit('selection',v.selection);v.emit('state',v.getState());
 }

@@ -268,6 +268,23 @@ A Stockholm file with `#=GC` lines shows one track per line below the built-in c
 
 Developers can add their own tracks (bars, heatmaps, text or drawn by a callback) with `addTrack`, `removeTrack` and the `tracks` option. See the Tracks section of the README. When registered tracks are taller than 45% of the viewer, the track area scrolls. #=GR tracks follow the selected row, or the pinned reference when it is shown.
 
+## Summarize columns and list variants
+
+Open the **Summary** tab. It counts, for the rows in your statistics scope:
+
+- **Conserved**: one residue and no gaps.
+- **Variable**: two or more different residues. Gaps are ignored.
+- **Parsimony informative**: two residues that each appear at least twice.
+- **Singleton**: any other variable column.
+- **Constant with gaps**: one residue plus gaps.
+- **Gap only**: every row has a gap.
+
+It also shows the gap fraction, the mean pairwise identity, the identity to the reference row and, for DNA and RNA, the mean GC with the lowest and highest rows. Identity uses canonical residues only.
+
+Below the counts, a table lists each variable column with the reference residue number, the reference residue and the allele counts, such as `A:12 G:3`. Twenty columns show per page; use **Previous** and **Next**. **Export TSV**, or Export > Variable columns (selected block or all) · TSV, saves the whole list for the selected block (`variable-columns-3-12.tsv`) or, with fewer than two columns selected, for the whole alignment. With a filter that matches no rows and the filtered statistics scope, the tab says "No sequences match the filter". Hidden columns still count.
+
+To summarize a block, drag or Shift-click two or more columns while the Summary tab is open. The tab then shows the same counts for those columns only, with the mean identity to the reference and the gap fraction inside the block. Select one column or press Escape to return to the whole alignment. The Stats scope menu still chooses which rows count. The list holds up to 50,000 variable columns; the count stays exact and the TSV export lists all of them.
+
 ## Compare selected sequences
 
 1. Check two or more sequence rows.

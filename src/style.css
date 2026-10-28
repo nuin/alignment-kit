@@ -98,3 +98,4 @@
 .ak-tools .ak-range input[type=range]{-webkit-appearance:auto;appearance:auto;width:88px;height:20px;min-height:20px;padding:0;border:0;background:none;accent-color:var(--ak-accent)}
 .ak-tools .ak-range output{min-width:3.5ch;text-align:right;color:var(--ak-muted);font-variant-numeric:tabular-nums}
 .ak-tools .ak-range input:disabled{opacity:.45}
+.ak-variants{border-collapse:collapse;font-size:10px;width:100%}.ak-variants th,.ak-variants td{padding:4px;border-bottom:1px solid var(--ak-line);text-align:left;overflow-wrap:anywhere}.ak-variants th{background:var(--ak-panel)}

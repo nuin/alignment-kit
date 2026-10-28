@@ -224,6 +224,9 @@
         "hitsTab": {
           "type": "boolean"
         },
+        "summaryTab": {
+          "type": "boolean"
+        },
         "pinReference": {
           "type": "boolean"
         },
