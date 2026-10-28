@@ -23,6 +23,8 @@ export interface ColumnDetail { column:number; total:number; gapCount:number; ga
 export interface Identity { matches:number; compared:number; identity:number|null }
 export interface Selection { start:number; end:number; rowId?:string }
 export interface AnnotationFilter { types?:string[]; consequences?:string[]; disease?:boolean; phenotype?:boolean; hiddenRowIds?:string[] }
+/** Ruler numbering: alignment columns, or ungapped residue numbers of the pinned reference row. */
+export type RulerCoordinates = 'alignment'|'reference';
 export type ColorMode = 'all'|'reference-differences'|'reference-matches'|'consensus-differences'|'consensus-matches';
 /** Presentation switches. Omitted keys retain their current value on updates. */
 export interface ViewerVisibility {
@@ -53,6 +55,7 @@ export interface ViewerVisibility {
   logoToggle?:boolean;
   statisticsScope?:boolean;
   alphabet?:boolean;
+  rulerCoordinates?:boolean;
   ruler?:boolean;
   modalFrequency?:boolean;
   gapFraction?:boolean;
@@ -89,7 +92,7 @@ export interface ViewerOptions {
   alignment?: Alignment; height?:number; theme?:'light'|'dark';
   colorScheme?:string; colorMode?:ColorMode; cellWidth?:number; rowHeight?:number;
   labelWidth?:number; showLogo?:boolean; showInspector?:boolean; showToolbar?:boolean;
-  statisticsScope?:'all'|'filtered'; workerUrl?:string|URL; worker?:boolean;
+  statisticsScope?:'all'|'filtered'; rulerCoordinates?:RulerCoordinates; workerUrl?:string|URL; worker?:boolean;
   /** 0 to 1. Consensus columns whose modal frequency (non-gap rows) is below this become X (protein) or N (DNA/RNA). Default 0. */
   consensusThreshold?:number;
   /** FASTA settings for exports and Ctrl/Cmd+C; updates merge with the current settings. */
@@ -102,6 +105,8 @@ export interface ViewState {
   version:1; alignmentId:string; referenceId:string|null; query:string; sort:'input'|'name'|'identity';
   start:number; rowOffset:number; cellWidth:number; selection:Selection|null;
   colorScheme:string; colorMode:ColorMode; statisticsScope:'all'|'filtered'; annotationFilter:AnnotationFilter;
+  /** Ruler numbering; omitted in older states, which mean 'alignment'. */
+  rulerCoordinates?:RulerCoordinates;
 }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
 export interface ViewerEvents { selection:Selection|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }

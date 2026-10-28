@@ -1,6 +1,6 @@
 import { defaultVisibility, applyVisibility, trackLayout, inspectorTabs } from './visibility';
-import type { ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode } from './types';
-import { createAlignment, sequenceToAlignment } from './model';
+import type { ViewerVisibility, RulerCoordinates, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode } from './types';
+import { createAlignment, sequenceToAlignment, columnToResidue, residueToColumn } from './model';
 import { readAlignmentInput } from './parsers';
 import { AnnotationIndex, filterAnnotations } from './annotations';
 import { getColorScheme, colorSchemes } from './colors';
@@ -17,7 +17,7 @@ const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number
 export class AlignmentViewer {
   readonly element:HTMLElement;
   private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
-  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'>>;
+  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'>>;
   private a?:Alignment; private stats?:AlignmentStats;private fullStats?:AlignmentStats;
   private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
@@ -36,7 +36,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',...options,fasta:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -104,6 +104,7 @@ export class AlignmentViewer {
   }
   setOptions(options:ViewerOptions) {
     this.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
+    if(options.rulerCoordinates!==undefined&&!['alignment','reference'].includes(options.rulerCoordinates))throw new Error('Unknown ruler coordinate mode.');
     const oldScope=this.options.statisticsScope;
     const wasPinned=this.pinned;
     const {alignment:_,worker:__,workerUrl:___,visibility,fasta,...visual}=options;
@@ -122,6 +123,7 @@ export class AlignmentViewer {
     $<HTMLSelectElement>(this.root,'[aria-label="Color scheme"]').value=this.options.colorScheme;
     $<HTMLSelectElement>(this.root,'[aria-label="Residues to color"]').value=this.options.colorMode;
     $<HTMLSelectElement>(this.root,'[aria-label="Statistics scope"]').value=this.options.statisticsScope;
+    $<HTMLSelectElement>(this.root,'[aria-label="Ruler coordinates"]').value=this.options.rulerCoordinates;
     $<HTMLInputElement>(this.root,'[aria-label="Show frequency logo"]').checked=this.options.showLogo;
     const f=this.options.fasta,width=$<HTMLSelectElement>(this.root,'[aria-label="FASTA line width"]'),lineWidth=String(f.lineWidth??80);
     if(![...width.options].some(o=>o.value===lineWidth))width.add(new Option(lineWidth,lineWidth));
@@ -169,8 +171,41 @@ export class AlignmentViewer {
     this.assertAlive();if(!this.a)return;
     if(selection&&(!Number.isInteger(selection.start)||!Number.isInteger(selection.end)||selection.start<1||selection.end<selection.start||selection.end>this.a.width||(selection.rowId&&!this.a.rows.some(r=>r.id===selection.rowId))))throw new Error('Invalid selection coordinates or row ID.');
     this.selection=selection?{...selection}:null;this.tab='position';this.ensureTab();this.inspectorDirty=true;
-    if(selection){$<HTMLInputElement>(this.root,'[aria-label="Go to alignment column"]').value=String(selection.start);if(scrollIntoView)this.reveal(selection);$(this.root,'.ak-live').textContent=`Column ${selection.start}${selection.end!==selection.start?` through ${selection.end}`:''}${selection.rowId?`, ${this.a.rows.find(r=>r.id===selection.rowId)?.name}`:''}`;}
+    if(selection){$<HTMLInputElement>(this.root,'[aria-label="Go to alignment column"]').value=this.goToText(selection.start);if(scrollIntoView)this.reveal(selection);$(this.root,'.ak-live').textContent=`Column ${selection.start}${selection.end!==selection.start?` through ${selection.end}`:''}${selection.rowId?`, ${this.a.rows.find(r=>r.id===selection.rowId)?.name}`:''}`;}
     this.schedule();this.emit('selection',this.selection);this.emit('state',this.getState());
+  }
+  private goToText(column:number):string {
+    if(this.options.rulerCoordinates!=='reference'||!this.a)return String(column);
+    return String(columnToResidue(this.a,this.reference,column)??'');
+  }
+  /** Select residue `position` (1-based, numbered as in the ruler, so offset by `metadata.start`) of the row with this ID. Returns false and shows a message when the row or residue does not exist. */
+  goToResidue(rowId:string,position:number):boolean {
+    this.assertAlive();if(!this.a)return false;
+    const row=this.a.rows.findIndex(r=>r.id===rowId);
+    if(row<0){this.message(`No sequence with ID ${rowId}.`);return false;}
+    const column=Number.isInteger(position)?residueToColumn(this.a,row,position):null;
+    if(column===null){this.message(`${this.a.rows[row].name} has no residue ${position}.`);return false;}
+    this.setSelection({start:column,end:column,rowId});return true;
+  }
+  private goTo(input:string):boolean {
+    const a=this.a;if(!a)return false;const text=input.trim(),plain=/^\d+$/.test(text),split=text.lastIndexOf(':');
+    if(plain){
+      const n=Number(text);
+      if(this.options.rulerCoordinates==='reference'){
+        const column=residueToColumn(a,this.reference,n);
+        if(column===null){this.message(`${a.rows[this.reference].name} has no residue ${n}.`);return false;}
+        this.setSelection({start:column,end:column});return true;
+      }
+      if(n>=1&&n<=a.width){this.setSelection({start:n,end:n});return true;}
+      this.message(`Enter a column from 1 to ${a.width}.`);return false;
+    }
+    const key=text.slice(0,split).trim(),number=text.slice(split+1).trim();
+    if(split>0&&/^\d+$/.test(number)){
+      const row=a.rows.find(r=>r.id===key)??a.rows.find(r=>r.name===key);
+      if(!row){this.message(`No sequence named ${key}.`);return false;}
+      return this.goToResidue(row.id,Number(number));
+    }
+    this.message('Enter a number or row:residue, for example 123 or seq-1:45.');return false;
   }
   private reveal(s:Selection) {
     const available=this.scroll.clientWidth-this.gutter,x=(s.start-1)*this.options.cellWidth;
@@ -179,14 +214,14 @@ export class AlignmentViewer {
   }
   setAnnotationFilter(filter:AnnotationFilter) {this.assertAlive();this.annotationFilter={...filter};this.featurePage=0;this.rebuildAnnotations();this.inspectorDirty=true;this.schedule();}
   private rebuildAnnotations() {this.filteredAnnotations=filterAnnotations(this.a?.annotations??[],this.annotationFilter);this.annotationIndex=new AnnotationIndex(this.filteredAnnotations.visible);}
-  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,statisticsScope:this.options.statisticsScope,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility()};}
+  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,statisticsScope:this.options.statisticsScope,rulerCoordinates:this.options.rulerCoordinates,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility()};}
   async setState(state:ViewState) {
     if(!this.a||state.version!==1||state.alignmentId!==this.a.id)throw new Error('View state belongs to a different alignment or unsupported version.');
     if(!Number.isFinite(state.start)||!Number.isFinite(state.rowOffset))throw new Error('Invalid view state.');
-    this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,statisticsScope:state.statisticsScope,visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
+    this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,statisticsScope:state.statisticsScope,rulerCoordinates:state.rulerCoordinates??'alignment',visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
     this.scroll.scrollLeft=(state.start-1)*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
   }
-  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold};}
+  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold,ruler:this.options.rulerCoordinates};}
   private layout() {
     if(this.disposed)return;const rh=this.options.rowHeight,gutter=this.gutter;
     const tracks=trackLayout(this.visibility,rh);
@@ -195,6 +230,7 @@ export class AlignmentViewer {
     this.root.dataset.compactRows=String(rh<32);
     $(this.root,'.ak-tracks').style.height=tracks.height+'px';$(this.root,'.ak-tracks').hidden=tracks.height===0;
     const names=['ruler','modalFrequency','gapFraction','consensus','logo','reference'] as const;
+    $(this.root,'.ak-track-labels').children[0].textContent=this.options.rulerCoordinates==='reference'?'Reference residue':'Alignment position';
     [...$(this.root,'.ak-track-labels').children].forEach((label,i)=>{const node=label as HTMLElement,offset=tracks.offsets[names[i]];node.hidden=offset===null;node.style.top=((offset??0)+(names[i]==='reference'?0:3))+'px';});
     const message=$(this.root,'.ak-message');message.hidden=!this.visibility.messages||!message.textContent;
     const spacer=$(this.root,'.ak-spacer');spacer.style.width=(gutter+(this.a?.width??0)*this.options.cellWidth)+'px';spacer.style.height=Math.max(1,this.rows.length*rh)+'px';
@@ -264,7 +300,7 @@ export class AlignmentViewer {
   async applyViewLink(input:ViewLink|string):Promise<string[]> {
     this.assertAlive();if(!this.a)throw new Error('Load an alignment before applying a view link.');
     const link=typeof input==='string'?decodeViewLink(input):input,a=this.a,skipped=[...(link.ignored??[])];
-    const options:ViewerOptions={colorMode:link.colorMode??'all',statisticsScope:link.statisticsScope??'all'};
+    const options:ViewerOptions={colorMode:link.colorMode??'all',statisticsScope:link.statisticsScope??'all',rulerCoordinates:link.rulerCoordinates??'alignment'};
     if(link.cellWidth!==undefined)options.cellWidth=link.cellWidth;
     if(link.colorScheme){if(colorSchemes(a.alphabet).some(s=>s.id===link.colorScheme))options.colorScheme=link.colorScheme;else skipped.push('scheme');}
     this.setOptions(options);this.setFilter(link.query??'');
@@ -378,6 +414,7 @@ export class AlignmentViewer {
       if(aria==='Color scheme')this.setOptions({colorScheme:target.value});
       if(aria==='Residues to color')this.setOptions({colorMode:target.value as ColorMode});
       if(aria==='Statistics scope')this.setOptions({statisticsScope:target.value as 'all'|'filtered'});
+      if(aria==='Ruler coordinates'){this.setOptions({rulerCoordinates:target.value as RulerCoordinates});this.emit('state',this.getState());}
       if(aria==='Show frequency logo')this.setOptions({showLogo:target.checked});
       if(aria==='Sequence order')void this.setSort(target.value as ViewState['sort']);
       if(aria==='Export alignment'){if(target.value==='fasta-options')this.fastaPanel(true);else void this.export(target.value);target.value='';}
@@ -392,7 +429,7 @@ export class AlignmentViewer {
       if(aria==='Features with phenotype evidence')this.setAnnotationFilter({...this.annotationFilter,phenotype:target.checked});
     });
     on($(this.root,'[aria-label="Filter sequences"]'),'input',(event:Event)=>this.setFilter((event.target as HTMLInputElement).value));
-    on($(this.root,'[aria-label="Go to alignment column"]'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter'&&this.a){const c=Number((event.target as HTMLInputElement).value);if(Number.isInteger(c)&&c>=1&&c<=this.a.width)this.setSelection({start:c,end:c});else this.message(`Enter a column from 1 to ${this.a.width}.`);}});
+    on($(this.root,'[aria-label="Go to alignment column"]'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter'&&this.a){const input=event.target as HTMLInputElement,typed=input.value;if(this.goTo(typed))input.value=typed.trim();}});
     on($(this.root,'[aria-label="Find literal motif"]'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter')void this.action('motif');});
     on(this.scroll,'keydown',(event:KeyboardEvent)=>{
       if(!this.a)return;const key=event.key,start=this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1;

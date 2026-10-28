@@ -17,12 +17,13 @@ export function buildShell(root:HTMLElement) {
     <select aria-label="Export alignment"><option value="">Export…</option><option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="consensus">Consensus · FASTA</option><option value="tsv">Column statistics · TSV</option><option value="state">View state · JSON</option><option value="fasta-options">FASTA options…</option></select>
   </div>
   <div class="ak-tools">
-    <label>Go to <input type="number" min="1" value="1" aria-label="Go to alignment column"></label>
+    <label>Go to <input type="text" value="1" aria-label="Go to alignment column" title="A column, a reference residue number in reference ruler mode, or row:residue" placeholder="123 or row:45"></label>
     <label class="ak-motif"><input type="search" placeholder="Find a motif…" aria-label="Find literal motif"><button type="button" data-action="motif" aria-label="Find next motif">Find next</button></label>
     <label>Order <select aria-label="Sequence order"><option value="input">As loaded</option><option value="name">Name</option><option value="identity">Identity to reference</option></select></label>
     <select aria-label="Residues to color"><option value="all">All residues</option><option value="reference-differences">Differences to reference</option><option value="reference-matches">Matches to reference</option><option value="consensus-differences">Differences to consensus</option><option value="consensus-matches">Matches to consensus</option></select>
     <label><input type="checkbox" aria-label="Show frequency logo"> Frequency logo</label>
     <label>Stats <select aria-label="Statistics scope"><option value="all">All sequences</option><option value="filtered">Filtered sequences</option></select></label>
+    <label>Ruler <select aria-label="Ruler coordinates"><option value="alignment">Alignment columns</option><option value="reference">Reference residues</option></select></label>
     <label>Type <select aria-label="Sequence alphabet"><option value="protein">Protein</option><option value="dna">DNA</option><option value="rna">RNA</option></select></label>
   </div>
   <div class="ak-fasta-options" role="group" aria-label="FASTA options" hidden><strong>FASTA options</strong>

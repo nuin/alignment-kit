@@ -68,6 +68,7 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
       for(const [tag,value] of Object.entries(st.GC)) if(value.length!==width) throw new Error(`Stockholm column annotation ${tag} has length ${value.length}; expected ${width}.`);
       for(const name of [...Object.keys(st.GS),...Object.keys(st.GR)]) if(!byName.has(name))throw new Error(`Stockholm annotation refers to unknown sequence “${name}”.`);
       for(const [name,tags] of Object.entries(st.GR))for(const [tag,value] of Object.entries(tags))if(value.length!==width)throw new Error(`Stockholm residue annotation ${name} ${tag} has length ${value.length}; expected ${width}.`);
+      for(const row of rows){const m=row.name.match(/^.+\/(\d+)-(\d+)$/),start=m?Number(m[1]):0;if(m&&Number.isSafeInteger(start)&&start>=1&&start<=Number(m[2]))row.metadata={...row.metadata,start};}
       options={...options,name:options.name??st.GF.ID?.[0]};
     }
   }

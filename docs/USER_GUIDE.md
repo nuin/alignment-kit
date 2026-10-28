@@ -57,7 +57,7 @@ The matrix is a window into the full alignment. Ordinary scroll controls move th
 | Control | What it does |
 |---|---|
 | Overview | Click or drag to move horizontally across the alignment. |
-| Go to | Enter a **1-based alignment column**, then press Enter. |
+| Go to | Enter a **1-based alignment column**, a reference residue number (when Ruler is set to Reference residues), or `row:residue` such as `seq-3:45`, then press Enter. |
 | − / + | Change residue cell width, preserving the viewport's horizontal center. |
 | Fit | Fit as much width as possible, down to the 3px minimum; very wide alignments still scroll. |
 | Label divider | Drag the divider between sequence labels and residues to change label width. |
@@ -87,6 +87,14 @@ Sequence position: 1 2 · 3 4
 ```
 
 Alignment column 3 has no sequence position for this row. Column 4 corresponds to sequence position 3. Another row can have a different mapping at the same column. Do not treat an alignment column as a genomic coordinate or a universal residue number.
+
+## Number the ruler by reference residues
+
+Choose **Ruler > Reference residues** in the second toolbar row to number the ruler with the residues of the pinned reference sequence. Columns where the reference has a gap show no number. Pin a different row to renumber from that row. The Position tab shows the alignment column and the reference residue number together.
+
+Rows can start counting above 1. Stockholm names like `seqA/51-120` start at residue 51, and the row keeps its full name. Residue numbers in the ruler, the Position tab and Go to use that start.
+
+To jump to a residue, type `seq-3:45` in **Go to** (row ID or exact row name, a colon, then the residue number). In Reference residues mode a plain number such as `123` means reference residue 123; in Alignment columns mode it means column 123. If the row or residue does not exist, a message appears above the alignment. Shared links carry the ruler setting as `ruler=ref`.
 
 ## Find sequences and motifs
 
@@ -233,7 +241,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | + or − / matrix | Increase/decrease cell width. |
 | Escape / matrix | Clear residue selection. |
 | Ctrl/Cmd + C / matrix | Copy the selection as gapped FASTA. |
-| Enter / Go to | Navigate to the entered alignment column. |
+| Enter / Go to | Navigate to the entered column, reference residue or `row:residue`. |
 | Enter / motif input | Find the next literal motif. |
 | Left / Right / overview | Move the viewport horizontally. |
 | Left / Right / label divider | Change label width. |

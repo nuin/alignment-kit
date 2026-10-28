@@ -1,4 +1,4 @@
-import type { Alignment, SequenceInput, ParseOptions, Annotation, AlignmentMetadata } from './types';
+import type { Alignment, Sequence, SequenceInput, ParseOptions, Annotation, AlignmentMetadata } from './types';
 
 export const isGap = (c:string|number) => c === '-' || c === '.' || c === 45 || c === 46;
 export function createAlignment(input:SequenceInput[], options:ParseOptions & {annotations?:Annotation[];metadata?:AlignmentMetadata} = {}):Alignment {
@@ -55,4 +55,14 @@ export function sequenceToAlignment(a:Alignment,row:number,position:number):numb
   let p=0;
   for(let c=0;c<a.width;c++) if(a.codes[row*a.width+c]!==45 && ++p===position) return c+1;
   return null;
+}
+/** Number of the first residue in a row: `metadata.start` when it is a positive integer, else 1. */
+export const rowOffset=(row:Pick<Sequence,'metadata'>):number=>{const s=row.metadata?.start;return typeof s==='number'&&Number.isSafeInteger(s)&&s>=1?s:1;};
+/** Residue number of a column in a row, honoring the row offset; null in a gap. */
+export function columnToResidue(a:Alignment,row:number,column:number):number|null {
+  const p=alignmentToSequence(a,row,column);return p===null?null:p+rowOffset(a.rows[row])-1;
+}
+/** Alignment column of a residue number in a row, honoring the row offset; null when the row has no such residue. */
+export function residueToColumn(a:Alignment,row:number,residue:number):number|null {
+  validateRow(a,row);if(!Number.isInteger(residue))return null;const p=residue-rowOffset(a.rows[row])+1;return p<1?null:sequenceToAlignment(a,row,p);
 }

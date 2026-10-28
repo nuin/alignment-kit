@@ -1,5 +1,6 @@
 import { defaultVisibility, trackLayout } from './visibility';
-import type { ViewerVisibility } from './types';
+import type { ViewerVisibility, RulerCoordinates } from './types';
+import { isGap, rowOffset } from './model';
 import type { Alignment, AlignmentStats, ColorMode, Selection } from './types';
 import { getColorScheme, residueColor, textColor } from './colors';
 import { AnnotationIndex } from './annotations';
@@ -7,7 +8,7 @@ import { STRIDE, SYMBOLS, consensusSymbol } from './analysis';
 export interface RenderView {
   a:Alignment; stats?:AlignmentStats; rows:number[]; reference:number; x:number; y:number;
   cw:number; rh:number; gutter:number; scheme:string; mode:ColorMode; dark:boolean;
-  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number;
+  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; ruler?:RulerCoordinates;
 }
 export function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
   const dpr=Math.min(window.devicePixelRatio||1,3);
@@ -69,10 +70,13 @@ export class Renderer {
     ctx.fillStyle=v.dark?'#172333':'#ffffff';ctx.fillRect(0,0,width,height);ctx.save();ctx.beginPath();ctx.rect(v.gutter,0,width-v.gutter,height);ctx.clip();
     const start=Math.max(0,Math.floor(v.x/v.cw)),end=Math.min(v.a.width,Math.ceil((v.x+width-v.gutter)/v.cw));
     ctx.font='11px "Alignment Mono", monospace';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    const tick=v.cw<5?50:v.cw<10?20:10;
+    const tick=v.cw<5?50:v.cw<10?20:10,refRow=v.ruler==='reference'?v.reference*v.a.width:-1,first=rowOffset(v.a.rows[v.reference]);
+    let residue=first-1;if(refRow>=0)for(let c=0;c<start;c++)if(!isGap(v.a.codes[refRow+c]))residue++;
     for(let c=start;c<end;c++) {
       const x=v.gutter+c*v.cw-v.x;
-      if(offset.ruler!==null&&(c===0||(c+1)%tick===0)){ctx.fillStyle=ink;ctx.font='11px "Alignment Mono", monospace';ctx.fillText(String(c+1),x+v.cw/2,17);ctx.fillStyle=line;ctx.fillRect(x+v.cw/2,23,1,height-23);}
+      let number:number|null=c+1;
+      if(refRow>=0)number=isGap(v.a.codes[refRow+c])?null:++residue;
+      if(offset.ruler!==null&&number!==null&&(refRow>=0?number%tick===0||number===first:c===0||number%tick===0)){ctx.fillStyle=ink;ctx.font='11px "Alignment Mono", monospace';ctx.fillText(String(number),x+v.cw/2,17);ctx.fillStyle=line;ctx.fillRect(x+v.cw/2,23,1,height-23);}
       if(!v.stats)continue;
       if(offset.modalFrequency!==null){ctx.fillStyle='#3a7da4';ctx.fillRect(x,offset.modalFrequency+22-(v.stats.frequency[c]||0)*20,Math.max(1,v.cw-1),(v.stats.frequency[c]||0)*20);}
       if(offset.gapFraction!==null){ctx.fillStyle='#c5a278';const gap=v.stats.total?v.stats.gaps[c]/v.stats.total:0;ctx.fillRect(x,offset.gapFraction+22-gap*18,Math.max(1,v.cw-1),gap*18);}
