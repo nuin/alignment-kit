@@ -1,7 +1,7 @@
 import type { Alignment, AlignmentStats, ExportRegion, ColorMode, FastaOptions, Sequence } from './types';
 import { columnDetail } from './analysis';
 import { isGap } from './model';
-import { getColorScheme, residueColor, textColor } from './colors';
+import { getColorScheme, residueColor, dynamicColor, dynamicSchemes, textColor } from './colors';
 export const escapeXml=(s:unknown)=>String(s).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
 export function resolveRegion(a:Alignment,region:ExportRegion={}) {
   const start=region.start??1,end=region.end??a.width;
@@ -100,13 +100,13 @@ export function exportStatistics(s:AlignmentStats):string {
   for(let c=1;c<=s.width;c++){const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA',d.entropy??'NA',d.information??'NA',d.quality??'NA'].join('\t'));}
   return lines.join('\n')+'\n';
 }
-export interface FigureOptions { colorMode?:ColorMode; referenceId?:string; matchDisplay?:'letter'|'dot' }
+export interface FigureOptions { colorMode?:ColorMode; referenceId?:string; matchDisplay?:'letter'|'dot'; colorThreshold?:number; consensusThreshold?:number }
 export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},schemeId='soft',options:FigureOptions={}):string {
   const {start,end,rows}=resolveRegion(a,region),count=end-start+1;
   if(!rows.length)throw new Error('Select at least one row to export.');
   if(count*rows.length>200000)throw new Error('Figure export is limited to 200,000 cells. Narrow the selected rows or columns.');
   const cw=16,rh=22,gutter=250,top=72,width=gutter+count*cw+24,height=top+rows.length*rh+100,scheme=getColorScheme(schemeId);
-  const mode=options.colorMode??'all',ref=options.referenceId?a.rows.findIndex(r=>r.id===options.referenceId):0;
+  const dynamic=dynamicSchemes.has(schemeId),colorThreshold=options.colorThreshold??0,consensusThreshold=options.consensusThreshold??0,mode=options.colorMode??'all',ref=options.referenceId?a.rows.findIndex(r=>r.id===options.referenceId):0;
   const wantDots=options.matchDisplay==='dot',byRef=!mode.startsWith('consensus');
   if((mode.startsWith('reference')||wantDots&&byRef)&&ref<0)throw new Error('Unknown figure reference.');
   const dots=wantDots&&(!byRef||rows.includes(ref));
@@ -117,7 +117,7 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
     const y=top+j*rh;
     chunks.push(`<text x="16" y="${y+15}"><title>${escapeXml(a.rows[r].name)}</title>${escapeXml(a.rows[r].name.slice(0,30))}</text>`);
     for(let c=start;c<=end;c++) {
-      const residue=String.fromCharCode(a.codes[r*a.width+c-1]),color=residueColor(residue,scheme,s.support[c-1]),x=gutter+(c-start)*cw;used.add(residue);
+      const residue=String.fromCharCode(a.codes[r*a.width+c-1]),color=dynamic?dynamicColor(scheme,residue,s,c-1,colorThreshold,consensusThreshold):residueColor(residue,scheme,s.support[c-1]),x=gutter+(c-start)*cw;used.add(residue);
       const comparison=mode.startsWith('consensus')?s.consensus[c-1]:a.codes[ref*a.width+c-1],code=a.codes[r*a.width+c-1],same=code===comparison&&code!==45&&code!==63;
       const faded=mode!=='all'&&(mode.endsWith('differences')?same:!same);
       chunks.push(`<g opacity="${faded?'0.22':'1'}"><rect x="${x}" y="${y}" width="${cw}" height="${rh-1}" fill="${color}"/><text x="${x+cw/2}" y="${y+15}" text-anchor="middle" fill="${textColor(color)}">${dots&&same&&r!==ref&&!isGap(code)?'.':residue==='-'?'·':escapeXml(residue)}</text></g>`);
@@ -126,7 +126,8 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
   }
   const y=top+rows.length*rh+24;
   chunks.push(`<text x="16" y="${y}">${escapeXml(scheme.label)} · statistics: ${s.total} rows · gaps retained</text>`);
-  let x=16;for(const residue of Array.from(used).sort()){const color=residueColor(residue,scheme,1);chunks.push(`<rect x="${x}" y="${y+12}" width="18" height="20" fill="${color}"/><text x="${x+9}" y="${y+26}" text-anchor="middle" fill="${textColor(color)}">${escapeXml(residue)}</text>`);x+=22;}
+  if(dynamic)chunks.push(`<text x="16" y="${y+26}">${escapeXml(scheme.description)}</text>`);
+  else{let x=16;for(const residue of Array.from(used).sort()){const color=residueColor(residue,scheme,1);chunks.push(`<rect x="${x}" y="${y+12}" width="18" height="20" fill="${color}"/><text x="${x+9}" y="${y+26}" text-anchor="middle" fill="${textColor(color)}">${escapeXml(residue)}</text>`);x+=22;}}
   chunks.push('</g></svg>');return chunks.join('');
 }
 export async function exportPng(a:Alignment,s:AlignmentStats,region:ExportRegion={},scheme='soft',options:FigureOptions={}):Promise<Blob> {

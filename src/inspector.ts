@@ -1,7 +1,7 @@
 import type { Alignment, AlignmentStats, Selection, Annotation, AnnotationFilter, Identity, Hit } from './types';
 import { columnDetail } from './analysis';
 import { columnToResidue } from './model';
-import { getColorScheme, residueColor, textColor } from './colors';
+import { getColorScheme, residueColor, dynamicSchemes, textColor } from './colors';
 import { escapeXml as e } from './export';
 import { hitCount } from './search';
 export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number }
@@ -11,7 +11,7 @@ const percent=(n:number|null)=>n===null?'Unavailable':`${(n*100).toFixed(1)}%`;
 export function renderInspector(target:HTMLElement,v:InspectorInput) {
   if(v.tab==='legend') {
     const scheme=getColorScheme(v.scheme);
-    target.innerHTML=`<h3>${e(scheme.label)}</h3><p>${e(scheme.description)}</p><div class="ak-residue-legend">${[...(v.a.alphabet==='protein'?'ACDEFGHIKLMNPQRSTVWYBXZ*':'ACGTUNRYKMSWBDHV')].map(r=>{const color=residueColor(r,scheme,1);return `<span style="background:${color};color:${textColor(color)}">${r}</span>`;}).join('')}</div><p>Letters remain visible at residue zoom. Dots mark alignment gaps.</p><h4>Coordinate systems</h4><p>Alignment columns include gaps. Sequence positions count only residues and are shown for the selected row.</p>`;return;
+    target.innerHTML=`<h3>${e(scheme.label)}</h3><p>${e(scheme.description)}</p>${dynamicSchemes.has(scheme.id)?'<p class="ak-caption">Colors depend on the column statistics, so there are no per-letter swatches.</p>':`<div class="ak-residue-legend">${[...(v.a.alphabet==='protein'?'ACDEFGHIKLMNPQRSTVWYBXZ*':'ACGTUNRYKMSWBDHV')].map(r=>{const color=residueColor(r,scheme,1);return `<span style="background:${color};color:${textColor(color)}">${r}</span>`;}).join('')}</div>`}<p>Letters remain visible at residue zoom. Dots mark alignment gaps.</p><h4>Coordinate systems</h4><p>Alignment columns include gaps. Sequence positions count only residues and are shown for the selected row.</p>`;return;
   }
   if(v.tab==='hits') {
     const shown=v.hits.slice(0,HIT_LIST_LIMIT);

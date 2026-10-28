@@ -42,7 +42,7 @@ it('applies the color threshold to the conservation scheme',()=>{
   expect(dynamicColor(scheme,'A',stats,0,0.8,0)).toBe(NEUTRAL);
 });
 it('colors residues with a positive BLOSUM62 score to the consensus',()=>{
-  const stats=calculateStats(rowsOf(['LA','LA','IA','WA'],'protein')),scheme=getColorScheme('blosum62'),blue=residueColor('L',scheme);
+  const stats=calculateStats(rowsOf(['LA','LA','IA','WA'],'protein')),scheme=getColorScheme('blosum62'),blue='#b4cfe8';
   expect(dynamicColor(scheme,'L',stats,0,0,0)).toBe(blue);expect(dynamicColor(scheme,'I',stats,0,0,0)).toBe(blue);
   expect(dynamicColor(scheme,'W',stats,0,0,0)).toBe(NEUTRAL);
   expect(dynamicColor(scheme,'L',stats,0,0,0.8)).toBe(NEUTRAL);
@@ -141,4 +141,35 @@ it('validates the new options in config and keeps the schema in step',()=>{
   expect(schema.properties.colorThreshold).toMatchObject({type:'number',minimum:0,maximum:1});
   expect(schema.properties.minCoverage).toMatchObject({type:'number',minimum:0,maximum:100});
   expect(Object.keys(schema.properties.visibility.properties).sort()).toEqual(Object.keys(defaultVisibility).sort());
+});
+it('exports dynamic schemes with the canvas colors and a text-only legend',async()=>{
+  const {exportSvg}=await import('../src/export');
+  const a=rowsOf(['ACDE','ACDW','AGDE','WWWW'],'protein'),s=calculateStats(a);
+  const fills=(svg:string)=>[...svg.matchAll(/<rect x="\d+" y="\d+" width="16" height="21" fill="(#[0-9a-f]{6})"/g)].map(m=>m[1]);
+  const blosum=exportSvg(a,s,{},'blosum62',{}),f=fills(blosum),scheme=getColorScheme('blosum62');
+  expect(f).toHaveLength(16);expect(f[12]).toBe(dynamicColor(scheme,'W',s,0,0,0));expect(f[12]).toBe(NEUTRAL);expect(f[0]).not.toBe(NEUTRAL);
+  expect(blosum).not.toMatch(/width="18" height="20"/);
+  const pid=getColorScheme('percent-identity'),svg=exportSvg(a,s,{},'percent-identity',{colorThreshold:0.6});
+  expect(fills(svg)[1]).toBe(dynamicColor(pid,'C',s,1,0.6,0));
+  expect(fills(svg)[5]).toBe(NEUTRAL);
+  expect(residueColor('W',scheme)).toBe(NEUTRAL);
+});
+it('sets a row order from names with name then id matching',async()=>{
+  const viewer=await make();const missing=viewer.setRowOrderFromNames(['Beta','a','nope','Beta']);
+  expect(missing).toEqual(['nope']);expect(viewer.getRowOrder().slice(0,2)).toEqual(['d','a']);
+  const big=createAlignment(Array.from({length:20000},(_,i)=>({id:`i${i}`,name:`n${i}`,sequence:'ACGT'})),{alphabet:'dna'}),v2=await make();await v2.setAlignment(big);
+  const t=performance.now();v2.setRowOrderFromNames(Array.from({length:5000},(_,i)=>`n${19999-i}`));expect(performance.now()-t).toBeLessThan(500);
+  expect(v2.getRowOrder()[0]).toBe('i19999');
+});
+it('reports an identity load failure once and does not retry on every rebuild',async()=>{
+  const viewer=await make();const v=viewer as any,calls=vi.fn(()=>Promise.reject(new Error('worker died'))),errors:unknown[]=[];
+  v.core.ranking.identities=calls;viewer.on('error',(e:unknown)=>errors.push(e));
+  viewer.setOptions({minIdentity:50});await new Promise(r=>setTimeout(r,0));await new Promise(r=>setTimeout(r,0));
+  expect(calls).toHaveBeenCalledTimes(1);expect(errors).toHaveLength(1);
+  viewer.setOptions({minIdentity:60});await new Promise(r=>setTimeout(r,0));
+  expect(calls).toHaveBeenCalledTimes(1);expect(shown(viewer).split(',')).toHaveLength(5);
+});
+it('downgrades an out-of-range residue sortColumn in setState before applying options',async()=>{
+  const viewer=await make(),state={...viewer.getState(),sort:'residue' as const,sortColumn:99,consensusThreshold:0.5};
+  await viewer.setState(state);expect(viewer.getState().sort).toBe('input');expect(viewer.getState().consensusThreshold).toBe(0.5);
 });

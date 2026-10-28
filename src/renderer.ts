@@ -148,7 +148,7 @@ export class Renderer {
       if(offset.entropy!==null){const h=Math.min(1,Math.max(0,movingAverage(v.stats.entropy,window,c)/bitsMax))||0;ctx.fillStyle='#8a6bb0';ctx.fillRect(x,offset.entropy+22-h*20,Math.max(1,v.cw-1),h*20);}
       if(offset.quality!==null){const h=Math.min(1,Math.max(0,movingAverage(v.stats.quality,window,c)))||0;ctx.fillStyle='#4f9a6b';ctx.fillRect(x,offset.quality+22-h*20,Math.max(1,v.cw-1),h*20);}
       if(offset.consensus!==null){
-        const symbol=consensusSymbol(v.stats,v.a.alphabet,c,v.threshold??0),color=residueColor(symbol,getColorScheme(v.scheme),v.stats.support[c]);
+        const symbol=consensusSymbol(v.stats,v.a.alphabet,c,v.threshold??0),color=dynamicSchemes.has(v.scheme)?dynamicColor(getColorScheme(v.scheme),symbol,v.stats,c,v.colorThreshold??0,v.threshold??0):residueColor(symbol,getColorScheme(v.scheme),v.stats.support[c]);
         ctx.fillStyle=color;ctx.fillRect(x,offset.consensus+4,v.cw,27);
         if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=symbol==='-'?ink:textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.fillText(symbol==='-'?'·':symbol,x+v.cw/2,offset.consensus+22);}
       }
@@ -157,7 +157,7 @@ export class Renderer {
         for(let k=0;k<27;k++){const count=v.stats.counts[c*STRIDE+k];if(count)counts.push({r:SYMBOLS[k],n:count});}
         // In bits mode the maximum information, log2 of the alphabet size, fills the 45 px track less 2 px padding top and bottom.
         const bits=v.logoMode==='bits',full=bits?41*(v.stats.information[c]||0)/bitsMax:39;counts.sort((a,b)=>a.n-b.n);let bottom=offset.logo+(bits?43:37);
-        for(const d of counts){const h=d.n/n*full;if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(d.r,getColorScheme(v.scheme),1);ctx.fillText(d.r,8,17);ctx.restore();bottom-=h;}
+        for(const d of counts){const h=d.n/n*full;if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(d.r,getColorScheme(v.scheme==='blosum62'?'soft':v.scheme),1);ctx.fillText(d.r,8,17);ctx.restore();bottom-=h;}
       }
     }
     if(offset.reference!==null&&v.reference>=0)this.row(ctx,v,v.reference,offset.reference,width);
@@ -197,7 +197,7 @@ export class Renderer {
     if(v.stats)for(let px=0;px<width;px++){
       const from=Math.floor(px*m.count/width),to=Math.min(m.count,Math.max(from+1,Math.floor((px+1)*m.count/width)));
       let support=0,occupancy=0;for(let d=from;d<to;d++){const c=m.cols[d];support+=v.stats.support[c]||0;occupancy+=v.stats.total?1-v.stats.gaps[c]/v.stats.total:0;}
-      const h=occupancy/(to-from)*30;ctx.fillStyle=residueColor(String.fromCharCode(v.stats.consensus[m.cols[from]]),scheme,support/(to-from));ctx.fillRect(px,35-h,1,h);
+      const h=occupancy/(to-from)*30;const top=String.fromCharCode(v.stats.consensus[m.cols[from]]);ctx.fillStyle=v.scheme==='conservation'||!dynamicSchemes.has(v.scheme)?residueColor(top,scheme,support/(to-from)):dynamicColor(scheme,top,v.stats,m.cols[from],v.colorThreshold??0,v.threshold??0);ctx.fillRect(px,35-h,1,h);
     }
   }
 }

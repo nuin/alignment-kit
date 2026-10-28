@@ -63,7 +63,7 @@ export async function exportKind(v:Core, kind:string):Promise<void> {
     if(['svg','png','tsv','consensus'].includes(kind)&&!v.stats)throw new Error('Wait for column statistics to finish before exporting.');
     if(kind==='consensus')download(v.consensusFasta(region.start!,region.end!,v.options.fasta.columns==='visible'),'consensus.fasta');
     if(kind==='tsv')download(exportStatistics(v.stats!),'column-statistics.tsv','text/tab-separated-values');
-    if(kind==='svg')download(exportSvg({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,referenceId:v.a.rows[v.reference].id}),'alignment.svg','image/svg+xml');
-    if(kind==='png')download(await exportPng({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,referenceId:v.a.rows[v.reference].id}),'alignment.png');
+    if(kind==='svg')download(exportSvg({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,colorThreshold:v.options.colorThreshold,consensusThreshold:v.options.consensusThreshold,referenceId:v.a.rows[v.reference].id}),'alignment.svg','image/svg+xml');
+    if(kind==='png')download(await exportPng({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,colorThreshold:v.options.colorThreshold,consensusThreshold:v.options.consensusThreshold,referenceId:v.a.rows[v.reference].id}),'alignment.png');
   }catch(error){v.error(error);}
 }

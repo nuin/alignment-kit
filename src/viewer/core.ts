@@ -21,7 +21,7 @@ export interface Core {
   root:HTMLElement; scroll:HTMLElement; labels:HTMLElement; inspector:HTMLElement;
   options:ViewerSettings;
   a?:Alignment; stats?:AlignmentStats; fullStats?:AlignmentStats;
-  reference:number; filteredRows:number[]; rows:number[]; query:string; sort:SortKey; sortColumn?:number; identityJob?:{a:Alignment;ref:number;promise:Promise<Identity[]>}; identities?:number[]; identityDetails?:Identity[];
+  reference:number; filteredRows:number[]; rows:number[]; query:string; sort:SortKey; sortColumn?:number; identityJob?:{a:Alignment;ref:number;promise:Promise<Identity[]>}; identityFailed?:{a:Alignment;ref:number}; identities?:number[]; identityDetails?:Identity[];
   selection:Selection|null; selectedRows:Set<string>; annotationFilter:AnnotationFilter;
   filteredAnnotations:ReturnType<typeof filterAnnotations>; annotationIndex:AnnotationIndex;
   renderer:Renderer; controller:AbortController; menus:ThemedSelects;

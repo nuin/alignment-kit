@@ -33,9 +33,10 @@ export const dynamicSchemes:ReadonlySet<string>=new Set(['conservation','percent
 export const thresholdSchemes:ReadonlySet<string>=new Set(['conservation','percent-identity']);
 export const colorSchemes=(alphabet?:Alphabet):ColorScheme[]=>[getColorScheme('soft'),getColorScheme('soft-nucleotide'),...Array.from(registry.values()).filter(s=>s.id!=='soft'&&s.id!=='soft-nucleotide')].filter(s=>!alphabet||!s.alphabets||s.alphabets.includes(alphabet));
 export function getColorScheme(id:string):ColorScheme {const s=registry.get(id);if(!s) throw new Error(`Unknown color scheme “${id}”.`);return s;}
+const NEUTRAL='#e9edf2';
 export function residueColor(residue:string,scheme:ColorScheme,support?:number):string {
   if(residue==='-'||residue==='.') return '#f1f4f7';
-  if(scheme.id==='blosum62') return '#b4cfe8';
+  if(scheme.id==='blosum62') return NEUTRAL;
   if(scheme.id==='conservation'||scheme.id==='percent-identity') {
     if(support===undefined||!Number.isFinite(support)) return '#edf0f4';
     const t=Math.max(0,Math.min(1,support));
@@ -49,7 +50,6 @@ export function textColor(hex:string) {
   const rgb=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(c=>c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4);
   return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2]>0.24?'#172737':'#ffffff';
 }
-const NEUTRAL='#e9edf2';
 /** Color of one cell for a statistics-dependent scheme. `column` is the 0-based alignment column; `threshold` is colorThreshold (conservation, percent-identity) and consensusThreshold (blosum62). */
 export function dynamicColor(scheme:ColorScheme,residue:string,stats:AlignmentStats|undefined,column:number,colorThreshold:number,consensusThreshold:number):string {
   if(residue==='-'||residue==='.') return '#f1f4f7';
@@ -58,7 +58,7 @@ export function dynamicColor(scheme:ColorScheme,residue:string,stats:AlignmentSt
     const code=stats.consensus[column],n=stats.total-stats.gaps[column];
     if(code===45||code===63||!(stats.frequency[column]>=consensusThreshold)||!n) return NEUTRAL;
     const score=blosum62(residue.toUpperCase(),String.fromCharCode(code));
-    return score!==null&&score>0?residueColor(residue,scheme):NEUTRAL;
+    return score!==null&&score>0?'#b4cfe8':NEUTRAL;
   }
   let value:number;
   if(scheme.id==='percent-identity') {const k=SYMBOLS.indexOf(residue.toUpperCase());value=k<0||!stats.total?NaN:stats.counts[column*STRIDE+k]/stats.total;}

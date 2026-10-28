@@ -23,7 +23,7 @@ export function groupName(v:Core, row:number):string|null {
 export function rebuildRows(v:Core):void {
   if(!v.a)return;const a=v.a,q=v.query.trim().toLocaleLowerCase(),all=v.orderAll();
   const {minIdentity,minCoverage}=v.options,cover=minCoverage>0?rowMetrics(a).length:undefined,ident=minIdentity>0?v.identities:undefined;
-  if(minIdentity>0&&!ident)void v.loadIdentities().then(ok=>{if(ok)v.rowsChanged();}).catch(()=>{});
+  if(minIdentity>0&&!ident&&!(v.identityFailed?.a===a&&v.identityFailed.ref===v.reference)){const ref=v.reference;v.loadIdentities().then(ok=>{if(ok)v.rowsChanged();}).catch(error=>{if(v.disposed||v.a!==a)return;if(error?.name!=='AbortError'){v.identityFailed={a,ref};v.error(error);v.message('Min identity not applied');}});}
   v.filteredRows=all.filter(i=>!v.hidden.has(a.rows[i].id)&&(!q||`${a.rows[i].name} ${a.rows[i].species??''}`.toLocaleLowerCase().includes(q))&&(!cover||cover[i]/a.width*100>=minCoverage-1e-9)&&(!ident||ident[i]*100>=minIdentity-1e-9));
   const shown=v.filteredRows.filter(i=>!v.pinned||i!==v.reference);
   v.groupList=[];v.rowGroup=new Int32Array(a.rows.length).fill(-1);
@@ -100,10 +100,11 @@ export function setGroups(v:Core, groups:Record<string,string>|null):void {
 export function setRowOrderFromNames(v:Core, names:string[]):string[] {
   v.assertAlive();if(!Array.isArray(names)||names.some(n=>typeof n!=='string'))throw new Error('Row names must be an array of strings.');
   const a=v.a;if(!a)throw new Error('No alignment is loaded.');
-  const taken=new Set<number>(),first:number[]=[],missing:string[]=[],wanted=names.map(n=>n.trim()).filter(Boolean);
+  const taken=new Set<number>(),first:number[]=[],missing:string[]=[],wanted=names.map(n=>n.trim()).filter(Boolean),byName=new Map<string,number[]>(),byId=new Map<string,number[]>();
+  const add=(m:Map<string,number[]>,k:string,i:number)=>{const l=m.get(k);if(l)l.push(i);else m.set(k,[i]);};
+  a.rows.forEach((r,i)=>{add(byName,r.name,i);add(byId,r.id,i);});
   for(const name of wanted){
-    let found=a.rows.map((r,i)=>r.name===name?i:-1).filter(i=>i>=0);
-    if(!found.length)found=a.rows.map((r,i)=>r.id===name?i:-1).filter(i=>i>=0);
+    const found=byName.get(name)??byId.get(name)??[];
     if(!found.length)missing.push(name);
     for(const i of found)if(!taken.has(i)){taken.add(i);first.push(i);}
   }
