@@ -271,6 +271,25 @@ const alignment = createAlignment([
 
 Omit `rowId` for a global interval. Supply domains/exon boundaries as annotation kinds. Original data are treated as immutable after loading; replace the alignment when updating annotations. Features remain attached to stable row IDs when sorting, pinning and filtering. Missing disease/phenotype evidence is **unknown**, not false.
 
+### Import annotations from files
+
+Parsers read GFF3, BED (BED3 to BED12), GenBank, EMBL and UniProt REST JSON. `importAnnotations` maps them onto an alignment.
+
+```ts
+import { importAnnotations, parseGff3 } from '@nuin/msa-canvas';
+const { annotations, warnings } = importAnnotations(alignment, text, { format: 'auto', rowId: 'human', coordinates: 'sequence' });
+viewer.addAnnotations(annotations);
+// or in one step: viewer.importAnnotations(text, options)
+const records = parseGff3(text); // { seqid, start, end, kind, label, metadata }[] in 1-based ungapped coordinates
+```
+
+- `seqid` is matched to a row by ID, then by display name, then by the first word of the name or any `|`-separated part of it (GenBank, EMBL and UniProt also try accession, version and entry name), then falls back to `rowId`.
+- `coordinates: 'sequence'` (default) counts ungapped residues and converts them to alignment columns. `'alignment'` uses 1-based columns as given.
+- Records with no matching row, or beyond the sequence, become `mapping: 'unmapped'` and add a warning.
+- BED12 blocks become one `exon` annotation each. GenBank and EMBL `join()` locations become one annotation spanning the lowest to highest position, with `<`, `>` and `complement()` kept in `metadata`. Labels come from `/gene`, `/product`, `/note`, `/label`, then the feature key.
+- `viewer.addAnnotations(list)`, `viewer.removeAnnotations(ids?)` (all when omitted) and `viewer.importAnnotations(text, options?)` rebuild the index and the Features tab. Warnings appear in the message area.
+- With an alignment loaded, opening or dropping `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` files (optionally `.gz`) imports annotations instead of replacing the alignment.
+
 ## Coordinates and statistics
 
 Public positions are **1-based, inclusive alignment columns**. Sequence coordinates require a row identity and count only non-gap symbols. Use `alignmentToSequence(alignment, rowIndex, column)` and `sequenceToAlignment(alignment, rowIndex, position)`; a gap maps to `null`.
@@ -311,6 +330,8 @@ Ambiguity symbols are counted separately and never fractionally distributed. All
 | `setSort('input' \| 'name' \| 'identity')` | Stable ordering; identity calculation is asynchronous |
 | `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range |
 | `findMotif(text)` | Find the next literal ungapped motif within filtered rows |
+| `addAnnotations(list)` / `removeAnnotations(ids?)` | Add annotations / remove some by ID (all when omitted) |
+| `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
 | `getState()` / `setState(state)` | Serialize/restore view state for the same dataset |
 | `getAlignment()` / `getStatistics()` | Read model / current exact statistics (may be pending) |

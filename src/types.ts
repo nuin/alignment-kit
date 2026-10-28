@@ -25,6 +25,11 @@ export interface Selection { start:number; end:number; rowId?:string }
 export interface AnnotationFilter { types?:string[]; consequences?:string[]; disease?:boolean; phenotype?:boolean; hiddenRowIds?:string[] }
 /** Ruler numbering: alignment columns, or ungapped residue numbers of the pinned reference row. */
 export type RulerCoordinates = 'alignment'|'reference';
+export type AnnotationFormat = 'gff3' | 'bed' | 'genbank' | 'embl' | 'uniprot';
+/** One parsed feature in 1-based inclusive ungapped sequence coordinates. `metadata.aliases` lists extra identifiers that may match a row. */
+export interface AnnotationRecord { seqid:string; start:number; end:number; kind:string; label:string; metadata:Record<string,unknown> }
+export interface AnnotationImportOptions { format?:'auto'|AnnotationFormat; rowId?:string; coordinates?:'sequence'|'alignment' }
+export interface AnnotationImportResult { annotations:Annotation[]; warnings:string[] }
 export type ColorMode = 'all'|'reference-differences'|'reference-matches'|'consensus-differences'|'consensus-matches';
 /** Presentation switches. Omitted keys retain their current value on updates. */
 export interface ViewerVisibility {

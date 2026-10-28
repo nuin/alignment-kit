@@ -1,5 +1,6 @@
 import { defaultVisibility, applyVisibility, trackLayout, inspectorTabs } from './visibility';
-import type { ViewerVisibility, RulerCoordinates, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode } from './types';
+import type { ViewerVisibility, RulerCoordinates, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode, Annotation, AnnotationImportOptions, AnnotationImportResult } from './types';
+import { importAnnotations } from './annotation-import';
 import { createAlignment, sequenceToAlignment, columnToResidue, residueToColumn } from './model';
 import { readAlignmentInput } from './parsers';
 import { AnnotationIndex, filterAnnotations } from './annotations';
@@ -215,6 +216,35 @@ export class AlignmentViewer {
     if(s.rowId&&this.a){const index=this.rows.findIndex(i=>this.a!.rows[i].id===s.rowId),y=index*this.options.rowHeight;if(index>=0&&(y<this.scroll.scrollTop||y+this.options.rowHeight>this.scroll.scrollTop+this.scroll.clientHeight))this.scroll.scrollTop=y;}
   }
   setAnnotationFilter(filter:AnnotationFilter) {this.assertAlive();this.annotationFilter={...filter};this.featurePage=0;this.rebuildAnnotations();this.inspectorDirty=true;this.schedule();}
+  addAnnotations(list:Annotation[]):void {
+    this.assertAlive();if(!this.a)throw new Error('Load an alignment before adding annotations.');
+    const ids=new Set(this.a.annotations.map(a=>a.id)),rows=new Set(this.a.rows.map(r=>r.id));
+    for(const a of list){
+      if(ids.has(a.id))throw new Error(`Duplicate annotation ID “${a.id}”.`);ids.add(a.id);
+      if(a.rowId&&!rows.has(a.rowId))throw new Error(`Annotation “${a.id}” refers to unknown sequence “${a.rowId}”.`);
+      if(a.mapping==='mapped'&&(!Number.isInteger(a.start)||!Number.isInteger(a.end)||a.start!<1||a.end!<a.start!||a.end!>this.a.width))throw new Error(`Annotation “${a.id}” has invalid alignment coordinates.`);
+    }
+    this.a.annotations=[...this.a.annotations,...list.map(a=>({...a}))];this.refreshAnnotations();
+  }
+  removeAnnotations(ids?:string[]):void {
+    this.assertAlive();if(!this.a)return;const drop=ids&&new Set(ids);
+    this.a.annotations=drop?this.a.annotations.filter(a=>!drop.has(a.id)):[];this.refreshAnnotations();
+  }
+  importAnnotations(text:string,options:AnnotationImportOptions={}):AnnotationImportResult {
+    this.assertAlive();if(!this.a)throw new Error('Load an alignment before importing annotations.');
+    const result=importAnnotations(this.a,text,options);this.addAnnotations(result.annotations);
+    const mapped=result.annotations.filter(a=>a.mapping==='mapped').length;
+    this.message(`Imported ${result.annotations.length} annotations (${mapped} mapped).${result.warnings.length?` ${result.warnings.length} warnings: ${result.warnings.slice(0,3).join(' ')}${result.warnings.length>3?' …':''}`:''}`);
+    return result;
+  }
+  private async openFile(file:File) {
+    if(this.a&&/\.(?:gff3?|bed|gb|gbk|genbank|embl)(?:\.gz)?$/i.test(file.name)){
+      try{this.importAnnotations(await readAlignmentInput(file));}catch(error){this.error(error);}
+      return;
+    }
+    await this.load(file,{name:file.name}).catch(()=>{});
+  }
+  private refreshAnnotations() {this.rebuildAnnotations();this.featurePage=Math.min(this.featurePage,Math.max(0,Math.ceil(this.filteredAnnotations.visible.length/30)-1));this.inspectorDirty=true;this.overviewDirty=true;this.schedule();}
   private rebuildAnnotations() {this.filteredAnnotations=filterAnnotations(this.a?.annotations??[],this.annotationFilter);this.annotationIndex=new AnnotationIndex(this.filteredAnnotations.visible);}
   getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,matchDisplay:this.options.matchDisplay,statisticsScope:this.options.statisticsScope,rulerCoordinates:this.options.rulerCoordinates,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility()};}
   async setState(state:ViewState) {
@@ -412,7 +442,7 @@ export class AlignmentViewer {
     on(this.root,'change',(event:Event)=>{
       const target=event.target as HTMLInputElement,aria=target.getAttribute('aria-label');
       if(target.dataset.selectRow){if(target.checked)this.selectedRows.add(target.dataset.selectRow);else this.selectedRows.delete(target.dataset.selectRow);this.inspectorDirty=true;this.labelKey='';this.schedule();}
-      if(aria==='Alignment file'&&target.files?.[0]){const file=target.files[0];void this.load(file,{name:file.name}).catch(()=>{});target.value='';}
+      if(aria==='Alignment file'&&target.files?.[0]){const file=target.files[0];void this.openFile(file);target.value='';}
       if(aria==='Color scheme')this.setOptions({colorScheme:target.value});
       if(aria==='Residues to color')this.setOptions({colorMode:target.value as ColorMode});
       if(aria==='Statistics scope')this.setOptions({statisticsScope:target.value as 'all'|'filtered'});
@@ -454,7 +484,7 @@ export class AlignmentViewer {
     on(separator,'pointerdown',(event:PointerEvent)=>{resizing=true;origin=event.clientX;gutter=this.options.labelWidth;separator.setPointerCapture(event.pointerId);});on(separator,'pointermove',(event:PointerEvent)=>{if(resizing)this.setOptions({labelWidth:gutter+event.clientX-origin});});on(separator,'pointerup',()=>{resizing=false;});
     on(separator,'keydown',(event:KeyboardEvent)=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();this.setOptions({labelWidth:this.options.labelWidth+(event.key==='ArrowRight'?10:-10)});}});
     on($(this.root,'.ak-fasta-options'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Escape'&&!event.defaultPrevented){event.preventDefault();this.fastaPanel(false);}});
-    on(this.root,'dragover',(event:DragEvent)=>event.preventDefault());on(this.root,'drop',(event:DragEvent)=>{event.preventDefault();const file=event.dataTransfer?.files[0];if(file)void this.load(file,{name:file.name}).catch(()=>{});});
+    on(this.root,'dragover',(event:DragEvent)=>event.preventDefault());on(this.root,'drop',(event:DragEvent)=>{event.preventDefault();const file=event.dataTransfer?.files[0];if(file)void this.openFile(file);});
   }
   clear() {
     this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();

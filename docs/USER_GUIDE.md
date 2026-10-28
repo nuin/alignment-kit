@@ -182,6 +182,17 @@ Filter features by type or consequence. Disease and phenotype checkboxes select 
 
 Click a mapped feature to select its alignment range. Unmapped features remain inspectable without an invented protein position. **Hide row features** in the Position inspector affects that row's annotations. Annotation filters do not change the sequence data or column-statistics scope.
 
+### Import annotation files
+
+With an alignment loaded, choose **Open alignment** or drop a `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` file. The viewer adds its features to the Features tab and keeps the alignment. Gzip-compressed files work too. Without a loaded alignment, these files are rejected as alignments.
+
+- Each feature is matched to a sequence by its ID, then its display name. GenBank and EMBL also match accession numbers.
+- Positions are residue numbers in the ungapped sequence. The viewer converts them to alignment columns.
+- A BED12 line becomes one `exon` feature per block. A GenBank or EMBL `join()` becomes one feature from its first to its last position.
+- Features with no matching sequence or a position past the sequence end are listed as unmapped. The message area shows how many were imported and the first warnings.
+
+Applications can also call `viewer.importAnnotations(text, { rowId })` to attach features with an unknown sequence name to one row, or pass UniProt JSON.
+
 Annotation presence does not establish pathogenicity, functional consequence or transfer of an observation to an aligned ortholog. Preserve the supplying application's source and coordinate context.
 
 ## Export data and figures

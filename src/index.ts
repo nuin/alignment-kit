@@ -5,6 +5,7 @@ export { calculateStats, columnDetail, pairwiseIdentity, pairwiseMatrix, consens
 export { registerColorScheme, getColorScheme, colorSchemes } from './colors';
 export { exportFasta, formatFastaRecord, exportStatistics, exportSvg, exportPng } from './export';
 export { AnnotationIndex, filterAnnotations } from './annotations';
+export { parseGff3, parseBed, parseGenBank, parseEmbl, parseUniProtJson, importAnnotations, detectAnnotationFormat } from './annotation-import';
 export type * from './types';
 export type { ColorScheme } from './colors';
 export { defaultVisibility } from './visibility';
