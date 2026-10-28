@@ -20,10 +20,10 @@ const viewerFor=async(a=dna('AACGTT','ACGTAC','GGGCCC')):Promise<any>=>{const v=
 
 it('reruns a search when only the strands or mode change',async()=>{
   const v=await viewerFor(dna('AAACCC'));
-  expect(v.search('GGG',{strands:'forward'}).hits).toHaveLength(0);
-  expect(v.search('GGG',{strands:'both'}).hits.map((h:any)=>h.strand)).toEqual(['-']);
-  expect(v.search('A.A',{mode:'literal'}).hits).toHaveLength(0);
-  expect(v.search('A.A',{mode:'regex'}).hits.length).toBeGreaterThan(0);
+  expect((await v.search('GGG',{strands:'forward'})).hits).toHaveLength(0);
+  expect((await v.search('GGG',{strands:'both'})).hits.map((h:any)=>h.strand)).toEqual(['-']);
+  expect((await v.search('A.A',{mode:'literal'})).hits).toHaveLength(0);
+  expect((await v.search('A.A',{mode:'regex'})).hits.length).toBeGreaterThan(0);
 });
 it('rejects a repeated group that contains alternatives in regex mode',()=>{
   for(const p of ['/(A|AA)+C/','/(.|.)+X/','/(?:A|C)*G/','/((A|C)G)+/','/(A|C){2,}/'])expect(()=>compilePattern(p,{alphabet:'dna'}),p).toThrow(/alternatives/);
@@ -31,7 +31,7 @@ it('rejects a repeated group that contains alternatives in regex mode',()=>{
 });
 it('emits a copy of the search hits',async()=>{
   const v=await viewerFor();let seen:SearchResult|null=null;v.on('search',(r:SearchResult|null)=>{seen=r;});
-  v.search('ACG');seen!.hits.length=0;
+  await v.search('ACG');seen!.hits.length=0;
   expect(v.getSearchHits().length).toBeGreaterThan(0);expect((v as any).searchState.result.hits.length).toBeGreaterThan(0);
 });
 it('selects the top row on ArrowUp when no row is selected',async()=>{
@@ -57,7 +57,7 @@ it('pads relaxed PHYLIP names once for large row counts',()=>{
 });
 it('forwards search events through the framework controller',async()=>{
   const results:(SearchResult|null)[]=[],c=mountViewer(host(),{options:{worker:false},onSearch:r=>results.push(r)});disposers.push(()=>c.destroy());
-  await c.viewer.setAlignment(dna('ACGT'));c.viewer.search('CG');c.viewer.clearSearch();
+  await c.viewer.setAlignment(dna('ACGT'));await c.viewer.search('CG');c.viewer.clearSearch();
   expect(results.map(r=>r?.hits.length??null)).toEqual([1,null]);
 });
 it('exports the residue numbering helpers from the package entry',()=>{

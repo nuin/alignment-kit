@@ -152,7 +152,7 @@ The Svelte component accepts `class`, `style` and `id`. It supports SSR and only
 }}></div>
 ```
 
-Both framework integrations accept `alignment`, `options`, `onReady`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick`, `onSearch` and `onError`. `onSearch` receives a copy of `{ hits, truncated }` after each search, or `null` when the search is cleared. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
+Both framework integrations accept `alignment`, `options`, `onReady`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick`, `onSearch` and `onError`. `onSearch` receives a copy of `{ hits, truncated }` when each search finishes, or `null` when the search is cleared. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
 
 ## Configure the interface
 
@@ -372,13 +372,15 @@ The motif box and `search()` accept three syntaxes. Auto mode picks one from the
 - Regular expressions are case-insensitive and run on each ungapped sequence. Gaps never break a match.
 - DNA/RNA searches also scan the reverse complement unless `strands: 'forward'` is set. A site that reads the same on both strands (`ACGT`) is reported once, as `+`.
 - Overlapping matches are all reported. The list stops at 10,000 hits or after 2 seconds (`truncated: true`); past the cap each row's scan also stops early.
-- Searches run on the main thread, including with `worker: true`. Regexes with a repeated group that contains a repeat, such as `(A+)+B`, or alternatives, such as `(A|AA)+C` or `(?:A|C)*`, are rejected because they can freeze the page; use a character class such as `[AC]+` instead. A group followed by `?` may contain `|`. Other pathological patterns are bounded only by the 2 second budget between rows.
+- The pattern is checked on the main thread. Regexes with a repeated group that contains a repeat, such as `(A+)+B`, or alternatives, such as `(A|AA)+C` or `(?:A|C)*`, are rejected at once; use a character class such as `[AC]+` instead. A group followed by `?` may contain `|`.
+- With workers on (the default), the scan runs in a module worker. A regex still running 0.5 s after the 2 second budget, such as `/.*.*.*.*.*.*X/` stuck inside one row, is terminated: `search()` rejects with a `TimeoutError`, the status line reads "Search stopped after 2 s; simplify the pattern.", `error` is emitted and no hits remain. With `worker: false` the scan runs on the main thread. The 2 second budget is then checked only between regex steps, so one slow step can freeze the tab; only the worker path can stop it.
+- `search()` returns a Promise. A newer search, `clearSearch()`, `clear()` or a new alignment terminates the running scan and rejects its Promise with an `AbortError`.
 - Only the filtered rows are searched; changing the filter or order re-derives the hits from one scan of all rows and emits `search` only when the hit list changes. Loading another alignment or calling `clear()` removes the search, empties the motif box and emits `search` with `null`.
 
 ```ts
 viewer.search('N-{P}-[ST]-{P}');              // N-glycosylation sequon
 viewer.search('ACGNACGG', { strands: 'both' }); // primer with an IUPAC code, both strands
-const { hits, truncated } = viewer.search('/C..C/', { mode: 'regex' });
+const { hits, truncated } = await viewer.search('/C..C/', { mode: 'regex' });
 hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match }
 ```
 
@@ -438,9 +440,9 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `setGroups(map \| null)` / `toggleGroup(name, collapsed?)` | Group rows by an ID-to-name map / collapse or expand a group |
 | `setTree(newick \| null)` | Show a Newick tree and order rows by it / remove it |
 | `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range |
-| `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif; highlight hits; return `{ hits, truncated }` |
+| `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif in the search worker; highlight hits; resolve `{ hits, truncated }`. Rejects on an invalid pattern, with `AbortError` when replaced and with `TimeoutError` when stopped |
 | `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
-| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; returns a boolean, `true` when it started a new search. Auto mode applies, so in IUPAC text `N` (DNA/RNA) and `X` (protein) match any residue |
+| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; resolves a boolean, `true` when it started a new search, and reports errors through the status line and `error`. Auto mode applies, so in IUPAC text `N` (DNA/RNA) and `X` (protein) match any residue |
 | `addAnnotations(list)` / `removeAnnotations(ids?)` | Add annotations / remove some by ID (all when omitted) |
 | `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
@@ -454,7 +456,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
-Events: `ready`, `selection`, `search` (`{ hits, truncated }`, or `null` after `clearSearch()` or a new alignment), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
+Events: `ready`, `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
 Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
@@ -541,7 +543,7 @@ await viewer.loadUrl(source && isTrusted(source) ? source : defaultUrl);
 
 ## Workers and bundlers
 
-Parsing, column statistics, reference identity and bounded pairwise comparison use module workers. Cancellation terminates obsolete work on replacement or disposal. The normal Vite source and packed-package builds recognize the static worker constructor and bundle it. A bundler that does not process worker URLs must copy the complete `dist` directory and pass `workerUrl` pointing to `dist/worker.js`, retaining its sibling chunks.
+Parsing, column statistics, reference identity, bounded pairwise comparison and motif search use module workers. Cancellation terminates obsolete work on replacement or disposal. The normal Vite source and packed-package builds recognize the static worker constructor and bundle it. A bundler that does not process worker URLs must copy the complete `dist` directory and pass `workerUrl` pointing to `dist/worker.js`, retaining its sibling chunks.
 
 Importing core/React/Svelte modules is SSR-safe. Creating the actual viewer requires a browser, Canvas 2D, ResizeObserver and module Worker support. Gzip uses DecompressionStream. An explicit `worker: false` fallback is available for small inputs and DOM lifecycle tests; it runs analysis on the main thread. External workers must be permitted by your application's CSP (`worker-src`); self-contained preview files use `blob:` workers. No alignment is uploaded by the library.
 

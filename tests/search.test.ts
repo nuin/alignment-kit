@@ -121,42 +121,42 @@ it('runs search from the viewer, keeps hits by row and emits search events',asyn
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(parseAlignment('>a\nA-CGAACG\n>b\nTTACGATT\n>c\nGGGGGGGG',{alphabet:'dna'}));
   const handler=vi.fn();viewer.on('search',handler);
-  const result=viewer.search('ACG',{strands:'forward'});
+  const result=await viewer.search('ACG',{strands:'forward'});
   expect(result.hits.map(h=>[h.rowId,h.start,h.end])).toEqual([['seq-1',1,4],['seq-1',6,8],['seq-2',3,5]]);
   expect(viewer.getSearchHits()).toHaveLength(3);expect(handler).toHaveBeenLastCalledWith(expect.objectContaining({truncated:false}));
   expect([...(viewer as any).searchState.byRow.keys()]).toEqual([0,1]);
   viewer.clearSearch();expect(viewer.getSearchHits()).toEqual([]);expect(handler).toHaveBeenLastCalledWith(null);
-  expect(()=>viewer.search('/(/')).toThrow(/regular expression/);
+  await expect(viewer.search('/(/')).rejects.toThrow(/regular expression/);
 });
 it('cycles through hits with Find next and previous and selects them',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(parseAlignment('>a\nA-CGAACG\n>b\nTTACGATT',{alphabet:'dna'}));
-  viewer.findMotif('ACG');expect(viewer.getState().selection).toEqual({start:1,end:4,rowId:'seq-1'});
-  viewer.findMotif('ACG');expect(viewer.getState().selection).toEqual({start:6,end:8,rowId:'seq-1'});
-  viewer.findMotif('ACG');expect(viewer.getState().selection).toEqual({start:3,end:5,rowId:'seq-2'});
-  viewer.findMotif('ACG');expect(viewer.getState().selection).toEqual({start:1,end:4,rowId:'seq-1'});
-  viewer.findMotif('ACG',-1);expect(viewer.getState().selection).toEqual({start:3,end:5,rowId:'seq-2'});
-  viewer.findMotif('');expect(viewer.getSearchHits()).toEqual([]);
-  viewer.findMotif('/(/');expect((viewer as any).root.querySelector('.ak-message').textContent).toMatch(/regular expression/);
-  viewer.findMotif('GGGGGG');expect((viewer as any).root.querySelector('.ak-message').textContent).toMatch(/No match/);
+  await viewer.findMotif('ACG');expect(viewer.getState().selection).toEqual({start:1,end:4,rowId:'seq-1'});
+  await viewer.findMotif('ACG');expect(viewer.getState().selection).toEqual({start:6,end:8,rowId:'seq-1'});
+  await viewer.findMotif('ACG');expect(viewer.getState().selection).toEqual({start:3,end:5,rowId:'seq-2'});
+  await viewer.findMotif('ACG');expect(viewer.getState().selection).toEqual({start:1,end:4,rowId:'seq-1'});
+  await viewer.findMotif('ACG',-1);expect(viewer.getState().selection).toEqual({start:3,end:5,rowId:'seq-2'});
+  await viewer.findMotif('');expect(viewer.getSearchHits()).toEqual([]);
+  await viewer.findMotif('/(/');expect((viewer as any).root.querySelector('.ak-message').textContent).toMatch(/regular expression/);
+  await viewer.findMotif('GGGGGG');expect((viewer as any).root.querySelector('.ak-message').textContent).toMatch(/No match/);
 });
 it('re-runs the search over filtered rows when the filter changes',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(parseAlignment('>alpha\nACGT\n>beta\nACGT',{alphabet:'dna'}));
-  viewer.search('ACG',{strands:'forward'});expect(viewer.getSearchHits()).toHaveLength(2);
+  await viewer.search('ACG',{strands:'forward'});expect(viewer.getSearchHits()).toHaveLength(2);
   viewer.setFilter('beta');expect(viewer.getSearchHits().map(h=>h.rowId)).toEqual(['seq-2']);
   viewer.setFilter('');expect(viewer.getSearchHits()).toHaveLength(2);
 });
 it('drops the search when another alignment loads',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());
-  await viewer.setAlignment(dna('ACGT'));viewer.search('ACG');
+  await viewer.setAlignment(dna('ACGT'));await viewer.search('ACG');
   await viewer.setAlignment(dna('ACGT'));expect(viewer.getSearchHits()).toEqual([]);
-  viewer.search('ACG');viewer.clear();expect(viewer.getSearchHits()).toEqual([]);
+  await viewer.search('ACG');viewer.clear();expect(viewer.getSearchHits()).toEqual([]);
 });
 it('jumps to a hit clicked in the Hits tab without leaving the tab',async()=>{
   const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(parseAlignment('>a\nACGTACGT',{alphabet:'dna'}));
-  viewer.search('ACG',{strands:'forward'});(viewer as any).tab='hits';
+  await viewer.search('ACG',{strands:'forward'});(viewer as any).tab='hits';
   const button=document.createElement('button');button.dataset.hit='1';el.querySelector('.ak-inspector-content')!.append(button);button.click();
   expect(viewer.getState().selection).toEqual({start:5,end:7,rowId:'seq-1'});expect((viewer as any).tab).toBe('hits');
 });
@@ -220,8 +220,8 @@ it('reads lowercase text containing x as IUPAC unless it has PROSITE syntax',()=
 it('keeps the Hits tab closed after a failed search and emits only on a changed hit set',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(parseAlignment('>alpha\nACGT\n>beta\nACGT\n>gamma\nACGT',{alphabet:'dna'}));
-  expect(viewer.findMotif('ACG')).toBe(true);expect(viewer.findMotif('ACG')).toBe(false);
-  expect(viewer.findMotif('A-x(5,2)-C')).toBe(false);expect(viewer.getSearchHits().length).toBeGreaterThan(0);
+  expect(await viewer.findMotif('ACG')).toBe(true);expect(await viewer.findMotif('ACG')).toBe(false);
+  expect(await viewer.findMotif('A-x(5,2)-C')).toBe(false);expect(viewer.getSearchHits().length).toBeGreaterThan(0);
   const handler=vi.fn();viewer.on('search',handler);
   viewer.setFilter('a');expect(handler).toHaveBeenCalledTimes(0);
   viewer.setFilter('alp');expect(handler).toHaveBeenCalledTimes(1);
@@ -232,8 +232,8 @@ it('keeps the Hits tab closed after a failed search and emits only on a changed 
 it('clears the search and the motif box when a new alignment loads',async()=>{
   const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(dna('ACGT'));const input=el.querySelector<HTMLInputElement>('[aria-label="Find motif"]')!;
-  input.value='ACG';viewer.findMotif('ACG');
+  input.value='ACG';await viewer.findMotif('ACG');
   const handler=vi.fn();viewer.on('search',handler);
   await viewer.setAlignment(dna('ACGT'));expect(handler).toHaveBeenCalledWith(null);expect(input.value).toBe('');
-  input.value='ACG';viewer.findMotif('ACG');viewer.clear();expect(handler).toHaveBeenLastCalledWith(null);expect(handler).toHaveBeenCalledTimes(3);expect(input.value).toBe('');
+  input.value='ACG';await viewer.findMotif('ACG');viewer.clear();expect(handler).toHaveBeenLastCalledWith(null);expect(handler).toHaveBeenCalledTimes(3);expect(input.value).toBe('');
 });

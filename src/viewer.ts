@@ -2,7 +2,7 @@ import { defaultVisibility, applyVisibility, trackLayout, trackNames, inspectorT
 import type { ViewerVisibility, RulerCoordinates, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode, Annotation, AnnotationImportOptions, AnnotationImportResult, Hit, SearchOptions, SearchResult, CustomTrack } from './types';
 import { importAnnotations } from './annotation-import';
 import { createAlignment, columnToResidue, residueToColumn } from './model';
-import { findHits, hitCount } from './search';
+import { compilePattern, hitCount } from './search';
 import { readAlignmentInput } from './parsers';
 import { AnnotationIndex, filterAnnotations } from './annotations';
 import { getColorScheme, colorSchemes } from './colors';
@@ -11,7 +11,7 @@ import { Renderer, type RenderView, type GroupInfo, type TreeHit } from './rende
 import { buildShell, $, download } from './controls';
 import { renderInspector } from './inspector';
 import { exportFasta, exportClustal, exportStockholm, exportPhylip, exportNexus, formatFastaRecord, validateFastaOptions, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
-import { WorkerTask } from './worker-client';
+import { TIMEOUT_ERROR, WorkerTask } from './worker-client';
 import { consensusSequence } from './analysis';
 import { validateTrack, validateTracks, checkTrackLength, stockholmTracks, trackHeight } from './tracks';
 import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './link';
@@ -34,7 +34,7 @@ export class AlignmentViewer {
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
   private filteredAnnotations:ReturnType<typeof filterAnnotations>={visible:[],unknown:0,excluded:0};private annotationIndex=new AnnotationIndex([]);
   private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;private menus:ThemedSelects;
-  private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private request?:AbortController;
+  private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private searcher:WorkerTask;private searchRun=0;private searchBusy=false;private request?:AbortController;
   private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
   private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
@@ -121,7 +121,7 @@ export class AlignmentViewer {
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
     this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,...options,fasta:{}};
-    this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);
+    this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
     if(options.urlSync&&typeof location!=='undefined'){
@@ -168,7 +168,7 @@ export class AlignmentViewer {
   }
   async setAlignment(alignment:Alignment):Promise<void> {return this.replace(alignment);}
   private async replace(alignment:Alignment,carry?:Carry):Promise<void> {
-    this.assertAlive();++this.loadRevision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();const revision=++this.revision;
+    this.assertAlive();++this.loadRevision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.searcher.cancel();const revision=++this.revision;
     if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw this.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
     this.sourceUrl=this.nextSource;this.nextSource=undefined;this.loading=true;
     const index=new Map(alignment.rows.map((r,i)=>[r.id,i])),known=(id:string)=>index.has(id);
@@ -277,7 +277,7 @@ export class AlignmentViewer {
     }
     this.rowPos=new Int32Array(a.rows.length).fill(-1);this.rows.forEach((row,p)=>{if(row>=0)this.rowPos[row]=p;});
     this.labelKey='';this.layout();
-      if(this.searchState)this.runSearch(this.searchState.pattern,this.searchState.options,true);
+    if(this.searchState&&!this.searchBusy)this.runSearch(this.searchState.pattern,this.searchState.options,true).catch(error=>this.error(error));
   }
   private rowsChanged() {this.rebuildRows();this.inspectorDirty=true;if(this.options.statisticsScope==='filtered')void this.updateStats().catch(()=>{});this.emit('state',this.getState());}
   setFilter(query:string) {this.assertAlive();this.query=query;this.scroll.scrollTop=0;this.rebuildRows();$<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value=query;if(this.options.statisticsScope==='filtered')void this.updateStats().catch(()=>{});this.emit('state',this.getState());}
@@ -544,7 +544,7 @@ export class AlignmentViewer {
       if(action==='clear-rows'){this.selectedRows.clear();this.labelKey='';this.inspectorDirty=true;this.schedule();}
       if(action==='compare'&&this.a){const ids=new Map(this.a.rows.map((r,i)=>[r.id,i])),rows=[...this.selectedRows].map(id=>ids.get(id)!);const a=this.a,revision=this.revision,selectionKey=[...this.selectedRows].join(',');this.message('Calculating pairwise identity…');const matrix=await this.comparison.pairwise(a,rows);if(this.disposed||this.revision!==revision)return;this.message('');if(this.tab!=='compare'||selectionKey!==[...this.selectedRows].join(','))return;const target=$(this.inspector,'.ak-identity-result');target.innerHTML=`<div class="ak-matrix-scroll"><table><caption>Identity over canonical comparable positions</caption><thead><tr><th>Sequence</th>${rows.map(i=>`<th>${e(this.a!.rows[i].name)}</th>`).join('')}</tr></thead><tbody>${rows.map((row,i)=>`<tr><th>${e(this.a!.rows[row].name)}</th>${matrix[i].map(cell=>`<td title="${cell.matches} matches / ${cell.compared} compared">${cell.identity===null?'NA':(cell.identity*100).toFixed(1)+'%'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
       if(action==='motif'||action==='motif-prev'){
-        const started=this.findMotif($<HTMLInputElement>(this.root,'[aria-label="Find motif"]').value,action==='motif'?1:-1);
+        const started=await this.findMotif($<HTMLInputElement>(this.root,'[aria-label="Find motif"]').value,action==='motif'?1:-1);
         if(started&&this.visibility.hitsTab){this.tab='hits';this.inspectorDirty=true;this.schedule();}
       }
     }catch(error){this.error(error);}
@@ -584,29 +584,41 @@ export class AlignmentViewer {
       catch(error){this.urlSync=false;this.error(new Error(`URL sync stopped: ${(error as Error).message}`));}
     },250);
   }
-  /** Search every filtered row for an IUPAC, regex or PROSITE motif, highlight the hits and list them in the Hits tab. Throws on an invalid pattern. */
-  search(pattern:string,options:Pick<SearchOptions,'mode'|'strands'>={}):SearchResult {
+  /** Search every filtered row for an IUPAC, regex or PROSITE motif, highlight the hits and list them in the Hits tab. Rejects on an invalid pattern, with an AbortError when a later search, clear or load replaces it, and with a TimeoutError (also emitted as `error`) when the worker is stopped after 2 s. */
+  async search(pattern:string,options:Pick<SearchOptions,'mode'|'strands'>={}):Promise<SearchResult> {
     this.assertAlive();if(!this.a)return {hits:[],truncated:false};
-    const state=this.runSearch(pattern.trim(),{mode:options.mode,strands:options.strands});this.message('');
-    return {hits:[...state.result.hits],truncated:state.result.truncated};
+    try{const state=await this.runSearch(pattern.trim(),{mode:options.mode,strands:options.strands});this.message('');return {hits:[...state.result.hits],truncated:state.result.truncated};}
+    catch(error){if((error as Error).name===TIMEOUT_ERROR)this.error(error);throw error;}
   }
   getSearchHits():Hit[] {return [...(this.searchState?.result.hits??[])];}
   clearSearch() {
-    this.assertAlive();if(!this.searchState)return;
+    this.assertAlive();if(!this.searchState&&!this.searchBusy)return;
     this.dropSearch();this.inspectorDirty=true;this.schedule();
   }
   private dropSearch() {
     $<HTMLInputElement>(this.root,'[aria-label="Find motif"]').value='';
+    if(this.searchBusy)this.message('');
+    ++this.searchRun;this.searchBusy=false;this.searcher.cancel();
     if(!this.searchState)return;
     this.searchState=undefined;this.emit('search',null);
   }
-  private runSearch(pattern:string,options:SearchOptions,refilter=false) {
+  /** Validate on the main thread, then scan in the search worker. A newer run, clear or load discards this one with an AbortError; a TimeoutError drops the hits. */
+  private async runSearch(pattern:string,options:SearchOptions,refilter=false) {
+    const a=this.a!;compilePattern(pattern,{alphabet:a.alphabet,mode:options.mode});
+    const run=++this.searchRun;this.searcher.cancel();this.searchBusy=true;
+    const current=()=>{if(this.disposed||this.a!==a||run!==this.searchRun)throw new DOMException('Search replaced','AbortError');};
     const old=this.searchState,same=old?.pattern===pattern&&old.options.mode===options.mode&&old.options.strands===options.strands;let full=same?old!.full:undefined,result:SearchResult;
-    if(!same){full=findHits(this.a!,pattern,options);if(full.truncated)full=undefined;}
-    if(full){
-      const hits=new Map<number,Hit[]>();for(const hit of full.hits){const list=hits.get(hit.row);if(list)list.push(hit);else hits.set(hit.row,[hit]);}
-      result={hits:this.filteredRows.flatMap(r=>hits.get(r)??[]),truncated:false};
-    }else result=findHits(this.a!,pattern,{...options,rows:this.filteredRows});
+    try{
+      if(!same){full=await this.searcher.search(a,pattern,options);current();if(full.truncated)full=undefined;}
+      if(full){
+        const hits=new Map<number,Hit[]>();for(const hit of full.hits){const list=hits.get(hit.row);if(list)list.push(hit);else hits.set(hit.row,[hit]);}
+        result={hits:this.filteredRows.flatMap(r=>hits.get(r)??[]),truncated:false};
+      }else{let rows:number[];do{rows=this.filteredRows;result=await this.searcher.search(a,pattern,{...options,rows});current();}while(rows!==this.filteredRows);}
+    }catch(error){
+      if(run===this.searchRun){this.searchBusy=false;if((error as Error).name===TIMEOUT_ERROR&&this.searchState){this.searchState=undefined;this.inspectorDirty=true;this.schedule();this.emit('search',null);}}
+      throw error;
+    }
+    this.searchBusy=false;
     const byRow=new Map<number,Hit[]>(),previous=same?old!.result.hits[old!.cursor]:undefined;
     for(const hit of result.hits){const list=byRow.get(hit.row);if(list)list.push(hit);else byRow.set(hit.row,[hit]);}
     const cursor=previous?result.hits.findIndex(h=>h.rowId===previous.rowId&&h.start===previous.start&&h.end===previous.end&&h.strand===previous.strand):-1;
@@ -621,14 +633,14 @@ export class AlignmentViewer {
     const concealed=!this.columns.mask.subarray(hit.start-1,hit.end).includes(1);
     this.message(`Hit ${index+1} of ${state.result.hits.length.toLocaleString()} in ${this.a.rows[hit.row].name}, sequence positions ${hit.seqStart}–${hit.seqEnd}, ${hit.strand==='+'?'forward':'reverse'} strand.${concealed?' The hit is in hidden columns. Use Show all columns to reveal it.':''}`);
   }
-  /** Search for `motif` if it is not the active search, then select the next (1) or previous (-1) hit, wrapping around. Returns true when it started a new search. */
-  findMotif(motif:string,direction:1|-1=1):boolean {
+  /** Search for `motif` if it is not the active search, then select the next (1) or previous (-1) hit, wrapping around. Resolves true when it started a new search. Errors go to the status line and the `error` event. */
+  async findMotif(motif:string,direction:1|-1=1):Promise<boolean> {
     this.assertAlive();if(!this.a)return false;
     try {
       const text=motif.trim();
       if(!text){this.clearSearch();return false;}
       const started=this.searchState?.pattern!==text;
-      if(started)this.runSearch(text,{});
+      if(started){this.message('Searching…');await this.runSearch(text,{});}
       const state=this.searchState!,n=state.result.hits.length;
       if(!n){this.message(`No match for ${text}${this.filteredRows.length<this.a.rows.length?' in the filtered sequences':''}.`);return started;}
       this.goToHit(state.cursor<0?(direction>0?0:n-1):(state.cursor+direction+n)%n);
@@ -805,13 +817,13 @@ export class AlignmentViewer {
     on(this.root,'dragover',(event:DragEvent)=>event.preventDefault());on(this.root,'drop',(event:DragEvent)=>{event.preventDefault();const file=event.dataTransfer?.files[0];if(file)void this.openFile(file);});
   }
   clear() {
-    this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();
+    this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.searcher.cancel();
     this.loading=false;this.pendingLink=undefined;
     this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.dropSearch();this.selectedRows.clear();this.annotationFilter={};this.hidden.clear();this.manualHidden=[];this.colMap=undefined;this.manualOrder=null;this.collapsed.clear();this.groupMap=null;this.groupList=[];this.tree=undefined;this.treeHits=[];this.rowPos=new Int32Array(0);if(this.sort==='tree'||this.sort==='manual'){this.sort='input';$<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';}
     this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
     $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).';this.message('');this.layout();this.emit('selection',null);
   }
-  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);clearTimeout(this.linkTimer);this.listeners.clear();this.root.remove();}
+  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.searcher.cancel();this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);clearTimeout(this.linkTimer);this.listeners.clear();this.root.remove();}
 }
 export const createViewer=(element:HTMLElement,options:ViewerOptions={})=>new AlignmentViewer(element,options);

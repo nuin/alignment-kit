@@ -57,7 +57,7 @@ it('cancels stale loads and removes listeners and DOM on destroy',async()=>{
 });
 it('restores state only for the correct dataset and maps ungapped motifs through gaps',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());await viewer.setAlignment(data());
-  viewer.findMotif('ACG');expect(viewer.getState().selection).toMatchObject({start:1,end:4,rowId:'seq-1'});
+  await viewer.findMotif('ACG');expect(viewer.getState().selection).toMatchObject({start:1,end:4,rowId:'seq-1'});
   viewer.setOptions({visibility:{overview:false}});const state=viewer.getState();viewer.setSelection(null);viewer.setOptions({visibility:{overview:true}});await viewer.setState(state);expect(viewer.getState().selection?.start).toBe(1);expect(viewer.getVisibility().overview).toBe(false);
   await viewer.setState({...state,visibility:undefined});expect(viewer.getVisibility().overview).toBe(false);
   await expect(viewer.setState({...state,alignmentId:'wrong'})).rejects.toThrow(/different alignment/);
