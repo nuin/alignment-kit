@@ -18,8 +18,9 @@ export interface Alignment {
   codes: Uint8Array; annotations: Annotation[]; metadata: AlignmentMetadata;
 }
 export interface ParseOptions { name?: string; alphabet?: Alphabet; format?: 'fasta'|'stockholm'|'clustal'; source?: Provenance }
-export interface AlignmentStats { width:number; total:number; counts:Uint32Array; gaps:Uint32Array; consensus:Uint8Array; frequency:Float32Array; support:Float32Array }
-export interface ColumnDetail { column:number; total:number; gapCount:number; gapFraction:number|null; consensus:string|null; tied:boolean; frequency:number|null; support:number|null; counts:{residue:string;count:number}[] }
+/** `entropy` and `information` are in bits (NaN for all-gap columns); `quality` is 0 to 1, protein only (NaN otherwise and for columns with fewer than two scored residues). */
+export interface AlignmentStats { width:number; total:number; counts:Uint32Array; gaps:Uint32Array; consensus:Uint8Array; frequency:Float32Array; support:Float32Array; entropy:Float32Array; information:Float32Array; quality:Float32Array }
+export interface ColumnDetail { column:number; total:number; gapCount:number; gapFraction:number|null; consensus:string|null; tied:boolean; frequency:number|null; support:number|null; entropy:number|null; information:number|null; quality:number|null; counts:{residue:string;count:number}[] }
 export interface Identity { matches:number; compared:number; identity:number|null }
 export interface Selection { start:number; end:number; rowId?:string }
 export interface AnnotationFilter { types?:string[]; consequences?:string[]; disease?:boolean; phenotype?:boolean; hiddenRowIds?:string[] }
@@ -58,6 +59,9 @@ export interface ViewerVisibility {
   gapFraction?:boolean;
   consensus?:boolean;
   logo?:boolean;
+  entropy?:boolean;
+  quality?:boolean;
+  stockholmTracks?:boolean;
   reference?:boolean;
   labels?:boolean;
   rowNames?:boolean;
@@ -84,6 +88,14 @@ export interface ViewerVisibility {
   messages?:boolean;
   emptyState?:boolean;
 }
+export type TrackType = 'bar'|'heatmap'|'text'|'custom';
+export interface TrackRenderInfo { start:number; end:number; cellWidth:number; offsetX:number; top:number; height:number; alignment:Alignment }
+/** A track drawn below the built-in tracks. `values` holds one entry per alignment column; a string gives one character per column (digits read as 0 to 9 for bar and heatmap). `render` is required for `custom` and is called with the context clipped to the track; `start` and `end` are the visible 1-based inclusive columns and `offsetX` is the x of column `start`. */
+export interface CustomTrack {
+  id:string; label:string; /** 12 to 120, default 26. */ height?:number; type:TrackType;
+  values?:ArrayLike<number|null>|string; /** Default [0, 1]. */ domain?:[number,number]; color?:string;
+  render?(ctx:CanvasRenderingContext2D,info:TrackRenderInfo):void;
+}
 export interface ViewerOptions {
   visibility?:ViewerVisibility;
   alignment?: Alignment; height?:number; theme?:'light'|'dark';
@@ -96,6 +108,12 @@ export interface ViewerOptions {
   fasta?:FastaOptions;
   /** Keep location.hash in sync with the view and apply a link found there on the next load. */
   urlSync?:boolean;
+  /** Registered tracks; replaces the current set. */
+  tracks?:CustomTrack[];
+  /** 'bits' scales each logo stack by information content. Default 'frequency'. */
+  logoMode?:'frequency'|'bits';
+  /** Odd integer 1 to 51 (default 1): centered moving average for the entropy and quality bars. */
+  conservationWindow?:number;
 }
 export interface ViewState {
   visibility?:ViewerVisibility;

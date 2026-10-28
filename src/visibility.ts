@@ -1,13 +1,13 @@
-import type { ViewerVisibility } from './types';
+import type { Alphabet, ViewerVisibility } from './types';
 
-/** Every presentation switch defaults on, except the optional frequency logo. */
+/** Every presentation switch defaults on, except the frequency logo and the entropy and quality tracks. */
 export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.freeze({
   toolbar:true, tools:true, overview:true, overviewTitle:true, tracks:true, alignment:true,
   inspector:true, inspectorTabs:true, status:true, statusSummary:true, statusDetails:true,
   open:true, search:true, colorScheme:true, zoom:true, fit:true, theme:true,
   inspectorToggle:true, fullscreen:true, export:true, goTo:true, motif:true,
   order:true, colorMode:true, logoToggle:true, statisticsScope:true, alphabet:true,
-  ruler:true, modalFrequency:true, gapFraction:true, consensus:true, logo:false, reference:true,
+  ruler:true, modalFrequency:true, gapFraction:true, consensus:true, logo:false, entropy:false, quality:false, stockholmTracks:true, reference:true,
   labels:true, rowNames:true, rowSpecies:true, rowSelection:true, rowPinning:true, labelResize:true,
   residueLetters:true, annotationMarks:true, selectionOverlay:true,
   positionTab:true, featuresTab:true, compareTab:true, colorsTab:true,
@@ -47,13 +47,16 @@ export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {
   }
   for(const button of root.querySelectorAll<HTMLElement>('[data-row]'))button.hidden=!v.rowNames&&!v.rowSpecies;
 }
-export type TrackName='ruler'|'modalFrequency'|'gapFraction'|'consensus'|'logo'|'reference';
-/** One geometry source for both canvas tracks and their DOM labels. */
-export function trackLayout(v:Required<ViewerVisibility>,rowHeight:number) {
-  const offsets:Record<TrackName,number|null>={ruler:null,modalFrequency:null,gapFraction:null,consensus:null,logo:null,reference:null};
+export type TrackName='ruler'|'modalFrequency'|'gapFraction'|'entropy'|'quality'|'consensus'|'logo'|'reference';
+export const trackNames:readonly TrackName[]=['ruler','modalFrequency','gapFraction','entropy','quality','consensus','logo','reference'];
+/** One geometry source for both canvas tracks and their DOM labels. Built-ins come first, then `extra` tracks in order. Quality needs a protein alignment. */
+export function trackLayout(v:Required<ViewerVisibility>,rowHeight:number,extra:readonly {height:number}[]=[],alphabet?:Alphabet) {
+  const offsets:Record<TrackName,number|null>={ruler:null,modalFrequency:null,gapFraction:null,entropy:null,quality:null,consensus:null,logo:null,reference:null};
+  const custom:{offset:number;height:number}[]=[];
   let height=0;
-  for(const [name,size] of [['ruler',26],['modalFrequency',26],['gapFraction',26],['consensus',36],['logo',45],['reference',rowHeight]] as const) {
-    if(v.tracks&&v[name]){offsets[name]=height;height+=size;}
+  for(const [name,size] of [['ruler',26],['modalFrequency',26],['gapFraction',26],['entropy',26],['quality',26],['consensus',36],['logo',45],['reference',rowHeight]] as const) {
+    if(v.tracks&&v[name]&&!(name==='quality'&&alphabet&&alphabet!=='protein')){offsets[name]=height;height+=size;}
   }
-  return {offsets,height};
+  if(v.tracks)for(const t of extra){custom.push({offset:height,height:t.height});height+=t.height;}
+  return {offsets,custom,height};
 }

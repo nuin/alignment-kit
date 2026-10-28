@@ -3,8 +3,38 @@ export const SYMBOLS='ABCDEFGHIJKLMNOPQRSTUVWXYZ*-';
 export const STRIDE=28;
 const symbolIndex=new Int16Array(128).fill(-1);
 for(let i=0;i<SYMBOLS.length;i++) symbolIndex[SYMBOLS.charCodeAt(i)]=i;
+const AMINO='ARNDCQEGHILKMFPSTWYV';
+const BLOSUM62=[[4,-1,-2,-2,0,-1,-1,0,-2,-1,-1,-1,-1,-2,-1,1,0,-3,-2,0],[-1,5,0,-2,-3,1,0,-2,0,-3,-2,2,-1,-3,-2,-1,-1,-3,-2,-3],[-2,0,6,1,-3,0,0,0,1,-3,-3,0,-2,-3,-2,1,0,-4,-2,-3],[-2,-2,1,6,-3,0,2,-1,-1,-3,-4,-1,-3,-3,-1,0,-1,-4,-3,-3],[0,-3,-3,-3,9,-3,-4,-3,-3,-1,-1,-3,-1,-2,-3,-1,-1,-2,-2,-1],[-1,1,0,0,-3,5,2,-2,0,-3,-2,1,0,-3,-1,0,-1,-2,-1,-2],[-1,0,0,2,-4,2,5,-2,0,-3,-3,1,-2,-3,-1,0,-1,-3,-2,-2],[0,-2,0,-1,-3,-2,-2,6,-2,-4,-4,-2,-3,-3,-2,0,-2,-2,-3,-3],[-2,0,1,-1,-3,0,0,-2,8,-3,-3,-1,-2,-1,-2,-1,-2,-2,2,-3],[-1,-3,-3,-3,-1,-3,-3,-4,-3,4,2,-3,1,0,-3,-2,-1,-3,-1,3],[-1,-2,-3,-4,-1,-2,-3,-4,-3,2,4,-2,2,0,-3,-2,-1,-2,-1,1],[-1,2,0,-1,-3,1,1,-2,-1,-3,-2,5,-1,-3,-1,0,-1,-3,-2,-2],[-1,-1,-2,-3,-1,0,-2,-3,-2,1,2,-1,5,0,-2,-1,-1,-1,-1,1],[-2,-3,-3,-3,-2,-3,-3,-3,-1,0,0,-3,0,6,-4,-2,-2,1,3,-1],[-1,-2,-2,-1,-3,-1,-1,-2,-2,-3,-3,-1,-2,-4,7,-1,-1,-4,-3,-2],[1,-1,1,0,-1,0,0,0,-1,-2,-2,0,-1,-2,-1,4,1,-3,-2,-2],[0,-1,0,-1,-1,-1,-1,-2,-2,-1,-1,-1,-1,-2,-1,1,5,-2,-2,0],[-3,-3,-4,-4,-2,-2,-3,-2,-2,-3,-2,-3,-1,1,-4,-3,-2,11,2,-3],[-2,-2,-2,-3,-2,-1,-2,-3,2,-1,-1,-2,-1,3,-3,-2,-2,2,7,-1],[0,-3,-3,-3,-1,-2,-2,-3,-3,3,1,-2,1,-1,-2,-2,0,-3,-1,4]];
+/** BLOSUM62 entries over the 20 standard amino acids; quality is rescaled from [BLOSUM_MIN, BLOSUM_MAX] to [0, 1]. */
+export const BLOSUM_MIN=-4,BLOSUM_MAX=11;
+/** BLOSUM62 score of two residue letters, or null when either is not one of the 20 standard amino acids. */
+export function blosum62(x:string,y:string):number|null {const i=AMINO.indexOf(x),j=AMINO.indexOf(y);return i<0||j<0?null:BLOSUM62[i][j];}
+const aminoSlots=[...AMINO].map(r=>SYMBOLS.indexOf(r));
+/** Shannon entropy in bits over the non-gap residue counts of one column; NaN when there are none. */
+function columnEntropy(counts:Uint32Array,off:number):number {
+  let n=0;for(let k=0;k<27;k++)n+=counts[off+k];
+  if(!n)return NaN;
+  let h=0;for(let k=0;k<27;k++){const x=counts[off+k];if(x){const p=x/n;h-=p*Math.log2(p);}}
+  return h;
+}
+/** Mean pairwise BLOSUM62 score over pairs of rows holding standard amino acids, scaled to 0..1; NaN below two scored residues. */
+function columnQuality(counts:Uint32Array,off:number):number {
+  let n=0,sum=0;
+  for(let i=0;i<20;i++){
+    const x=counts[off+aminoSlots[i]];if(!x)continue;n+=x;sum+=x*(x-1)/2*BLOSUM62[i][i];
+    for(let j=i+1;j<20;j++){const y=counts[off+aminoSlots[j]];if(y)sum+=x*y*BLOSUM62[i][j];}
+  }
+  return n<2?NaN:(sum/(n*(n-1)/2)-BLOSUM_MIN)/(BLOSUM_MAX-BLOSUM_MIN);
+}
+/** Centered moving average over `window` columns (odd), skipping NaN; edges average the columns that exist. */
+export function movingAverage(values:ArrayLike<number>,window:number,column:number):number {
+  const half=(window-1)/2,from=Math.max(0,column-half),to=Math.min(values.length-1,column+half);let sum=0,n=0;
+  for(let c=from;c<=to;c++)if(!Number.isNaN(values[c])){sum+=values[c];n++;}
+  return n?sum/n:NaN;
+}
 export function calculateStats(a:Alignment, rows?:number[]):AlignmentStats {
-  const counts=new Uint32Array(a.width*STRIDE), gaps=new Uint32Array(a.width), consensus=new Uint8Array(a.width), frequency=new Float32Array(a.width),support=new Float32Array(a.width);
+  const counts=new Uint32Array(a.width*STRIDE), gaps=new Uint32Array(a.width), consensus=new Uint8Array(a.width), frequency=new Float32Array(a.width),support=new Float32Array(a.width),entropy=new Float32Array(a.width),information=new Float32Array(a.width),quality=new Float32Array(a.width).fill(NaN);
+  const alphabetSize=a.alphabet==='protein'?20:4;
   const total=rows?.length??a.rows.length;
   for(let i=0;i<total;i++) {
     const r=rows?rows[i]:i;
@@ -23,15 +53,19 @@ export function calculateStats(a:Alignment, rows?:number[]):AlignmentStats {
     consensus[c]=max?(tied?63:code):45;
     frequency[c]=total>gaps[c]?max/(total-gaps[c]):NaN;
     support[c]=total?max/total:NaN;
+    const n=total-gaps[c],h=columnEntropy(counts,off);
+    entropy[c]=h;information[c]=n?Math.max(0,Math.log2(alphabetSize)-(h+(alphabetSize-1)/(2*Math.LN2*n))):NaN;
+    if(a.alphabet==='protein')quality[c]=columnQuality(counts,off);
   }
-  return {width:a.width,total,counts,gaps,consensus,frequency,support};
+  return {width:a.width,total,counts,gaps,consensus,frequency,support,entropy,information,quality};
 }
+const finite=(x:number)=>Number.isNaN(x)?null:x;
 export function columnDetail(s:AlignmentStats,column:number):ColumnDetail {
   if(!Number.isInteger(column)||column<1||column>s.width) throw new Error('Invalid column.');
   const c=column-1, counts=[];
   for(let k=0;k<27;k++) if(s.counts[c*STRIDE+k]) counts.push({residue:SYMBOLS[k],count:s.counts[c*STRIDE+k]});
   counts.sort((a,b)=>b.count-a.count || a.residue.localeCompare(b.residue));
-  return {column,total:s.total,gapCount:s.gaps[c],gapFraction:s.total?s.gaps[c]/s.total:null,consensus:s.consensus[c]===45||s.consensus[c]===63?null:String.fromCharCode(s.consensus[c]),tied:s.consensus[c]===63,frequency:Number.isNaN(s.frequency[c])?null:s.frequency[c],support:Number.isNaN(s.support[c])?null:s.support[c],counts};
+  return {column,total:s.total,gapCount:s.gaps[c],gapFraction:s.total?s.gaps[c]/s.total:null,consensus:s.consensus[c]===45||s.consensus[c]===63?null:String.fromCharCode(s.consensus[c]),tied:s.consensus[c]===63,frequency:Number.isNaN(s.frequency[c])?null:s.frequency[c],support:Number.isNaN(s.support[c])?null:s.support[c],entropy:finite(s.entropy[c]),information:finite(s.information[c]),quality:finite(s.quality[c]),counts};
 }
 export function pairwiseIdentity(a:Alignment,rowA:number,rowB:number):Identity {
   if(!a.rows[rowA]||!a.rows[rowB]) throw new Error('Invalid sequence row.');

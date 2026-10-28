@@ -178,14 +178,14 @@ const current = viewer.getVisibility(); // a copy of all resolved flags
 viewer.setOptions({ visibility: { ...defaultVisibility } }); // restore defaults
 ```
 
-All flags default to `true`, except `logo`, which defaults to `false`. Parent regions gate their children; showing a child does not override a hidden parent. Empty toolbars and the inspector with no enabled tabs collapse automatically. Hiding the active inspector tab selects the next enabled tab. Hidden controls leave the tab order, and hiding an open menu closes it.
+All flags default to `true`, except `logo`, `entropy` and `quality`, which default to `false`. Parent regions gate their children; showing a child does not override a hidden parent. Empty toolbars and the inspector with no enabled tabs collapse automatically. Hiding the active inspector tab selects the next enabled tab. Hidden controls leave the tab order, and hiding an open menu closes it.
 
 | Region | `visibility` keys |
 |---|---|
 | Main layout | `toolbar`, `tools`, `overview`, `overviewTitle`, `tracks`, `alignment`, `inspector`, `inspectorTabs`, `status` |
 | Main toolbar | `open`, `search`, `colorScheme`, `zoom`, `fit`, `theme`, `inspectorToggle`, `fullscreen`, `export` |
 | Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `statisticsScope`, `alphabet` |
-| Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `consensus`, `logo`, `reference` |
+| Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`, `stockholmTracks` |
 | Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `labelResize` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab` |
@@ -284,10 +284,47 @@ Statistics default to all loaded rows. Scrolling, pinning a reference and visual
 | Consensus support | Largest non-gap symbol count / all scoped rows |
 | Consensus | Unique most frequent non-gap symbol; ties are explicit |
 | Consensus sequence | Track, export, copy and `getConsensus()`: modal non-gap residue; ties as IUPAC codes (DNA/RNA) or `X`; `X`/`N` below `consensusThreshold` |
-| Frequency logo | Literal symbol frequencies among non-gap rows; not information content |
+| Frequency logo | Literal symbol frequencies among non-gap rows; information content with `logoMode: 'bits'` |
+| Entropy | Shannon entropy in bits over non-gap residues, `-sum p log2 p`, using every non-gap symbol including ambiguity codes |
+| Information | `max(0, log2 s - (H + e(n)))` with `e(n) = (s - 1) / (2 ln2 n)`, `n` non-gap rows, `s` = 4 (DNA/RNA) or 20 (protein) |
+| Quality | Protein only: mean BLOSUM62 score over all pairs of non-gap rows holding one of the 20 standard amino acids, scaled to 0..1 as `(mean + 4) / 15`; NaN for DNA/RNA and for columns with fewer than 2 scored residues |
 | Pairwise identity | Exact matches / columns with canonical residues in both rows |
 
 Ambiguity symbols are counted separately and never fractionally distributed. All-gap modal frequency/consensus and identity with zero comparable positions are unavailable. Pairwise identity excludes gaps, ambiguity and stops; it includes matched and compared-position counts. Its matrix is calculated only for selected rows, capped at 200, in a cancellable worker. Selecting **Identity to reference** computes and sorts reference identities; selecting a row then shows its identity and compared-position count.
+
+## Tracks
+
+Built-in tracks, top to bottom: `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`. `entropy` and `quality` default to hidden. `quality` is only drawn for protein alignments. Registered and Stockholm tracks draw after the built-ins, with labels in the label gutter. Clicking any track column selects that column (`Shift` extends the range); clicking the reference row also selects that row.
+
+`entropy`, `information` and `quality` are `Float32Array`s on `AlignmentStats` (`NaN` where undefined), appear in the Position tab, and are the last three columns of the Column statistics TSV (`entropy_bits`, `information_bits`, `quality`; `NA` when undefined). Two options shape them:
+
+- `logoMode: 'frequency' | 'bits'` (default `'frequency'`). `'bits'` scales each letter stack by `information / log2(s)`.
+- `conservationWindow` (odd integer 1 to 51, default 1). Centered moving average of the entropy and quality bars, skipping `NaN`. `setOptions` rounds an even value down to the next odd one; JSON configuration rejects it.
+
+### Custom tracks
+
+```ts
+viewer.addTrack({ id: 'rate', label: 'Rate', type: 'bar', values: rates, domain: [0, 5], color: '#8a6bb0' });
+viewer.addTrack({ id: 'dom', label: 'Domain', type: 'custom', height: 30, render(ctx, { start, end, cellWidth, offsetX, top, height }) { /* draw columns start..end */ } });
+createViewer(element, { tracks: [{ id: 'ss', label: 'Structure', type: 'text', values: 'HHHEEE' }] });
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | 1 to 64 letters, digits, `.`, `:`, `_`, `-`. Unique; built-in names are reserved. |
+| `label` | Gutter label, 1 to 120 characters |
+| `type` | `bar` (height scales with value), `heatmap` (opacity scales with value), `text` (one character per column), `custom` |
+| `height` | 12 to 120, default 26 |
+| `values` | One entry per alignment column: an array of numbers and `null`, or a string. In a string, digits `0`-`9` are values for `bar` and `heatmap`. Typed arrays work in JavaScript. |
+| `domain` | `[min, max]` mapped to 0..1, default `[0, 1]` |
+| `color` | Any CSS color, default `#3a7da4` |
+| `render(ctx, info)` | Required for `custom`. `ctx` is clipped to the track. `info` has `start` and `end` (visible 1-based inclusive columns), `cellWidth`, `offsetX` (x of column `start`), `top`, `height` and `alignment`. |
+
+`addTrack(track)`, `removeTrack(id)` and `getTracks()` (copies, in drawing order) manage tracks; `ViewerOptions.tracks` replaces the whole set. Errors are thrown and also emitted as `error`: invalid fields, a duplicate id, an unknown id, and a `values` length other than the alignment width. A registered track whose `values` do not fit a newly loaded alignment emits `error` and is skipped until it fits. A `render` that throws emits `error` once per track. JSON configuration accepts `bar`, `heatmap` and `text` tracks with `values` as a string or an array of numbers and `null`; `render` and `custom` need JavaScript.
+
+### Stockholm tracks
+
+Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (default). Each key (`SS_cons`, `RF`, `seq_cons` and others) is a 20 px text track; `PP_cons` is grey shading from `0` to `9`. `#=GR` lines draw for the selected row, or the pinned reference when no row is selected, labelled `<feature> <row name>`; `PP` is shaded. Selecting another row swaps the `#=GR` tracks. These tracks are not listed by `getTracks()`.
 
 ## API and controls
 
@@ -309,12 +346,13 @@ Ambiguity symbols are counted separately and never fractionally distributed. All
 | `getSelectedRowIds()` | Read checked sequence IDs |
 | `copySelection()` / `getSelectionText()` | Copy the selection to the clipboard as gapped FASTA / return that text |
 | `getViewLink()` / `applyViewLink(link)` | Encode the view as URL parameters / apply a link, skipping settings that do not fit |
+| `addTrack(track)` / `removeTrack(id)` / `getTracks()` | Register, remove and list custom tracks (see Tracks) |
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
 Events: `ready`, `selection`, `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
-Options: `height`, `theme`, `colorScheme`, `colorMode`, `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+Options: `height`, `theme`, `colorScheme`, `colorMode`, `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
 

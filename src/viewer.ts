@@ -1,5 +1,5 @@
-import { defaultVisibility, applyVisibility, trackLayout, inspectorTabs } from './visibility';
-import type { ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode } from './types';
+import { defaultVisibility, applyVisibility, trackLayout, trackNames, inspectorTabs } from './visibility';
+import type { ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode, CustomTrack } from './types';
 import { createAlignment, sequenceToAlignment } from './model';
 import { readAlignmentInput } from './parsers';
 import { AnnotationIndex, filterAnnotations } from './annotations';
@@ -11,13 +11,14 @@ import { renderInspector } from './inspector';
 import { exportFasta, formatFastaRecord, validateFastaOptions, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
 import { WorkerTask } from './worker-client';
 import { consensusSequence } from './analysis';
+import { validateTrack, validateTracks, checkTrackLength, stockholmTracks, trackHeight } from './tracks';
 import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './link';
 
 const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 export class AlignmentViewer {
   readonly element:HTMLElement;
   private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
-  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'>>;
+  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'logoMode'|'conservationWindow'>>;
   private a?:Alignment; private stats?:AlignmentStats;private fullStats?:AlignmentStats;
   private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
@@ -32,11 +33,36 @@ export class AlignmentViewer {
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
+  private customTracks:CustomTrack[]=[];private drawn?:{a:Alignment;row:number;flag:boolean;user:CustomTrack[];list:CustomTrack[]};private trackKey='';private trackErrors=new Set<string>();
+  private selectionRow(){return this.selection?.rowId&&this.a?this.a.rows.findIndex(r=>r.id===this.selection!.rowId):this.reference;}
+  /** Tracks drawn after the built-ins: Stockholm lines first, then registered tracks whose values fit the alignment. Same array until an input changes. */
+  private drawnTracks():CustomTrack[] {
+    const a=this.a;if(!a)return [];
+    const row=this.selectionRow(),flag=this.visibility.stockholmTracks,d=this.drawn;
+    if(d&&d.a===a&&d.row===row&&d.flag===flag&&d.user===this.customTracks)return d.list;
+    const list=[...(flag?stockholmTracks(a,row):[]),...this.customTracks.filter(t=>t.values===undefined||t.values.length===a.width)];
+    this.drawn={a,row,flag,user:this.customTracks,list};return list;
+  }
+  private checkTracks(){if(this.a)for(const t of this.customTracks)try{checkTrackLength(t,this.a.width);}catch(error){this.error(error);}}
+  private tracksChanged(){this.trackKey='';this.layout();}
+  /** Register a track drawn below the built-in tracks. Throws (and emits `error`) for an invalid definition, a duplicate id or, once an alignment is loaded, a `values` length other than the alignment width. */
+  addTrack(track:CustomTrack):void {
+    this.assertAlive();
+    try{const t=validateTrack(track);if(this.customTracks.some(x=>x.id===t.id))throw new Error(`Track ${t.id}: a track with this id already exists.`);if(this.a)checkTrackLength(t,this.a.width);this.customTracks=[...this.customTracks,t];}catch(error){throw this.error(error);}
+    this.tracksChanged();
+  }
+  removeTrack(id:string):void {
+    this.assertAlive();
+    if(!this.customTracks.some(t=>t.id===id))throw this.error(new Error(`Unknown track: ${id}.`));
+    this.customTracks=this.customTracks.filter(t=>t.id!==id);this.trackErrors.delete(id);this.tracksChanged();
+  }
+  /** Registered tracks in drawing order (copies). Tracks derived from Stockholm lines are not listed. */
+  getTracks():CustomTrack[]{return this.customTracks.map(t=>({...t}));}
   private motifCursor={query:'',row:0,start:0};
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,logoMode:'frequency',conservationWindow:1,...options,fasta:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -86,7 +112,7 @@ export class AlignmentViewer {
     this.assertAlive();++this.loadRevision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();const revision=++this.revision;
     if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw this.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
     this.sourceUrl=this.nextSource;this.nextSource=undefined;this.loading=true;
-    this.a=alignment;this.stats=undefined;this.fullStats=undefined;this.reference=0;this.selection=null;this.selectedRows.clear();this.query='';this.sort='input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter={};this.featurePage=0;
+    this.a=alignment;this.trackErrors.clear();this.checkTracks();this.stats=undefined;this.fullStats=undefined;this.reference=0;this.selection=null;this.selectedRows.clear();this.query='';this.sort='input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter={};this.featurePage=0;
     this.menus.close();const schemes=colorSchemes(alignment.alphabet);
     if(!schemes.some(s=>s.id===this.options.colorScheme))this.options.colorScheme=alignment.alphabet==='protein'?'soft':'soft-nucleotide';
     const palette=$<HTMLSelectElement>(this.root,'select[aria-label="Color scheme"]');palette.replaceChildren(...schemes.map(s=>new Option(s.label,s.id)));palette.value=this.options.colorScheme;
@@ -106,7 +132,9 @@ export class AlignmentViewer {
     this.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
     const oldScope=this.options.statisticsScope;
     const wasPinned=this.pinned;
-    const {alignment:_,worker:__,workerUrl:___,visibility,fasta,...visual}=options;
+    const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,...visual}=options;
+    if(tracks!==undefined){try{this.customTracks=validateTracks(tracks);}catch(error){throw this.error(error);}this.trackErrors.clear();this.checkTracks();this.trackKey='';}
+    if(visual.logoMode!==undefined&&visual.logoMode!=='frequency'&&visual.logoMode!=='bits')throw this.error(new Error('logoMode must be "frequency" or "bits".'));
     const mergedFasta=fasta?validateFastaOptions({...this.options.fasta,...fasta}):this.options.fasta;
     if(options.showToolbar!==undefined){this.visibility.toolbar=options.showToolbar;this.visibility.tools=options.showToolbar;}
     if(options.showInspector!==undefined)this.visibility.inspector=options.showInspector;
@@ -116,7 +144,7 @@ export class AlignmentViewer {
     Object.assign(this.options,visual);this.options.fasta=mergedFasta;
     this.options.showInspector=this.visibility.inspector;this.options.showLogo=this.visibility.logo;
     if(this.a&&!colorSchemes(this.a.alphabet).some(s=>s.id===this.options.colorScheme))this.options.colorScheme=this.a.alphabet==='protein'?'soft':'soft-nucleotide';
-    this.options.cellWidth=bounded(this.options.cellWidth,3,32);this.options.rowHeight=bounded(this.options.rowHeight,18,48);this.options.labelWidth=bounded(this.options.labelWidth,100,420);this.options.height=bounded(this.options.height,360,2000);this.options.consensusThreshold=bounded(this.options.consensusThreshold,0,1);
+    this.options.cellWidth=bounded(this.options.cellWidth,3,32);this.options.rowHeight=bounded(this.options.rowHeight,18,48);this.options.labelWidth=bounded(this.options.labelWidth,100,420);this.options.height=bounded(this.options.height,360,2000);this.options.consensusThreshold=bounded(this.options.consensusThreshold,0,1);{const w=Math.round(bounded(this.options.conservationWindow,1,51));this.options.conservationWindow=w%2?w:w-1;}
     this.root.style.height=this.options.height+'px';this.root.dataset.theme=this.options.theme;this.root.dataset.inspector=String(this.options.showInspector);
     if(wasPinned!==this.pinned)this.rebuildRows();
     $<HTMLSelectElement>(this.root,'[aria-label="Color scheme"]').value=this.options.colorScheme;
@@ -168,7 +196,8 @@ export class AlignmentViewer {
   setSelection(selection:Selection|null,scrollIntoView=true) {
     this.assertAlive();if(!this.a)return;
     if(selection&&(!Number.isInteger(selection.start)||!Number.isInteger(selection.end)||selection.start<1||selection.end<selection.start||selection.end>this.a.width||(selection.rowId&&!this.a.rows.some(r=>r.id===selection.rowId))))throw new Error('Invalid selection coordinates or row ID.');
-    this.selection=selection?{...selection}:null;this.tab='position';this.ensureTab();this.inspectorDirty=true;
+    const before=this.drawnTracks();
+    this.selection=selection?{...selection}:null;if(this.drawnTracks()!==before)this.layout();this.tab='position';this.ensureTab();this.inspectorDirty=true;
     if(selection){$<HTMLInputElement>(this.root,'[aria-label="Go to alignment column"]').value=String(selection.start);if(scrollIntoView)this.reveal(selection);$(this.root,'.ak-live').textContent=`Column ${selection.start}${selection.end!==selection.start?` through ${selection.end}`:''}${selection.rowId?`, ${this.a.rows.find(r=>r.id===selection.rowId)?.name}`:''}`;}
     this.schedule();this.emit('selection',this.selection);this.emit('state',this.getState());
   }
@@ -186,16 +215,19 @@ export class AlignmentViewer {
     this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,statisticsScope:state.statisticsScope,visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
     this.scroll.scrollLeft=(state.start-1)*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
   }
-  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold};}
+  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold,tracks:this.drawnTracks(),logoMode:this.options.logoMode,window:this.options.conservationWindow,trackError:(id,error)=>{if(!this.trackErrors.has(id)){this.trackErrors.add(id);this.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
   private layout() {
     if(this.disposed)return;const rh=this.options.rowHeight,gutter=this.gutter;
-    const tracks=trackLayout(this.visibility,rh);
+    const extra=this.drawnTracks(),tracks=trackLayout(this.visibility,rh,extra.map(t=>({height:trackHeight(t)})),this.a?.alphabet);
     this.menus.sync();applyVisibility(this.root,this.visibility);
     this.root.style.setProperty('--ak-gutter',gutter+'px');this.root.style.setProperty('--ak-row-height',rh+'px');
     this.root.dataset.compactRows=String(rh<32);
     $(this.root,'.ak-tracks').style.height=tracks.height+'px';$(this.root,'.ak-tracks').hidden=tracks.height===0;
-    const names=['ruler','modalFrequency','gapFraction','consensus','logo','reference'] as const;
-    [...$(this.root,'.ak-track-labels').children].forEach((label,i)=>{const node=label as HTMLElement,offset=tracks.offsets[names[i]];node.hidden=offset===null;node.style.top=((offset??0)+(names[i]==='reference'?0:3))+'px';});
+    const strip=$(this.root,'.ak-track-labels');
+    [...strip.children].slice(0,trackNames.length).forEach((label,i)=>{const node=label as HTMLElement,offset=tracks.offsets[trackNames[i]];node.hidden=offset===null;node.style.top=((offset??0)+(trackNames[i]==='reference'?0:3))+'px';});
+    const key=extra.map((t,i)=>`${t.id}|${t.label}|${tracks.custom[i]?.offset}`).join('\n');
+    if(key!==this.trackKey){this.trackKey=key;for(const old of strip.querySelectorAll('.ak-custom-label'))old.remove();
+      extra.forEach((t,i)=>{const slot=tracks.custom[i];if(!slot)return;const node=document.createElement('span');node.className='ak-custom-label';node.textContent=t.label;node.title=t.label;node.style.top=(slot.offset+Math.max(0,(slot.height-20)/2))+'px';strip.append(node);});}
     const message=$(this.root,'.ak-message');message.hidden=!this.visibility.messages||!message.textContent;
     const spacer=$(this.root,'.ak-spacer');spacer.style.width=(gutter+(this.a?.width??0)*this.options.cellWidth)+'px';spacer.style.height=Math.max(1,this.rows.length*rh)+'px';
     $(this.root,'.ak-empty').hidden=!this.visibility.emptyState||(!!this.a&&this.rows.length>0);
@@ -370,7 +402,15 @@ export class AlignmentViewer {
       if(button.dataset.row)this.setSelection({start:this.selection?.start??1,end:this.selection?.end??1,rowId:button.dataset.row},false);
       if(button.dataset.feature){const feature=this.filteredAnnotations.visible[Number(button.dataset.feature)];if(feature){if(feature.mapping==='mapped')this.setSelection({start:feature.start!,end:feature.end!,rowId:feature.rowId});this.emit('annotation',feature);this.message(`${feature.label}: ${feature.mapping==='mapped'?`alignment columns ${feature.start}–${feature.end}`:'no protein mapping'}. ${JSON.stringify(feature.metadata??{})}`);}}
     });
-    on(this.scroll,'click',(event:MouseEvent)=>{const s=this.eventAt(event);if(s){if(event.shiftKey&&this.selection){s.start=Math.min(this.selection.start,s.start);s.end=Math.max(this.selection.end,s.end);}this.setSelection(s,false);}});
+    const pick=(s:Selection|null,shift:boolean)=>{if(s){if(shift&&this.selection){s.start=Math.min(this.selection.start,s.start);s.end=Math.max(this.selection.end,s.end);}this.setSelection(s,false);}};
+    on(this.scroll,'click',(event:MouseEvent)=>pick(this.eventAt(event),event.shiftKey));
+    on($(this.root,'.ak-tracks'),'click',(event:MouseEvent)=>{
+      if(!this.a||(event.target as HTMLElement).closest('button,[data-action]'))return;
+      const rect=$(this.root,'.ak-tracks').getBoundingClientRect(),x=event.clientX-rect.left-this.gutter,column=Math.floor((x+this.scroll.scrollLeft)/this.options.cellWidth)+1;
+      if(x<0||column<1||column>this.a.width)return;
+      const ref=trackLayout(this.visibility,this.options.rowHeight,[],this.a.alphabet).offsets.reference,onRef=ref!==null&&event.clientY-rect.top>=ref&&event.clientY-rect.top<ref+this.options.rowHeight;
+      pick({start:column,end:column,...(onRef?{rowId:this.a.rows[this.reference].id}:{})},event.shiftKey);
+    });
     on(this.root,'change',(event:Event)=>{
       const target=event.target as HTMLInputElement,aria=target.getAttribute('aria-label');
       if(target.dataset.selectRow){if(target.checked)this.selectedRows.add(target.dataset.selectRow);else this.selectedRows.delete(target.dataset.selectRow);this.inspectorDirty=true;this.labelKey='';this.schedule();}
