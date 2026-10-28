@@ -12,6 +12,7 @@ export { parseGff3, parseBed, parseGenBank, parseEmbl, parseUniProtJson, importA
 export type * from './types';
 export type { ColorScheme } from './colors';
 export { defaultVisibility } from './visibility';
+export type { MarkRange } from './marks';
 export { validateTrack } from './tracks';
 export { parseNewick, leafOrder } from './tree';
 export type { TreeNode } from './tree';

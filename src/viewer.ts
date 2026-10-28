@@ -1,5 +1,5 @@
 import { defaultVisibility } from './visibility';
-import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack, type ParseWarning } from './types';
+import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack, type ParseWarning, type ColumnMark } from './types';
 import { AnnotationIndex, filterAnnotations } from './annotations';
 import { ThemedSelects } from './selects';
 import { Renderer, type RenderView, type GroupInfo, type TreeHit } from './renderer';
@@ -10,6 +10,8 @@ import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './lin
 import { computeColumnMask, buildColumnMap, reverseColumnMap, identityColumns, type ColumnMap, type ColumnRange, type MaskOptions } from './mask';
 import { type TreeLayout } from './tree';
 import * as modColumns from './viewer/columns';
+import * as modMarks from './viewer/marks';
+import type { MarkRange } from './marks';
 import * as modTracks from './viewer/tracks';
 import * as modLoad from './viewer/load';
 import * as modOptions from './viewer/options';
@@ -70,6 +72,14 @@ export class AlignmentViewer {
   showColumns(start?:number,end?:number):void {modColumns.showColumns(this.core, start, end);}
   /** 1 for a visible column, 0 for a hidden one; one entry per alignment column. Empty before an alignment is loaded. */
   getColumnMask():Uint8Array {this.assertAlive();return this.columns.mask.slice();}
+  private columnMarks:ColumnMark[]=[];
+  /** Mark columns (a column number or an inclusive one-based [start, end] range each) with an outline box across all rows and a marker in the ruler. `color` is a hex color, default purple; already marked columns take the new color. Marks use original coordinates, so they survive column masking and show again when hidden columns return. Throws for a range outside 1 to the alignment width. */
+  markColumns(ranges:readonly MarkRange[],color?:string):void {modMarks.markColumns(this.core, ranges, color);}
+  /** Remove marks from the given ranges, or every mark when called with no argument. */
+  unmarkColumns(ranges?:readonly MarkRange[]):void {modMarks.unmarkColumns(this.core, ranges);}
+  /** Marked columns as sorted, non-overlapping { start, end, color } ranges. */
+  getColumnMarks():ColumnMark[] {this.assertAlive();return this.columnMarks.map(m=>({...m}));}
+  private toggleColumnMarks(start:number,end:number):void {modMarks.toggleColumnMarks(this.core, start, end);}
   private columnHidden(column:number):boolean {return modColumns.columnHidden(this.core, column);}
   private ensureTab():void {modTracks.ensureTab(this.core);}
   private searchState?:{pattern:string;options:SearchOptions;result:SearchResult;byRow:Map<number,Hit[]>;cursor:number;full?:SearchResult};

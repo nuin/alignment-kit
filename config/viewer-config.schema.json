@@ -283,6 +283,9 @@
         },
         "rowStrand": {
           "type": "boolean"
+        },
+        "columnMarks": {
+          "type": "boolean"
         }
       }
     },

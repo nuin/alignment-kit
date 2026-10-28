@@ -13,7 +13,7 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   positionTab:true, featuresTab:true, compareTab:true, colorsTab:true, hitsTab:true,
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
-  messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true, reverseComplementToggle:true, rowStrand:true,
+  messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true, reverseComplementToggle:true, rowStrand:true, columnMarks:true,
 });
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
@@ -27,7 +27,7 @@ const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
   positionTab:'[data-tab="position"]',featuresTab:'[data-tab="annotations"]',compareTab:'[data-tab="compare"]',colorsTab:'[data-tab="legend"]',hitsTab:'[data-tab="hits"]',
   pinReference:'[data-action="pin-selected"]',rowFeaturesToggle:'[data-action="toggle-row-features"]',featureType:'select[aria-label="Feature type"]',
   featureConsequence:'select[aria-label="Feature consequence"]',diseaseFilter:'[aria-label="Features with disease evidence"]',phenotypeFilter:'[aria-label="Features with phenotype evidence"]',
-  featurePagination:'.ak-feature-pagination',rowHiding:'[data-hide],[data-action="show-hidden"]',tree:'.ak-tree-canvas',columnMasking:'[data-action="hide-columns"],[data-action="show-columns"]',reverseComplementToggle:'[aria-label="Reverse complement"]',rowStrand:'[data-strand]',calculateIdentity:'[data-action="compare"]',clearRows:'[data-action="clear-rows"]',
+  featurePagination:'.ak-feature-pagination',rowHiding:'[data-hide],[data-action="show-hidden"]',tree:'.ak-tree-canvas',columnMasking:'[data-action="hide-columns"],[data-action="show-columns"]',reverseComplementToggle:'[aria-label="Reverse complement"]',rowStrand:'[data-strand]',columnMarks:'[data-action="mark-columns"]',calculateIdentity:'[data-action="compare"]',clearRows:'[data-action="clear-rows"]',
 };
 export const inspectorTabs = {position:'positionTab',annotations:'featuresTab',compare:'compareTab',legend:'colorsTab',hits:'hitsTab'} as const;
 export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {

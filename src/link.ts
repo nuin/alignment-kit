@@ -12,13 +12,15 @@ export interface ViewLink {
   reverseComplement?:boolean;
   /** Rows flagged as reverse strand, from `strand=id1,id2` (IDs percent-encoded inside the list). */
   reverseStrandRowIds?:string[];
+  /** User column marks, from `marks=10-12,40`; colors are not carried. */
+  marks?:[number,number][];
   /** Parameter names present in the link but malformed. */
   ignored?:string[];
 }
 const modes:ColorMode[]=['all','reference-differences','reference-matches','consensus-differences','consensus-matches'];
 const sorts:ViewState['sort'][]=['input','name','identity','tree'];
 const scopes:ViewState['statisticsScope'][]=['all','filtered'];
-const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide','rc','strand'];
+const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide','rc','strand','marks'];
 /** True when a fragment or query holds at least one link parameter; plain anchors such as `#viewer` do not. */
 export const isViewLink=(input:string):boolean=>{const p=new URLSearchParams(input.replace(/^[#?]/,''));return keys.some(key=>key==='ruler'?!!p.get(key):p.has(key));};
 
@@ -40,6 +42,7 @@ export function encodeViewLink(state:ViewState,source?:string):string {
   if(state.hiddenColumns?.length)p.set('hide',state.hiddenColumns.map(([s,e])=>s===e?String(s):`${s}-${e}`).join(','));
   if(state.reverseComplement)p.set('rc','1');
   if(state.reverseStrandRowIds?.length)p.set('strand',state.reverseStrandRowIds.map(encodeURIComponent).join(','));
+  if(state.columnMarks?.length)p.set('marks',mergeColumnRanges(state.columnMarks.map(m=>[m.start,m.end] as [number,number])).map(([s,e])=>s===e?String(s):`${s}-${e}`).join(','));
   if(state.start>1)p.set('x',String(state.start));
   if(state.rowOffset>0)p.set('y',String(state.rowOffset));
   return p.toString();
@@ -59,11 +62,12 @@ export function decodeViewLink(input:string):ViewLink {
   link.colorMode=pick('mode',modes);link.sort=pick('sort',sorts);link.statisticsScope=pick('scope',scopes);
   const dots=p.get('dots');if(dots==='1')link.matchDisplay='dot';else if(dots==='0')link.matchDisplay='letter';else if(dots!==null)ignored.push('dots');
   link.rulerCoordinates=pick('ruler',['ref'] as const)&&'reference';
-  const hide=p.get('hide');
-  if(hide!==null){
-    const parts=hide.split(',').map(part=>part.match(/^(\d+)(?:-(\d+))?$/)),ranges=parts.map(m=>m&&[Number(m[1]),Number(m[2]??m[1])] as [number,number]);
-    if(ranges.length&&ranges.every(r=>r&&r[0]>=1&&r[1]>=r[0]))link.hiddenColumns=mergeColumnRanges(ranges as [number,number][]);else ignored.push('hide');
-  }
+  const columns=(key:string)=>{
+    const text=p.get(key);if(text===null)return undefined;
+    const parts=text.split(',').map(part=>part.match(/^(\d+)(?:-(\d+))?$/)),ranges=parts.map(m=>m&&[Number(m[1]),Number(m[2]??m[1])] as [number,number]);
+    if(ranges.length&&ranges.every(r=>r&&r[0]>=1&&r[1]>=r[0]))return mergeColumnRanges(ranges as [number,number][]);ignored.push(key);return undefined;
+  };
+  link.hiddenColumns=columns('hide');link.marks=columns('marks');
   const rc=p.get('rc');if(rc==='1')link.reverseComplement=true;else if(rc==='0')link.reverseComplement=false;else if(rc!==null)ignored.push('rc');
   const strand=p.get('strand');
   if(strand!==null){try{const ids=strand.split(',').filter(Boolean).map(decodeURIComponent);if(ids.length)link.reverseStrandRowIds=[...new Set(ids)];else ignored.push('strand');}catch{ignored.push('strand');}}

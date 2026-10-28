@@ -1,5 +1,6 @@
 import { type ViewerOptions } from '../types';
 import { colorSchemes } from '../colors';
+import { marksFromRanges } from '../marks';
 import { decodeViewLink, type ViewLink } from '../link';
 import { columnPos } from '../mask';
 import { type Core } from './core';
@@ -15,6 +16,8 @@ export async function applyViewLink(v:Core, input:ViewLink|string):Promise<strin
   v.rowStrands=new Set(strands);v.labelKey='';
   const hide=link.hiddenColumns??[];
   if(hide.some(([,e])=>e>a.width)||hide.length===1&&hide[0][0]===1&&hide[0][1]===a.width){skipped.push('hide');v.manualHidden=[];}else v.manualHidden=hide;
+  const marks=link.marks??[];
+  if(marks.some(([,e])=>e>a.width)){skipped.push('marks');v.columnMarks=[];}else v.columnMarks=marksFromRanges(marks,v.columnMarks);
   v.colMap=undefined;v.overviewDirty=true;v.layout();
   if(link.referenceId){if(a.rows.some(r=>r.id===link.referenceId))v.setReference(link.referenceId);else skipped.push('ref');}
   let sort=link.sort??'input';if(sort==='tree'&&!v.tree){skipped.push('sort');sort='input';}

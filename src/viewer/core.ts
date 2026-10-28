@@ -7,10 +7,12 @@ import type { WorkerTask } from '../worker-client';
 import type { ViewLink } from '../link';
 import type { ColumnMap, ColumnRange, MaskOptions } from '../mask';
 import type { TreeLayout } from '../tree';
+import type { ColumnMark } from '../types';
+import type { MarkRange } from '../marks';
 
 export interface BoundTree { layout:TreeLayout; leafRow:Int32Array; treePos:Int32Array; note:string }
 /** View state that survives removeRows. */
-export interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:ViewState['sort']; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter; hiddenColumns:ColumnRange[]; strands?:string[] }
+export interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:ViewState['sort']; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter; hiddenColumns:ColumnRange[]; strands?:string[]; columnMarks:ColumnMark[] }
 export type On=(target:EventTarget,event:string,handler:(event:any)=>void)=>void;
 export interface SearchState { pattern:string; options:SearchOptions; result:SearchResult; byRow:Map<number,Hit[]>; cursor:number; full?:SearchResult }
 export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'|'reverseComplement'>>;
@@ -29,7 +31,7 @@ export interface Core {
   disposed:boolean; revision:number; statsRevision:number; loadRevision:number;
   tab:string; featurePage:number; labelKey:string; overviewDirty:boolean; inspectorDirty:boolean;
   visibility:Required<ViewerVisibility>;
-  manualHidden:ColumnRange[]; colMap?:ColumnMap; rowStrands:Set<string>;
+  manualHidden:ColumnRange[]; colMap?:ColumnMap; rowStrands:Set<string>; columnMarks:ColumnMark[];
   searchState?:SearchState;
   customTracks:CustomTrack[]; drawn?:{a:Alignment;row:number;flag:boolean;user:CustomTrack[];list:CustomTrack[]}; trackKey:string; trackErrors:Set<string>;
   hidden:Set<string>; manualOrder:string[]|null; collapsed:Set<string>; groupBy:string; groupMap:Map<string,string>|null;
@@ -80,6 +82,7 @@ export interface Core {
   layout():void;
   load(input:string|Blob|ArrayBuffer,options?:ParseOptions):Promise<void>;
   loadInput(input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void>;
+  markColumns(ranges:readonly MarkRange[],color?:string):void;
   maskChanged(anchor:number):void;
   maskOptions(hidden:readonly ColumnRange[]):MaskOptions;
   message(message:string,isError?:boolean):void;
@@ -114,7 +117,9 @@ export interface Core {
   stepColumn(column:number,step:1|-1):number;
   stepRow(index:number,step:number):number|undefined;
   toggleGroup(name:string,collapsed?:boolean):void;
+  toggleColumnMarks(start:number,end:number):void;
   tracksChanged():void;
+  unmarkColumns(ranges?:readonly MarkRange[]):void;
   updateStats():Promise<void>;
   view():RenderView;
   zoom(value:number):void;

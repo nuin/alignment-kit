@@ -93,3 +93,5 @@
 .ak-viewer .ak-row-label .ak-strand{flex:0 0 22px;padding:0;text-align:center;font-size:14px;font-weight:600;color:var(--ak-muted);opacity:.5}
 .ak-row-label:hover .ak-strand,.ak-viewer .ak-row-label .ak-strand:focus-visible,.ak-viewer .ak-row-label .ak-strand[aria-pressed=true]{opacity:1}
 .ak-viewer .ak-row-label .ak-strand[aria-pressed=true]{color:var(--ak-accent)}
+
+.ak-class-legend{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:6px}.ak-inspector .ak-class-legend{padding-left:0;line-height:1.4}.ak-class-legend li{display:flex;align-items:center;gap:8px;font-size:11px}.ak-class-legend span{font:12px ui-monospace,monospace;min-width:54px;padding:4px 6px;border-radius:3px;text-align:center}

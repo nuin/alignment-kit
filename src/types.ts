@@ -108,6 +108,7 @@ export interface ViewerVisibility {
   columnMasking?:boolean;
   reverseComplementToggle?:boolean;
   rowStrand?:boolean;
+  columnMarks?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
 /** `reversed` is true in the reverse-complement view: columns then run right to left, column `end` is drawn at `offsetX` and each lower column one `cellWidth` further right. */
@@ -163,7 +164,10 @@ export interface ViewState {
   reverseComplement?:boolean;
   /** IDs of rows flagged as reverse strand (shown complemented). */
   reverseStrandRowIds?:string[];
+  columnMarks?:ColumnMark[];
 }
+/** A user mark on alignment columns `start` to `end` (one-based, inclusive, original coordinates) drawn in `color`. */
+export interface ColumnMark { start:number; end:number; color:string }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
 export interface ViewerEvents { selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState; warnings:ParseWarning[] }
 export type ViewerEvent = keyof ViewerEvents;
