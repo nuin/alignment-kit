@@ -37,15 +37,23 @@ export function exportFasta(a:Alignment,region:ExportRegion={},options:FastaOpti
   return rows.map(r=>formatFastaRecord(header(a.rows[r]),a.rows[r].sequence.slice(start-1,end),options)).join('');
 }
 const plainName=(name:string)=>name.replace(/\s+/g,'_').replace(/^#/,'_')||'seq';
+const uniqueNames=(names:string[])=>{
+  const used=new Set<string>(),seen=new Map<string,number>();
+  return names.map(name=>{
+    let out=name,n=seen.get(name)??1;
+    while(used.has(out))out=`${name}_${++n}`;
+    seen.set(name,n);used.add(out);return out;
+  });
+};
 function textRows(a:Alignment,region:ExportRegion) {
   const {start,end,rows}=resolveRegion(a,region);
   if(!rows.length)throw new Error('Select at least one row to export.');
   return {width:end-start+1,rows:rows.map(r=>({name:a.rows[r].name,sequence:a.rows[r].sequence.slice(start-1,end)}))};
 }
 const padNames=(names:string[],extra:number)=>Math.max(...names.map(n=>n.length))+extra;
-/** CLUSTAL text with 60-column blocks; `*` marks columns where every row carries the same non-gap residue. Whitespace in names becomes `_`. */
+/** CLUSTAL text with 60-column blocks; `*` marks columns where every row carries the same non-gap residue. Whitespace in names becomes `_` and repeated names get `_2`, `_3` suffixes. */
 export function exportClustal(a:Alignment,region:ExportRegion={}):string {
-  const {width,rows}=textRows(a,region),names=rows.map(r=>plainName(r.name)),pad=padNames(names,6),out=['CLUSTAL W (1.83) multiple sequence alignment\n\n'];
+  const {width,rows}=textRows(a,region),names=uniqueNames(rows.map(r=>plainName(r.name))),pad=padNames(names,6),out=['CLUSTAL W (1.83) multiple sequence alignment\n\n'];
   for(let from=0;from<width;from+=60) {
     rows.forEach((r,i)=>out.push(names[i].padEnd(pad)+r.sequence.slice(from,from+60)+'\n'));
     let cons='';
@@ -56,7 +64,7 @@ export function exportClustal(a:Alignment,region:ExportRegion={}):string {
 }
 /** Stockholm 1.0 with one unwrapped sequence line per row. */
 export function exportStockholm(a:Alignment,region:ExportRegion={}):string {
-  const {rows}=textRows(a,region),names=rows.map(r=>plainName(r.name)),pad=padNames(names,2);
+  const {rows}=textRows(a,region),names=uniqueNames(rows.map(r=>plainName(r.name))),pad=padNames(names,2);
   return `# STOCKHOLM 1.0\n${rows.map((r,i)=>names[i].padEnd(pad)+r.sequence+'\n').join('')}//\n`;
 }
 const uniqueStrictNames=(names:string[])=>{
@@ -77,7 +85,7 @@ export function exportPhylip(a:Alignment,region:ExportRegion={},options:{variant
 const nexusName=(name:string)=>/^[A-Za-z0-9_.]+$/.test(name)?name:`'${name.replace(/[\r\n]+/g,' ').replace(/'/g,"''")}'`;
 /** NEXUS DATA block with gap `-`, missing `?` and quoted names where needed. `.` gaps are written as `-`. */
 export function exportNexus(a:Alignment,region:ExportRegion={}):string {
-  const {width,rows}=textRows(a,region),names=rows.map(r=>nexusName(r.name)),pad=padNames(names,2);
+  const {width,rows}=textRows(a,region),names=uniqueNames(rows.map(r=>r.name.replace(/[\r\n]+/g,' '))).map(nexusName),pad=padNames(names,2);
   return `#NEXUS\nBEGIN DATA;\n  DIMENSIONS NTAX=${rows.length} NCHAR=${width};\n  FORMAT DATATYPE=${a.alphabet.toUpperCase()} GAP=- MISSING=?;\n  MATRIX\n${rows.map((r,i)=>`    ${names[i].padEnd(pad)}${r.sequence.replace(/\./g,'-')}\n`).join('')}  ;\nEND;\n`;
 }
 export function exportStatistics(s:AlignmentStats):string {

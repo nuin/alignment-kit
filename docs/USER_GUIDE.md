@@ -21,7 +21,7 @@ The annotated example and large benchmark buttons are explicitly synthetic. Thei
 
 ## Open your own file
 
-Choose **Open alignment**, or drop a file onto the viewer. Supported formats are aligned FASTA, Stockholm, CLUSTAL, PHYLIP (`.phy`, `.phylip`), NEXUS (`.nex`, `.nexus`, `.nxs`), MSF (`.msf`) and PIR/NBRF (`.pir`), including gzip-compressed files. The format is detected from the content.
+Choose **Open alignment**, or drop a file onto the viewer. Supported formats are aligned FASTA, Stockholm, CLUSTAL, PHYLIP (`.phy`, `.phylip`), NEXUS (`.nex`, `.nexus`, `.nxs`), MSF (`.msf`) and PIR/NBRF (`.pir`), including gzip-compressed files. The format is detected from the content. A file starting with `>XX;` is read as PIR only when its first record has a line ending in `*`; otherwise it is FASTA. NEXUS `?` is a gap even when FORMAT has no `MISSING`.
 
 To load text without a file, click the viewer and press **Ctrl+V** (**Cmd+V** on macOS). The viewer reads the clipboard text and loads it like a file. Pasting into the search boxes or other form fields does nothing special. A parse error appears in the status message. A filename ending in `.gz` is convenient; gzip detection uses the file bytes.
 
@@ -186,7 +186,7 @@ Use the **Export** menu:
 |---|---|
 | All rows · FASTA | Every original row, full aligned width, in input order. |
 | Selection · FASTA | Selected/visible columns and checked/visible rows, retaining gaps. |
-| All rows · CLUSTAL / Stockholm / PHYLIP / NEXUS | Every row, full width, in input order. CLUSTAL uses 60-column blocks and a `*` line for identical non-gap columns. PHYLIP is the relaxed variant, one line per sequence. NEXUS writes a DATA block with `gap=-` and `missing=?`. |
+| All rows · CLUSTAL / Stockholm / PHYLIP / NEXUS | Every row, full width, in input order. CLUSTAL uses 60-column blocks and a `*` line for identical non-gap columns. PHYLIP is the relaxed variant, one line per sequence. NEXUS writes a DATA block with `gap=-` and `missing=?`. CLUSTAL, Stockholm and NEXUS rename repeated row names with `_2`, `_3` so the file can be reopened. |
 | Selection · CLUSTAL / Stockholm / PHYLIP / NEXUS | The same formats for the selected/visible columns and checked/visible rows. |
 | Selection · SVG | Vector figure with palette, coordinate scope, legend, supplied provenance and visible annotations. |
 | Selection · PNG | Raster version of the selected figure. |

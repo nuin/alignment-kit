@@ -67,6 +67,23 @@ it('parses PIR/NBRF entries ending with *',()=>{
   expect(a.metadata.format).toBe('pir');expect(rows(a)).toEqual([['SEQ1','MK-LVA'],['SEQ2','MKQLVA']]);
 });
 it('keeps FASTA names containing semicolons detectable as FASTA',()=>{expect(parseAlignment('>x\nAC\n>y;z\nAC').rows).toHaveLength(2);});
+it('detects FASTA with PIR-like headers when no * terminator is present',()=>{
+  const a=parseAlignment('>sp;x\nAC-T\n>ab;foo\nACGT');expect(a.metadata.format).toBe('fasta');expect(rows(a)).toEqual([['sp;x','AC-T'],['ab;foo','ACGT']]);
+});
+it('parses PIR with an empty description line',()=>{
+  const a=parseAlignment('>P1;A\n\nMK-L*\n>P1;B\n\nMKQL*\n');expect(a.metadata.format).toBe('pir');expect(rows(a)).toEqual([['A','MK-L'],['B','MKQL']]);
+});
+it('treats NEXUS ? as missing when FORMAT omits MISSING',()=>{
+  const a=parseAlignment(nexus('a ACG?ACGT\nb AC-TACGT','DATATYPE=DNA'));expect(rows(a)).toEqual([['a','ACG-ACGT'],['b','AC-TACGT']]);
+});
+it('round-trips duplicate and colliding display names in every text export',()=>{
+  const a=parseAlignment('>x\nACGT\n>x\nTTTT\n>a b\nCCCC\n>a_b\nGGGG');
+  for(const [label,t] of [['clustal',exportClustal(a)],['stockholm',exportStockholm(a)],['nexus',exportNexus(a)],['phylip',exportPhylip(a)]] as const) {
+    const b=parseAlignment(t);expect(b.rows.map(r=>r.sequence),label).toEqual(a.rows.map(r=>r.sequence));
+  }
+  for(const t of [exportClustal(a),exportStockholm(a),exportNexus(a)])expect(new Set(parseAlignment(t).rows.map(r=>r.name)).size).toBe(4);
+  expect(parseAlignment(exportClustal(a)).rows.map(r=>r.name)).toEqual(['x','x_2','a_b','a_b_2']);
+});
 it('lists the supported formats when detection fails',()=>{expect(()=>parseAlignment('hello')).toThrow(/PHYLIP, NEXUS, MSF or PIR/);});
 it('honors an explicit format',()=>{expect(parseAlignment('2 4\none ACGT\ntwo ACGA',{format:'phylip'}).width).toBe(4);});
 

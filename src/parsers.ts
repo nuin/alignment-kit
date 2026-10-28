@@ -79,7 +79,7 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
 }
 
 function detectFormat(t:string):ParseOptions['format'] {
-  if(/^>[A-Za-z0-9]{2};/.test(t))return 'pir';
+  if(/^>[A-Za-z0-9]{2};/.test(t)&&/\*[ \t]*$/m.test(t.split(/\r?\n>/,1)[0]))return 'pir';
   if(t.startsWith('>'))return 'fasta';
   if(t.startsWith('# STOCKHOLM'))return 'stockholm';
   if(/^(CLUSTAL|MUSCLE)/i.test(t))return 'clustal';
@@ -112,7 +112,7 @@ function parsePir(text:string):SequenceInput[] {
   for(const [i,raw] of text.split(/\r?\n/).entries()) {
     const line=raw.trim(),m=line.match(/^>[A-Za-z0-9]{2};\s*(.*)$/);
     if(m){if(!m[1])throw new Error(`Missing PIR identifier at line ${i+1}.`);current={name:m[1],sequence:''};rows.push(current);state=1;continue;}
-    if(!line)continue;
+    if(!line){if(state===1)state=2;continue;}
     if(!current)throw new Error(`Sequence before PIR header at line ${i+1}.`);
     if(state===1){state=2;continue;}
     if(state===2){const end=line.indexOf('*');current.sequence+=strip(end<0?line:line.slice(0,end));if(end>=0)state=3;}
@@ -183,7 +183,7 @@ function parseNexus(text:string):{rows:SequenceInput[];alphabet?:Alphabet} {
   let rows:SequenceInput[]|undefined;
   for(const wrapped of /^(yes|true|on)$/i.test(opts.interleave??'')?[false]:[false,true])try{rows=attempt(wrapped);break;}catch{}
   if(!rows)throw new Error(`NEXUS matrix does not contain ${ntax??'the declared number of'} sequences of ${nchar??'equal'} columns.`);
-  const match=opts.matchchar,gap=opts.gap,missing=opts.missing,first=rows[0].sequence;
+  const match=opts.matchchar,gap=opts.gap,missing=opts.missing??'?',first=rows[0].sequence;
   for(const [r,row] of rows.entries()) {
     let seq='';
     for(let c=0;c<row.sequence.length;c++) {
