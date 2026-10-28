@@ -289,7 +289,23 @@ const records = parseGff3(text); // { seqid, start, end, kind, label, metadata }
 - Records with no matching row, or beyond the sequence, become `mapping: 'unmapped'` and add a warning.
 - BED12 blocks become one `exon` annotation each. GenBank and EMBL `join()` locations become one annotation spanning the lowest to highest position, with `<`, `>` and `complement()` kept in `metadata`. Labels come from `/gene`, `/product`, `/note`, `/label`, then the feature key.
 - `viewer.addAnnotations(list)`, `viewer.removeAnnotations(ids?)` (all when omitted) and `viewer.importAnnotations(text, options?)` rebuild the index and the Features tab. Warnings appear in the message area.
-- With an alignment loaded, opening or dropping `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` files (optionally `.gz`) imports annotations instead of replacing the alignment.
+- With an alignment loaded, opening or dropping `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` files (optionally `.gz`) imports annotations instead of replacing the alignment. A `.json` file does the same when it is UniProt JSON (`isUniProtJson(text)`: a `features` array on the entry, on every list element or on every `results` element). Other JSON is refused with an error.
+
+### Export annotations
+
+```ts
+import { exportAnnotationsGff3, exportAnnotationsTsv, exportAnnotationsJson } from '@nuin/msa-canvas';
+const warnings: string[] = [];
+const gff = exportAnnotationsGff3(alignment, { filter: viewer.getState().annotationFilter, warnings });
+const tsv = exportAnnotationsTsv(alignment, { annotations: subset });
+const json = exportAnnotationsJson(alignment);
+```
+
+- Options (`AnnotationExportOptions`): `annotations` (default all of `alignment.annotations`), `filter` (an `AnnotationFilter`, applied when `annotations` is omitted), `coordinates` (GFF3 only: `'sequence'` default, or `'alignment'`), `seqid` (GFF3 only: `'name'` default, or `'id'`) and `warnings` (an array that receives skip messages).
+- The Explorer's Export menu entries (Annotations · GFF3, TSV, JSON) write the annotations visible under the active filter.
+- Coordinates are 1-based inclusive. Sequence coordinates count ungapped residues from 1 at the first residue of the row; row offsets such as `seqA/51-120` are not applied, as on import. Alignment columns are always present in TSV and JSON.
+- GFF3 skips unmapped annotations, annotations without a row and annotations whose columns are all gaps in their row, with one warning each. TSV and JSON list them with empty (TSV) or null (JSON) coordinates.
+- GFF3 with `coordinates: 'sequence'` read by `importAnnotations` returns the same mapped annotations. Columns that are gaps at an annotation's edge shrink it to its first and last residue.
 
 ## Coordinates and statistics
 
@@ -444,6 +460,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
 | `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; resolves a boolean, `true` when it started a new search, and reports errors through the status line and `error`. Auto mode applies, so in IUPAC text `N` (DNA/RNA) and `X` (protein) match any residue |
 | `addAnnotations(list)` / `removeAnnotations(ids?)` | Add annotations / remove some by ID (all when omitted) |
+| `exportAnnotationsGff3`, `exportAnnotationsTsv`, `exportAnnotationsJson` | Functions of `(alignment, options?)`; see **Export annotations** |
 | `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
 | `getState()` / `setState(state)` | Serialize/restore view state for the same dataset |

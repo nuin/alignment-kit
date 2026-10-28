@@ -7,7 +7,8 @@ export { exportFasta, formatFastaRecord, exportClustal, exportStockholm, exportP
 export { computeColumnMask, hidesEveryColumn, mergeColumnRanges, buildColumnMap } from './mask';
 export type { ColumnMap, ColumnRange, MaskOptions } from './mask';
 export { AnnotationIndex, filterAnnotations } from './annotations';
-export { parseGff3, parseBed, parseGenBank, parseEmbl, parseUniProtJson, importAnnotations, detectAnnotationFormat } from './annotation-import';
+export { parseGff3, parseBed, parseGenBank, parseEmbl, parseUniProtJson, importAnnotations, detectAnnotationFormat, isUniProtJson } from './annotation-import';
+export { exportAnnotationsGff3, exportAnnotationsTsv, exportAnnotationsJson } from './annotation-export';
 export type * from './types';
 export type { ColorScheme } from './colors';
 export { defaultVisibility } from './visibility';

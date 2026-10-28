@@ -30,6 +30,7 @@ export type AnnotationFormat = 'gff3' | 'bed' | 'genbank' | 'embl' | 'uniprot';
 /** One parsed feature in 1-based inclusive ungapped sequence coordinates. `metadata.aliases` lists extra identifiers that may match a row. */
 export interface AnnotationRecord { seqid:string; start:number; end:number; kind:string; label:string; metadata:Record<string,unknown> }
 export interface AnnotationImportOptions { format?:'auto'|AnnotationFormat; rowId?:string; coordinates?:'sequence'|'alignment' }
+export interface AnnotationExportOptions { annotations?:Annotation[]; filter?:AnnotationFilter; coordinates?:'sequence'|'alignment'; seqid?:'name'|'id'; warnings?:string[] }
 export interface AnnotationImportResult { annotations:Annotation[]; warnings:string[] }
 export type ColorMode = 'all'|'reference-differences'|'reference-matches'|'consensus-differences'|'consensus-matches';
 /** Presentation switches. Omitted keys retain their current value on updates. */

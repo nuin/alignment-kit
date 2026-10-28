@@ -240,12 +240,14 @@ Click a mapped feature to select its alignment range. Unmapped features remain i
 
 ### Import annotation files
 
-With an alignment loaded, choose **Open alignment** or drop a `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` file. The viewer adds its features to the Features tab and keeps the alignment. Gzip-compressed files work too. Without a loaded alignment, these files are rejected as alignments.
+With an alignment loaded, choose **Open alignment** or drop a `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank`, `.embl` or UniProt `.json` file. The viewer adds its features to the Features tab and keeps the alignment. Gzip-compressed files work too. Without a loaded alignment, these files are rejected as alignments.
 
 - Each feature is matched to a sequence by its ID, then its display name. GenBank and EMBL also match accession numbers.
 - Positions are residue numbers in the ungapped sequence, counted from 1 at the first residue of the row. A row start such as `seqA/51-120` is not applied, so shift such files by 50 before import. The viewer converts them to alignment columns.
 - A BED12 line becomes one `exon` feature per block. A GenBank or EMBL `join()` becomes one feature from its first to its last position.
 - Features with no matching sequence or a position past the sequence end are listed as unmapped. The message area shows how many were imported and the first warnings.
+
+A `.json` file is imported as UniProt features when it parses as JSON and has a `features` array (one entry, a list of entries, or a REST `results` list). Any other JSON, such as an exported view state, is refused with the message "is JSON but not UniProt annotations", and the alignment stays as it was. There is no alignment JSON loader, so a `.json` file never replaces the alignment while one is loaded.
 
 Applications can also call `viewer.importAnnotations(text, { rowId })` to attach features with an unknown sequence name to one row, or pass UniProt JSON.
 
@@ -266,6 +268,7 @@ Use the **Export** menu:
 | Selection · PNG | Raster version of the selected figure. |
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
 | Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers, plus `entropy_bits`, `information_bits` and `quality` (`NA` when undefined). |
+| Annotations · GFF3 / TSV / JSON | The annotations listed in the Features tab, so the active annotation filter (types, consequences, disease, phenotype, hidden rows) applies. The message area reports how many were written and the first warnings. See **Export annotations** below. |
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
 | FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name) and columns (all, or visible only). Press **Done** or Escape to close it. |
 
@@ -274,6 +277,14 @@ FASTA options apply to every FASTA export, the consensus export and **Ctrl/Cmd+C
 For selection exports, a selected column range takes precedence over the horizontal viewport. Checked rows take precedence over the vertical viewport. Without checked rows, export uses the pinned reference plus the currently visible scrolling rows. A checked row hidden by a name filter remains part of the export. Clear checked rows when you want a viewport-only export.
 
 Figures preserve the palette, match/difference emphasis and annotation filters. They use their own fixed figure layout, not a screenshot of the entire application. SVG/PNG exports are limited to **200,000 cells** (rows × selected columns). PNG also limits dimensions to 16,384px per side and total area to 32 million pixels. Narrow the region when an export exceeds a limit.
+
+### Export annotations
+
+- Every export has alignment columns and per-row sequence coordinates, both 1-based and inclusive. Sequence coordinates count ungapped residues from 1 at the first residue of the row. A row start such as `seqA/51-120` is not applied, which matches annotation import, so a GFF3 exported here reads back onto the same residues.
+- A row-attached annotation whose columns are all gaps in its row has alignment columns but no sequence coordinates. An annotation without a row (a global interval) has alignment columns only.
+- **GFF3** writes sequence coordinates with the row name as `seqid`. Unmapped annotations, annotations without a row and annotations with no residue in their row are skipped, each with a warning. The `aln_start` and `aln_end` attributes keep the alignment columns.
+- **TSV** has one line per annotation with the columns `id`, `label`, `kind`, `row_id`, `row_name`, `mapping`, `aln_start`, `aln_end`, `seq_start`, `seq_end`, `consequence`, `disease`, `phenotype`. Unmapped annotations are listed with empty coordinate cells.
+- **JSON** has `alignment`, a `coordinates` note and an `annotations` list with `alignmentStart`, `alignmentEnd`, `sequenceStart`, `sequenceEnd` (null when unmapped), consequence, disease, phenotype and metadata.
 
 Names containing whitespace are written with `_` in CLUSTAL, Stockholm and PHYLIP; NEXUS quotes them. The API also offers strict PHYLIP (`exportPhylip(a, region, { variant: 'strict' })`). FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button; see **Share a view** for links.
 
