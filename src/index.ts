@@ -10,3 +10,5 @@ export type { ColorScheme } from './colors';
 export { defaultVisibility } from './visibility';
 export { parseViewerConfig } from './config';
 export type { ViewerConfig } from './config';
+export { encodeViewLink, decodeViewLink, isViewLink } from './link';
+export type { ViewLink } from './link';

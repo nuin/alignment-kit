@@ -1,4 +1,4 @@
-import { createViewer, defaultVisibility } from '../src/index';
+import { createViewer, decodeViewLink, defaultVisibility } from '../src/index';
 import { syntheticAlignment } from './fixtures';
 import datasets from './public/alignments.json';
 import type { Alphabet, ViewerVisibility } from '../src/types';
@@ -17,7 +17,7 @@ viewer.on('selection', selection => {
   // Alignment columns are 1-based and inclusive.
 });</code></pre></section></main><footer class="site-footer"><span>Alignment Kit</span><span>Sequence first. Context always.</span><span>JavaScript · React · Svelte</span></footer>`;
 const preview=(window as any).__ALIGNMENT_PREVIEW__;
-const viewer=createViewer(document.querySelector('#viewer')!,{height:740,showInspector:window.innerWidth>800,workerUrl:preview?.workerUrl});
+const viewer=createViewer(document.querySelector('#viewer')!,{height:740,showInspector:window.innerWidth>800,workerUrl:preview?.workerUrl,urlSync:!preview});
 const customize=document.querySelector<HTMLDetailsElement>('.demo-customize')!;
 const groups:Record<string,(keyof ViewerVisibility)[]>={
   'Layout':['toolbar','tools','overview','overviewTitle','tracks','alignment','inspector','inspectorTabs','status','statusSummary','statusDetails','messages','emptyState'],
@@ -74,4 +74,6 @@ async function load(kind:string) {
   finally{loading=false;buttons.forEach(button=>button.disabled=false);}
 }
 document.querySelectorAll<HTMLButtonElement>('[data-demo]').forEach(button=>button.onclick=()=>void load(button.dataset.demo!));
-void load('cbs');
+// A shared link names its alignment file in src; the viewer restores the rest of the view.
+const linked=decodeViewLink(location.hash).source;
+void load(datasets.find(d=>linked&&new URL(linked,location.href).pathname==='/'+d.file)?.id??'cbs');

@@ -237,6 +237,10 @@
     "worker": {
       "type": "boolean"
     },
+    "urlSync": {
+      "type": "boolean",
+      "description": "Keep location.hash in sync with the view and apply a link found there on the next load."
+    },
     "showLogo": {
       "type": "boolean"
     },

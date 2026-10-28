@@ -74,6 +74,8 @@ Row checkboxes select sequences for pairwise comparison and region export. They 
 
 Use **Escape** while the matrix is focused to clear the residue/range selection. Use **Clear rows** in the Compare tab to clear checked sequences.
 
+Press **Ctrl+C** (**Cmd+C** on macOS) while the matrix is focused to copy the selection as gapped FASTA. Checked rows are copied in their on-screen order, followed by checked rows hidden by the name filter. Without checked rows, the clicked row is copied; without either, the rows that Export uses. Copying works on HTTPS pages and localhost.
+
 ## Alignment columns versus sequence positions
 
 Alignment columns count every displayed column, including gaps. Sequence positions count non-gap residues in one particular sequence. Both are 1-based in the public UI/API.
@@ -192,6 +194,12 @@ Figures preserve the palette, match/difference emphasis and annotation filters. 
 
 FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button and does not create a hosted share link.
 
+## Share a view
+
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view. A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+
+If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
+
 ## Show and hide interface elements
 
 In the Explorer, open **Customize viewer** above the alignment. Check or uncheck individual elements in the Layout, Main controls, Navigation and analysis, Tracks and residues, Sequence labels, and Inspector groups. **Restore default view** restores presentation defaults, including a hidden frequency logo. It does not reset your data, selection, filters, zoom or palette.
@@ -219,6 +227,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | Home / End / matrix | Jump to the first/last alignment column. |
 | + or − / matrix | Increase/decrease cell width. |
 | Escape / matrix | Clear residue selection. |
+| Ctrl/Cmd + C / matrix | Copy the selection as gapped FASTA. |
 | Enter / Go to | Navigate to the entered alignment column. |
 | Enter / motif input | Find the next literal motif. |
 | Left / Right / overview | Move the viewport horizontally. |
