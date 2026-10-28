@@ -21,3 +21,10 @@ it('calculates bounded pairwise comparisons off-thread',async()=>{
   expect(response.error).toBeUndefined();
   expect(response.result[0][1]).toEqual({matches:1,compared:2,identity:0.5});
 });
+it('searches off-thread through the worker message protocol',async()=>{
+  const a=parseAlignment('>a\nA-CGAACG\n>b\nTTACGATT',{alphabet:'dna'});
+  const response=await request({kind:'search',alignment:{codes:a.codes,width:a.width,alphabet:a.alphabet,rows:a.rows.map(r=>({id:r.id}))},pattern:'ACG',options:{strands:'forward'}});
+  expect(response.error).toBeUndefined();expect(response.result.truncated).toBe(false);
+  expect(response.result.hits.map((h:any)=>[h.rowId,h.start,h.end])).toEqual([['seq-1',1,4],['seq-1',6,8],['seq-2',3,5]]);
+  expect((await request({kind:'search',alignment:{codes:a.codes,width:a.width,alphabet:a.alphabet,rows:[]},pattern:'/(/',options:{}})).error).toMatch(/regular expression/);
+});

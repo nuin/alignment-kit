@@ -17,7 +17,7 @@ test('visibility changes collapse layout, close menus, and preserve the alignmen
   await page.getByText('Customize viewer',{exact:true}).click();
   await page.getByRole('button',{name:'Restore default view'}).click();
   await expect(page.locator('.ak-scroll')).toBeVisible();await expect(page.locator('.ak-labels')).toBeVisible();
-  await expect(page.locator('.ak-tracks')).toHaveCSS('height','150px');
+  await expect(page.locator('.ak-tracks')).toHaveCSS('height','170px');
   await page.locator('.ak-scroll').click({position:{x:246,y:18}});
   expect(await page.evaluate(()=>(window as any).alignmentDemo.viewer.getState().selection.start)).toBe(2);
 });

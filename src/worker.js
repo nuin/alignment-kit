@@ -1,5 +1,6 @@
 import { parseAlignment } from './parsers';
 import { calculateStats, pairwiseIdentity, pairwiseMatrix } from './analysis';
+import { findHits } from './search';
 self.onmessage = ({data}) => {
   try {
     let result;
@@ -7,6 +8,7 @@ self.onmessage = ({data}) => {
     else if(data.kind==='stats') result=calculateStats(data.alignment,data.rows);
     else if(data.kind==='pairwise') result=pairwiseMatrix(data.alignment,data.rows);
     else if(data.kind==='identity') result=data.rows.map(row=>pairwiseIdentity(data.alignment,data.reference,row));
+    else if(data.kind==='search') result=findHits(data.alignment,data.pattern,data.options);
     else throw new Error('Unknown worker request.');
     const transfer=[];
     for(const value of Object.values(result)) if(ArrayBuffer.isView(value)) transfer.push(value.buffer);

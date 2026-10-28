@@ -1,5 +1,6 @@
 import type { Alignment, AlignmentStats, ExportRegion, ColorMode, FastaOptions, Sequence } from './types';
 import { columnDetail } from './analysis';
+import { isGap } from './model';
 import { getColorScheme, residueColor, textColor } from './colors';
 export const escapeXml=(s:unknown)=>String(s).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
 export function resolveRegion(a:Alignment,region:ExportRegion={}) {
@@ -8,9 +9,15 @@ export function resolveRegion(a:Alignment,region:ExportRegion={}) {
   const byId=new Map(a.rows.map((r,i)=>[r.id,i]));
   const rows=region.rowIds?region.rowIds.map(id=>{const r=byId.get(id);if(r===undefined)throw new Error(`Unknown export sequence “${id}”.`);return r;}):a.rows.map((_,i)=>i);
   if(new Set(rows).size!==rows.length)throw new Error('Export rows must be unique.');
-  return {start,end,rows};
+  const mask=region.columns;
+  if(mask&&mask.length!==a.width)throw new Error('Export column mask must have one entry per alignment column.');
+  const columns=mask?Array.from({length:end-start+1},(_,i)=>start-1+i).filter(c=>mask[c]):undefined;
+  if(columns&&!columns.length)throw new Error('No visible columns in the export range.');
+  return {start,end,rows,columns};
 }
-const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name']};
+/** The columns of an aligned sequence that a resolved region keeps. */
+const cut=(sequence:string,r:ReturnType<typeof resolveRegion>)=>r.columns?r.columns.map(c=>sequence[c]).join(''):sequence.slice(r.start-1,r.end);
+const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name'],columns:['all','visible']};
 /** Validate FASTA settings from untrusted input; returns a copy. */
 export function validateFastaOptions(input:unknown):FastaOptions {
   if(typeof input!=='object'||input===null||Array.isArray(input))throw new Error('FASTA options must be an object.');
@@ -32,23 +39,78 @@ export function formatFastaRecord(header:string,sequence:string,options:FastaOpt
   return `>${header.replace(/[\r\n]/g,' ')}\n${lines.map(line=>line+'\n').join('')}`;
 }
 export function exportFasta(a:Alignment,region:ExportRegion={},options:FastaOptions={}):string {
-  const {start,end,rows}=resolveRegion(a,region),header=headers[options.header??'name'];
-  return rows.map(r=>formatFastaRecord(header(a.rows[r]),a.rows[r].sequence.slice(start-1,end),options)).join('');
+  const resolved=resolveRegion(a,region),header=headers[options.header??'name'];
+  return resolved.rows.map(r=>formatFastaRecord(header(a.rows[r]),cut(a.rows[r].sequence,resolved),options)).join('');
+}
+const plainName=(name:string)=>name.replace(/\s+/g,'_').replace(/^#/,'_')||'seq';
+const uniqueNames=(names:string[])=>{
+  const used=new Set<string>(),seen=new Map<string,number>();
+  return names.map(name=>{
+    let out=name,n=seen.get(name)??1;
+    while(used.has(out))out=`${name}_${++n}`;
+    seen.set(name,n);used.add(out);return out;
+  });
+};
+function textRows(a:Alignment,region:ExportRegion) {
+  const resolved=resolveRegion(a,region),{rows}=resolved;
+  if(!rows.length)throw new Error('Select at least one row to export.');
+  const sequences=rows.map(r=>cut(a.rows[r].sequence,resolved));
+  return {width:sequences[0].length,rows:rows.map((r,i)=>({name:a.rows[r].name,sequence:sequences[i]}))};
+}
+const padNames=(names:string[],extra:number)=>names.reduce((max,n)=>Math.max(max,n.length),0)+extra;
+/** CLUSTAL text with 60-column blocks; `*` marks columns where every row carries the same non-gap residue. Whitespace in names becomes `_` and repeated names get `_2`, `_3` suffixes. */
+export function exportClustal(a:Alignment,region:ExportRegion={}):string {
+  const {width,rows}=textRows(a,region),names=uniqueNames(rows.map(r=>plainName(r.name))),pad=padNames(names,6),out=['CLUSTAL W (1.83) multiple sequence alignment\n\n'];
+  for(let from=0;from<width;from+=60) {
+    rows.forEach((r,i)=>out.push(names[i].padEnd(pad)+r.sequence.slice(from,from+60)+'\n'));
+    let cons='';
+    for(let c=from;c<Math.min(width,from+60);c++){const first=rows[0].sequence[c].toUpperCase();cons+=!isGap(first)&&rows.every(r=>r.sequence[c].toUpperCase()===first)?'*':' ';}
+    out.push(' '.repeat(pad)+cons.trimEnd()+'\n\n');
+  }
+  return out.join('').replace(/\n\n$/,'\n');
+}
+/** Stockholm 1.0 with one unwrapped sequence line per row. */
+export function exportStockholm(a:Alignment,region:ExportRegion={}):string {
+  const {rows}=textRows(a,region),names=uniqueNames(rows.map(r=>plainName(r.name))),pad=padNames(names,2);
+  return `# STOCKHOLM 1.0\n${rows.map((r,i)=>names[i].padEnd(pad)+r.sequence+'\n').join('')}//\n`;
+}
+const uniqueStrictNames=(names:string[])=>{
+  const used=new Set<string>();
+  return names.map(name=>{
+    let out=name.slice(0,10),n=0;
+    while(used.has(out)){const suffix=String(++n);out=name.slice(0,10-suffix.length)+suffix;}
+    used.add(out);return out;
+  });
+};
+/** PHYLIP with one line per sequence. `strict` pads names to 10 characters, truncates longer names and appends numeric suffixes to keep them unique. */
+export function exportPhylip(a:Alignment,region:ExportRegion={},options:{variant?:'relaxed'|'strict'}={}):string {
+  if(options.variant!==undefined&&options.variant!=='relaxed'&&options.variant!=='strict')throw new Error('PHYLIP variant must be relaxed or strict.');
+  const {width,rows}=textRows(a,region),names=rows.map(r=>plainName(r.name)),strict=options.variant==='strict',pad=strict?10:padNames(names,2);
+  const labels=(strict?uniqueStrictNames(names):names).map(n=>n.padEnd(pad));
+  return `${rows.length} ${width}\n${rows.map((r,i)=>labels[i]+r.sequence+'\n').join('')}`;
+}
+const nexusName=(name:string)=>/^[A-Za-z0-9_.]+$/.test(name)?name:`'${name.replace(/[\r\n]+/g,' ').replace(/'/g,"''")}'`;
+/** NEXUS DATA block with gap `-`, missing `?` and quoted names where needed. `.` gaps are written as `-`. */
+export function exportNexus(a:Alignment,region:ExportRegion={}):string {
+  const {width,rows}=textRows(a,region),names=uniqueNames(rows.map(r=>r.name.replace(/[\r\n]+/g,' '))).map(nexusName),pad=padNames(names,2);
+  return `#NEXUS\nBEGIN DATA;\n  DIMENSIONS NTAX=${rows.length} NCHAR=${width};\n  FORMAT DATATYPE=${a.alphabet.toUpperCase()} GAP=- MISSING=?;\n  MATRIX\n${rows.map((r,i)=>`    ${names[i].padEnd(pad)}${r.sequence.replace(/\./g,'-')}\n`).join('')}  ;\nEND;\n`;
 }
 export function exportStatistics(s:AlignmentStats):string {
-  const lines=['column\trows\tgap_count\tgap_fraction\tconsensus\tmodal_frequency_non_gap\tconsensus_support_all_rows'];
-  for(let c=1;c<=s.width;c++){const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA'].join('\t'));}
+  const lines=['column\trows\tgap_count\tgap_fraction\tconsensus\tmodal_frequency_non_gap\tconsensus_support_all_rows\tentropy_bits\tinformation_bits\tquality'];
+  for(let c=1;c<=s.width;c++){const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA',d.entropy??'NA',d.information??'NA',d.quality??'NA'].join('\t'));}
   return lines.join('\n')+'\n';
 }
-export interface FigureOptions { colorMode?:ColorMode; referenceId?:string }
+export interface FigureOptions { colorMode?:ColorMode; referenceId?:string; matchDisplay?:'letter'|'dot' }
 export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},schemeId='soft',options:FigureOptions={}):string {
   const {start,end,rows}=resolveRegion(a,region),count=end-start+1;
   if(!rows.length)throw new Error('Select at least one row to export.');
   if(count*rows.length>200000)throw new Error('Figure export is limited to 200,000 cells. Narrow the selected rows or columns.');
   const cw=16,rh=22,gutter=250,top=72,width=gutter+count*cw+24,height=top+rows.length*rh+100,scheme=getColorScheme(schemeId);
   const mode=options.colorMode??'all',ref=options.referenceId?a.rows.findIndex(r=>r.id===options.referenceId):0;
-  if(mode.startsWith('reference')&&ref<0)throw new Error('Unknown figure reference.');
-  const chunks=[`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${escapeXml(a.name)}</title><metadata>${escapeXml(JSON.stringify({source:a.metadata.source,alphabet:a.alphabet,start,end,statisticsRows:s.total,definition:'Consensus support = modal non-gap count / all rows in statistics scope',palette:scheme.label,colorMode:mode,referenceId:a.rows[ref]?.id}))}</metadata><rect width="100%" height="100%" fill="#ffffff"/><g font-family="monospace" font-size="12" fill="#243447"><text x="16" y="25" font-size="17">${escapeXml(a.name)}</text><text x="16" y="46">Alignment columns ${start}–${end} · ${rows.length} sequences · ${a.alphabet}</text>`];
+  const wantDots=options.matchDisplay==='dot',byRef=!mode.startsWith('consensus');
+  if((mode.startsWith('reference')||wantDots&&byRef)&&ref<0)throw new Error('Unknown figure reference.');
+  const dots=wantDots&&(!byRef||rows.includes(ref));
+  const chunks=[`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${escapeXml(a.name)}</title><metadata>${escapeXml(JSON.stringify({source:a.metadata.source,alphabet:a.alphabet,start,end,statisticsRows:s.total,definition:'Consensus support = modal non-gap count / all rows in statistics scope',palette:scheme.label,colorMode:mode,matchDisplay:dots?'dot':'letter',referenceId:a.rows[ref]?.id}))}</metadata><rect width="100%" height="100%" fill="#ffffff"/><g font-family="monospace" font-size="12" fill="#243447"><text x="16" y="25" font-size="17">${escapeXml(a.name)}</text><text x="16" y="46">Alignment columns ${start}–${end} · ${rows.length} sequences · ${a.alphabet}</text>`];
   for(let c=start;c<=end;c++)if(c===start||c%10===0)chunks.push(`<text x="${gutter+(c-start)*cw}" y="${top-8}">${c}</text>`);
   const used=new Set<string>();
   for(const [j,r] of rows.entries()) {
@@ -56,9 +118,9 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
     chunks.push(`<text x="16" y="${y+15}"><title>${escapeXml(a.rows[r].name)}</title>${escapeXml(a.rows[r].name.slice(0,30))}</text>`);
     for(let c=start;c<=end;c++) {
       const residue=String.fromCharCode(a.codes[r*a.width+c-1]),color=residueColor(residue,scheme,s.support[c-1]),x=gutter+(c-start)*cw;used.add(residue);
-      const comparison=mode.startsWith('reference')?a.codes[ref*a.width+c-1]:s.consensus[c-1],code=a.codes[r*a.width+c-1],same=code===comparison&&code!==45&&code!==63;
+      const comparison=mode.startsWith('consensus')?s.consensus[c-1]:a.codes[ref*a.width+c-1],code=a.codes[r*a.width+c-1],same=code===comparison&&code!==45&&code!==63;
       const faded=mode!=='all'&&(mode.endsWith('differences')?same:!same);
-      chunks.push(`<g opacity="${faded?'0.22':'1'}"><rect x="${x}" y="${y}" width="${cw}" height="${rh-1}" fill="${color}"/><text x="${x+cw/2}" y="${y+15}" text-anchor="middle" fill="${textColor(color)}">${residue==='-'?'·':escapeXml(residue)}</text></g>`);
+      chunks.push(`<g opacity="${faded?'0.22':'1'}"><rect x="${x}" y="${y}" width="${cw}" height="${rh-1}" fill="${color}"/><text x="${x+cw/2}" y="${y+15}" text-anchor="middle" fill="${textColor(color)}">${dots&&same&&r!==ref&&!isGap(code)?'.':residue==='-'?'·':escapeXml(residue)}</text></g>`);
     }
     for(const annotation of a.annotations)if(annotation.mapping==='mapped'&&(!annotation.rowId||annotation.rowId===a.rows[r].id)&&annotation.start!<=end&&annotation.end!>=start){const left=Math.max(start,annotation.start!),right=Math.min(end,annotation.end!);chunks.push(`<rect x="${gutter+(left-start)*cw+1}" y="${y+1}" width="${(right-left+1)*cw-2}" height="${rh-3}" fill="none" stroke="${annotation.color&&/^#[0-9a-f]{6}$/i.test(annotation.color)?annotation.color:'#a63d59'}" stroke-width="2"><title>${escapeXml(annotation.label)}</title></rect>`);}
   }

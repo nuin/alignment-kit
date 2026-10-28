@@ -32,6 +32,12 @@
         "consensus-matches"
       ]
     },
+    "matchDisplay": {
+      "enum": [
+        "letter",
+        "dot"
+      ]
+    },
     "cellWidth": {
       "type": "number",
       "minimum": 3,
@@ -52,6 +58,13 @@
         "all",
         "filtered"
       ]
+    },
+    "rulerCoordinates": {
+      "enum": [
+        "alignment",
+        "reference"
+      ],
+      "description": "Ruler numbering: alignment columns, or ungapped residue numbers of the pinned reference row."
     },
     "workerUrl": {
       "type": "string",
@@ -136,10 +149,16 @@
         "logoToggle": {
           "type": "boolean"
         },
+        "matchDots": {
+          "type": "boolean"
+        },
         "statisticsScope": {
           "type": "boolean"
         },
         "alphabet": {
+          "type": "boolean"
+        },
+        "rulerCoordinates": {
           "type": "boolean"
         },
         "ruler": {
@@ -199,6 +218,9 @@
         "colorsTab": {
           "type": "boolean"
         },
+        "hitsTab": {
+          "type": "boolean"
+        },
         "pinReference": {
           "type": "boolean"
         },
@@ -231,6 +253,27 @@
         },
         "emptyState": {
           "type": "boolean"
+        },
+        "entropy": {
+          "type": "boolean"
+        },
+        "quality": {
+          "type": "boolean"
+        },
+        "stockholmTracks": {
+          "type": "boolean"
+        },
+        "rowHiding": {
+          "type": "boolean"
+        },
+        "rowReordering": {
+          "type": "boolean"
+        },
+        "tree": {
+          "type": "boolean"
+        },
+        "columnMasking": {
+          "type": "boolean"
         }
       }
     },
@@ -248,15 +291,66 @@
       "description": "FASTA settings for exports and Ctrl/Cmd+C.",
       "additionalProperties": false,
       "properties": {
-        "gaps": { "enum": ["keep", "remove"] },
-        "letterCase": { "enum": ["original", "upper", "lower"] },
-        "lineWidth": { "type": "integer", "description": "0 for unwrapped, otherwise 10 to 1000.", "anyOf": [{ "const": 0 }, { "minimum": 10, "maximum": 1000 }] },
-        "header": { "enum": ["name", "name-species", "id-name"] }
+        "gaps": {
+          "enum": [
+            "keep",
+            "remove"
+          ]
+        },
+        "letterCase": {
+          "enum": [
+            "original",
+            "upper",
+            "lower"
+          ]
+        },
+        "lineWidth": {
+          "type": "integer",
+          "description": "0 for unwrapped, otherwise 10 to 1000.",
+          "anyOf": [
+            {
+              "const": 0
+            },
+            {
+              "minimum": 10,
+              "maximum": 1000
+            }
+          ]
+        },
+        "header": {
+          "enum": [
+            "name",
+            "name-species",
+            "id-name"
+          ]
+        },
+        "columns": {
+          "enum": [
+            "all",
+            "visible"
+          ],
+          "description": "visible leaves out columns hidden by column masking in FASTA exports and copy."
+        }
       }
+    },
+    "groupBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A row.metadata key, or species, to group rows by."
+    },
+    "treeWidth": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 400,
+      "description": "Pixel width of the tree column. 0 hides it."
     },
     "urlSync": {
       "type": "boolean",
       "description": "Keep location.hash in sync with the view and apply a link found there on the next load."
+    },
+    "dragToPan": {
+      "type": "boolean",
+      "description": "Drag the residue grid to pan. A press that moves under 4 px stays a click. Default true."
     },
     "showLogo": {
       "type": "boolean"
@@ -266,6 +360,94 @@
     },
     "showToolbar": {
       "type": "boolean"
+    },
+    "logoMode": {
+      "enum": [
+        "frequency",
+        "bits"
+      ]
+    },
+    "conservationWindow": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 51,
+      "description": "Odd integer: centered moving average for the entropy and quality bars."
+    },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[\\w.:-]{1,64}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "height": {
+            "type": "number",
+            "minimum": 12,
+            "maximum": 120
+          },
+          "type": {
+            "enum": [
+              "bar",
+              "heatmap",
+              "text"
+            ]
+          },
+          "values": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            ]
+          },
+          "domain": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "color": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "hideGapColumns": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Hide columns whose gap fraction over all rows is at least this value. null turns it off."
+    },
+    "hideAllGapColumns": {
+      "type": "boolean",
+      "description": "Hide columns that are gaps in every row."
     }
   }
 }
