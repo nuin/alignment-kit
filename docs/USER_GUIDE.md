@@ -379,7 +379,7 @@ To flag one sequence as the reverse strand, click the `+` button in its label. I
 
 With protein alignments the checkbox is disabled, and no strand buttons appear.
 
-Exports keep the source orientation, whatever the view shows. To export reverse-complemented FASTA, open **Export > FASTA options…** and set **Orientation** to **Reverse complement**. This applies to FASTA exports, the consensus export and Ctrl/Cmd+C, adds ` (reverse complement)` to each header and does not affect other formats. On a protein alignment the option is ignored and the select is disabled.
+Exports keep the source orientation, whatever the view shows. To export reverse-complemented FASTA, open **Export > FASTA options…** and set **Orientation** to **Reverse complement**. This applies to FASTA exports, the consensus export and Ctrl/Cmd+C, adds ` (reverse complement)` to each header and does not affect other formats. On a protein alignment the option is ignored and the select is disabled. Row strand flags never change copy, FASTA or Stockholm exports: they always write the stored residues, reverse-complemented only when **Orientation** says so. Sorting by residue, identity, gaps or length compares the stored residues, not the displayed ones, in both the reverse-complement view and flagged rows.
 
 Links carry `rc=1` for the whole view and `strand=id1,id2` for flagged rows. **Export > View state · JSON** stores the same two settings.
 

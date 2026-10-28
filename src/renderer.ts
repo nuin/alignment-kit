@@ -78,7 +78,7 @@ export class Renderer {
       const dot=!!v.matchDots&&same&&row!==v.reference&&!isGap(code);
       const faded=v.mode!=='all'&&compare!==undefined&&(v.mode.endsWith('differences')?same:!same);
       if(dynamicSchemes.has(v.scheme)) {
-        const color=dynamicColor(scheme,String.fromCharCode(code),v.stats,c,v.colorThreshold??0,v.threshold??0);ctx.fillStyle=color;ctx.globalAlpha=faded?0.22:1;ctx.fillRect(x,y,v.cw,v.rh-1);
+        const color=dynamicColor(scheme,String.fromCharCode(v.a.codes[row*v.a.width+c]),v.stats,c,v.colorThreshold??0,v.threshold??0);ctx.fillStyle=color;ctx.globalAlpha=faded?0.22:1;ctx.fillRect(x,y,v.cw,v.rh-1);
         if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dot?'.':code===45?'·':String.fromCharCode(code),x+v.cw/2,y+v.rh/2);}
       } else {ctx.globalAlpha=faded?0.22:1;ctx.drawImage(atlas,code*v.cw*ratio,dot?v.rh*ratio:0,v.cw*ratio,v.rh*ratio,x,y,v.cw,v.rh);}
       ctx.globalAlpha=1;

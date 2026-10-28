@@ -1,4 +1,5 @@
 import { resolveRegion } from '../export';
+import { columnPos } from '../mask';
 import { type Core } from './core';
 const rowOf=(v:Core,rowId:string):number=>v.a?.rows.findIndex(r=>r.id===rowId)??-1;
 const inRange=(v:Core,column:number):boolean=>!!v.a&&Number.isInteger(column)&&column>=1&&column<=v.a.width;
@@ -25,8 +26,8 @@ export function getVisibleRows(v:Core):string[] {
 }
 export function getVisibleColumns(v:Core):{start:number;end:number} {
   v.assertAlive();if(!v.a)return {start:0,end:0};
-  const m=v.columns,start=v.firstColumn()+1,last=Math.min(m.count,Math.ceil((v.scroll.scrollLeft+v.scroll.clientWidth-v.gutter)/v.options.cellWidth));
-  return {start,end:Math.max(start,(m.cols[Math.max(0,last-1)]??v.a.width-1)+1)};
+  const m=v.columns,last=Math.min(m.count,Math.ceil((v.scroll.scrollLeft+v.scroll.clientWidth-v.gutter)/v.options.cellWidth)),a=v.firstColumn()+1,b=(m.cols[Math.max(0,last-1)]??v.a.width-1)+1;
+  return {start:Math.min(a,b),end:Math.max(a,b)};
 }
 export function scrollToRow(v:Core, rowId:string):boolean {
   v.assertAlive();const r=rowOf(v,rowId);if(r<0||v.hidden.has(rowId))return false;
@@ -36,5 +37,5 @@ export function scrollToRow(v:Core, rowId:string):boolean {
 }
 export function scrollToColumn(v:Core, column:number):boolean {
   v.assertAlive();if(!inRange(v,column)||v.columns.mask[column-1]===0)return false;
-  v.scroll.scrollLeft=v.columns.before[column-1]*v.options.cellWidth;v.schedule();return true;
+  v.scroll.scrollLeft=columnPos(v.columns,column-1)*v.options.cellWidth;v.schedule();return true;
 }

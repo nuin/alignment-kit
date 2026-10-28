@@ -24,5 +24,5 @@ export function importAnnotations(v:Core, text:string,options:AnnotationImportOp
   v.message(`Imported ${result.annotations.length} annotations (${mapped} mapped).${result.warnings.length?` ${result.warnings.length} warnings: ${result.warnings.slice(0,3).join(' ')}${result.warnings.length>3?' …':''}`:''}`);
   return result;
 }
-export function refreshAnnotations(v:Core):void {v.rebuildAnnotations();v.featurePage=Math.min(v.featurePage,Math.max(0,Math.ceil(v.filteredAnnotations.visible.length/30)-1));v.inspectorDirty=true;v.overviewDirty=true;v.schedule();}
+export function refreshAnnotations(v:Core):void {v.rebuildAnnotations();if(v.sort==='annotations'){v.rebuildRows();v.emit('state',v.getState());}v.featurePage=Math.min(v.featurePage,Math.max(0,Math.ceil(v.filteredAnnotations.visible.length/30)-1));v.inspectorDirty=true;v.overviewDirty=true;v.schedule();}
 export function rebuildAnnotations(v:Core):void {v.filteredAnnotations=filterAnnotations(v.a?.annotations??[],v.annotationFilter);v.annotationIndex=new AnnotationIndex(v.filteredAnnotations.visible);}
