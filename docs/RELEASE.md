@@ -1,15 +1,15 @@
 # npm release preparation
 
-The library is not published to npm. The repository remains private at `nuin/alignment-kit`. A public npm package would expose its distributed code and included documentation even if the GitHub repository stays private. This preparation does not change repository visibility.
+The package is published to npm as `@nuin/msa-canvas`. The GitHub repository `nuin/alignment-kit` stays private; the npm package exposes its distributed code, source maps and included documentation.
 
-## Decisions before publication
+## Release decisions
 
-- Confirm the npm account/scope and final package name. The current development name is `@alignment-kit/viewer`; `@nuin/alignment-kit` is a proposal, not an assigned namespace. A registry 404 is not proof that an account can publish the name.
-- Confirm the project license and copyright holder. MIT is proposed; third-party MIT and OFL notices must remain. No project license has been selected yet.
-- Confirm public versus restricted npm access and the first version/tag. A preview such as `0.1.0-beta.1` under the `next` tag makes the initial status explicit.
-- Complete outstanding browser acceptance checks before calling the library production-ready. Recorded local CPU benchmarks are not browser frame-rate measurements.
+- Name: `@nuin/msa-canvas`, under the npm user scope `nuin`.
+- License: MIT, copyright Bioinformat. Third-party MIT and OFL notices remain in `THIRD_PARTY_NOTICES.md`.
+- First version: `0.1.0`, public, on the `latest` tag.
+- Browser acceptance checks are still outstanding. Recorded local CPU benchmarks are not browser frame-rate measurements.
 
-`package.json` retains `private: true` until the name/license/release decision is confirmed. This intentionally prevents accidental publication. No credentials are stored in the repository. Authentication must be checked through `npm whoami`, without copying tokens into source or documentation.
+Authentication is checked with `npm whoami`. No credentials are stored in the repository.
 
 ## Reproduce the release candidate
 
@@ -39,9 +39,9 @@ Core has no runtime package dependencies. React and Svelte are optional peers. A
 
 The packed-consumer check extracts the actual npm archive into a separate directory and builds React and Svelte consumers against locally installed framework peers. It checks SSR imports and validates required archive contents. It does not prove registry authentication, permission to publish, fresh-install behavior under every package manager or browser execution.
 
-## Final publication, after approval
+## Publishing a version
 
-First update the confirmed name, license, version, package-lock metadata, examples and documentation together. Add the approved project LICENSE and remove `private: true` only for the approved release. Keep the file allowlist and third-party notices intact. Rebuild and rerun the checks against that exact version.
+Bump the version in `package.json` and `package-lock.json` together. Keep the file allowlist and third-party notices intact. Rebuild and rerun the checks against that exact version.
 
 Check the intended account and inspect the archive before the irreversible registry step:
 
@@ -50,10 +50,10 @@ npm whoami --registry=https://registry.npmjs.org
 npm pack --dry-run
 ```
 
-For an approved **public scoped beta**, the publication command is:
+Publish to the `latest` tag (use `--tag next` for a prerelease):
 
 ```sh
-npm publish --access public --tag next --registry=https://registry.npmjs.org
+npm publish --access public --registry=https://registry.npmjs.org
 ```
 
 Use the authentication/2FA workflow required by npm. Do not place one-time codes or tokens in files or commit messages. Do not use the public-access command for an intended private package. After publication, verify the registry's name, version, access and tarball, install that exact registry version in clean JavaScript/React/Svelte consumers, and verify worker/CSS resolution. Record the published version and its source commit.

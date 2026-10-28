@@ -1,7 +1,6 @@
 {
-  "name": "@alignment-kit/viewer",
+  "name": "@nuin/msa-canvas",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "An annotation-aware, virtualized multiple sequence alignment viewer for JavaScript, React and Svelte",
   "files": [
@@ -13,7 +12,8 @@
     "docs/performance.md",
     "docs/benchmark-results.json",
     "docs/screenshots",
-    "config"
+    "config",
+    "LICENSE"
   ],
   "exports": {
     ".": {
@@ -98,10 +98,7 @@
     "type": "git",
     "url": "git+https://github.com/nuin/alignment-kit.git"
   },
-  "homepage": "https://github.com/nuin/alignment-kit#readme",
-  "bugs": {
-    "url": "https://github.com/nuin/alignment-kit/issues"
-  },
+  "homepage": "https://bioinformat.org/msa-canvas",
   "keywords": [
     "msa",
     "multiple-sequence-alignment",
@@ -112,5 +109,8 @@
     "react",
     "svelte"
   ],
-  "license": "UNLICENSED"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

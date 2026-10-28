@@ -1,10 +1,14 @@
-# Alignment Kit
+# MSA Canvas
 
 An embeddable multiple sequence alignment viewer for JavaScript, React and Svelte. It combines a virtualized residue matrix with a pinned reference, annotation tracks and exact column statistics. Nightingale residue palettes are included with attribution.
 
-This is a local development package, not an npm release. Browser validation is not yet complete in this restricted environment; see [validation and performance](docs/performance.md).
+```sh
+npm install @nuin/msa-canvas
+```
 
-Start with the [full user guide](docs/USER_GUIDE.md) for walkthroughs, palette meanings, statistical definitions, annotation workflows, exports, keyboard shortcuts and troubleshooting. The Explorer's **User guide** link opens a browsable version with palette previews at `/guide/index.html`. This README covers installation and developer integration. See [npm release preparation](docs/RELEASE.md) for the remaining publication decisions.
+Browser validation is not yet complete; see [validation and performance](docs/performance.md). Project page: <https://bioinformat.org/msa-canvas>.
+
+Start with the [full user guide](docs/USER_GUIDE.md) for walkthroughs, palette meanings, statistical definitions, annotation workflows, exports, keyboard shortcuts and troubleshooting. The Explorer's **User guide** link opens a browsable version with palette previews at `/guide/index.html`. This README covers installation and developer integration.
 
 ## Screenshots
 
@@ -12,15 +16,15 @@ Actual browser captures from the bundled real alignments. Click an image to insp
 
 **Protein exploration:** CBS domain seed, 838 sequences, with reference, tracks and position inspector.
 
-![Protein alignment with column statistics and position inspector](docs/screenshots/protein-explorer.png)
+![Protein alignment with column statistics and position inspector](https://bioinformat.org/images/msa-canvas/protein-explorer.png)
 
 **DNA/RNA coloring:** shown with the 954-sequence tRNA seed, a nucleotide palette, frequency logo and color legend.
 
-![RNA alignment with the blue-orange nucleotide palette and legend](docs/screenshots/rna-colors.png)
+![RNA alignment with the blue-orange nucleotide palette and legend](https://bioinformat.org/images/msa-canvas/rna-colors.png)
 
 **Minimal embedding:** the same alignment with toolbars, overview, inspector and selected tracks hidden.
 
-![Minimal alignment viewer with only sequence labels and selected tracks](docs/screenshots/minimal-embed.png)
+![Minimal alignment viewer with only sequence labels and selected tracks](https://bioinformat.org/images/msa-canvas/minimal-embed.png)
 
 ## Try it
 
@@ -50,16 +54,16 @@ If local servers are unavailable, `npm run preview:files` generates self-contain
 npm run build
 npm pack
 # In a consuming application:
-npm install /path/to/alignment-kit-viewer-0.1.0.tgz
+npm install /path/to/nuin-msa-canvas-0.1.0.tgz
 ```
 
-The core has no framework runtime dependency. React and Svelte are optional peers, imported only through their respective entry points. Build output includes module code, type declarations, a worker, CSS, fonts and the Svelte component source. No package has been published.
+The core has no framework runtime dependency. React and Svelte are optional peers, imported only through their respective entry points. Build output includes module code, type declarations, a worker, CSS, fonts and the Svelte component source.
 
 ## JavaScript
 
 ```ts
-import { createViewer, parseAlignment } from '@alignment-kit/viewer';
-import '@alignment-kit/viewer/style.css';
+import { createViewer, parseAlignment } from '@nuin/msa-canvas';
+import '@nuin/msa-canvas/style.css';
 
 const viewer = createViewer(document.querySelector('#alignment'), {
   height: 740,
@@ -88,9 +92,9 @@ A3M insertion notation is unsupported. Known `.a3m` files/URLs are rejected. Ano
 
 ```tsx
 import { useMemo, useState } from 'react';
-import { AlignmentViewer } from '@alignment-kit/viewer/react';
-import type { Alignment, Selection } from '@alignment-kit/viewer';
-import '@alignment-kit/viewer/style.css';
+import { AlignmentViewer } from '@nuin/msa-canvas/react';
+import type { Alignment, Selection } from '@nuin/msa-canvas';
+import '@nuin/msa-canvas/style.css';
 
 export function ProteinAlignment({ alignment }: { alignment?: Alignment }) {
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -114,9 +118,9 @@ The component accepts `className`, `style` and `id`. It creates one viewer per m
 
 ```svelte
 <script lang="ts">
-  import AlignmentViewer from '@alignment-kit/viewer/svelte/AlignmentViewer.svelte';
-  import type { Alignment, Selection } from '@alignment-kit/viewer';
-  import '@alignment-kit/viewer/style.css';
+  import AlignmentViewer from '@nuin/msa-canvas/svelte/AlignmentViewer.svelte';
+  import type { Alignment, Selection } from '@nuin/msa-canvas';
+  import '@nuin/msa-canvas/style.css';
 
   let { alignment }: { alignment?: Alignment } = $props();
   let selection = $state<Selection | null>(null);
@@ -136,8 +140,8 @@ The Svelte component accepts `class`, `style` and `id`. It supports SSR and only
 
 ```svelte
 <script lang="ts">
-  import { alignmentViewer } from '@alignment-kit/viewer/svelte';
-  import '@alignment-kit/viewer/style.css';
+  import { alignmentViewer } from '@nuin/msa-canvas/svelte';
+  import '@nuin/msa-canvas/style.css';
   let { alignment } = $props();
 </script>
 
@@ -155,7 +159,7 @@ Both framework integrations accept `alignment`, `options`, `onReady`, `onSelecti
 Every viewer region and functional control has a typed visibility switch. In the Explorer, open **Customize viewer** above the alignment to try them and use **Restore default view** to undo your presentation changes. That demo panel belongs to the host application, not the embedded library.
 
 ```ts
-import { createViewer, defaultVisibility, type ViewerVisibility } from '@alignment-kit/viewer';
+import { createViewer, defaultVisibility, type ViewerVisibility } from '@nuin/msa-canvas';
 
 const visibility: ViewerVisibility = {
   open: false,
@@ -228,7 +232,7 @@ A developer can keep viewer settings in JSON, validate them with `parseViewerCon
 ```
 
 ```ts
-import { createViewer, parseViewerConfig } from '@alignment-kit/viewer';
+import { createViewer, parseViewerConfig } from '@nuin/msa-canvas';
 
 const response = await fetch('/viewer-config.json');
 if (!response.ok) throw new Error(`Configuration request failed: ${response.status}`);
@@ -251,7 +255,7 @@ A JSON configuration controls presentation, not access rights. Hidden controls d
 Supply annotations when creating an alignment:
 
 ```ts
-import { createAlignment } from '@alignment-kit/viewer';
+import { createAlignment } from '@nuin/msa-canvas';
 const alignment = createAlignment([
   { id: 'human', name: 'Protein isoform', sequence: 'AC-G', species: 'Homo sapiens' },
   { id: 'mouse', name: 'Mouse ortholog', sequence: 'ACTG', species: 'Mus musculus' },
@@ -341,7 +345,7 @@ Ctrl/Cmd+C on the focused matrix copies gapped FASTA for the selected columns (o
 With `urlSync: true` the viewer keeps `location.hash` in sync (via `history.replaceState`) and applies a hash link after the next load. The viewer never fetches `src` itself; the host decides what to load:
 
 ```ts
-import { createViewer, decodeViewLink } from '@alignment-kit/viewer';
+import { createViewer, decodeViewLink } from '@nuin/msa-canvas';
 const viewer = createViewer(element, { urlSync: true });
 const { source } = decodeViewLink(location.hash);
 await viewer.loadUrl(source && isTrusted(source) ? source : defaultUrl);
@@ -372,3 +376,7 @@ npm run release:check  # package preparation checks; does not publish
 ```
 
 Targeted Chromium interaction checks and actual UI screenshots are available. The full CLI browser suite, WebKit and comprehensive accessibility/performance acceptance remain outstanding. See [performance report](docs/performance.md) for measured results and the exact outstanding acceptance checks. Aligning sequences, gene retrieval, clinical interpretation, editing alignments, structure viewers and tree inference are outside this library's scope.
+
+## License
+
+MIT. See [LICENSE](LICENSE). Third-party notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
