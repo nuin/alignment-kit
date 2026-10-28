@@ -18,6 +18,7 @@ it('updates palette choices and colors when the alignment alphabet changes',asyn
   expect([...palette.options].map(o=>o.value)).toContain('purine');expect([...palette.options].map(o=>o.value)).not.toContain('taylor');
   const type=el.querySelector<HTMLSelectElement>('select[aria-label="Sequence alphabet"]')!;
   type.value='protein';type.dispatchEvent(new Event('change',{bubbles:true}));
+  el.querySelector<HTMLButtonElement>('[data-action="alphabet-switch"]')!.click();
   await vi.waitFor(()=>expect(viewer.getAlignment()?.alphabet).toBe('protein'));
   expect(viewer.getState().colorScheme).toBe('soft');expect([...palette.options].map(o=>o.value)).toContain('taylor');
   expect(el.querySelector('[role=combobox][aria-label="Sequence alphabet"]')?.textContent).toBe('Protein');

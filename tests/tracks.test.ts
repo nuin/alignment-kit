@@ -67,13 +67,13 @@ it('survives the worker transfer path with the new arrays',()=>{
   for(const key of ['entropy','information','quality'] as const)expect(ArrayBuffer.isView(s[key])).toBe(true);
 });
 
-it('lays out built-in tracks in order, then registered tracks, and hides quality for nucleotides',()=>{
+it('lays out built-in column tracks, then registered tracks, then the reference row, and hides quality for nucleotides',()=>{
   const base=trackLayout(defaultVisibility,36);
   expect(base.height).toBe(150);expect(base.offsets).toMatchObject({ruler:0,modalFrequency:26,gapFraction:52,entropy:null,quality:null,consensus:78,reference:114});
   const all={...defaultVisibility,entropy:true,quality:true,logo:true};
   const protein=trackLayout(all,36,[{height:20},{height:40}],'protein');
-  expect(protein.offsets).toMatchObject({gapFraction:52,entropy:78,quality:104,consensus:130,logo:166,reference:211});
-  expect(protein.custom).toEqual([{offset:247,height:20},{offset:267,height:40}]);expect(protein.height).toBe(307);
+  expect(protein.offsets).toMatchObject({gapFraction:52,entropy:78,quality:104,consensus:130,logo:166,reference:271});
+  expect(protein.custom).toEqual([{offset:211,height:20},{offset:231,height:40}]);expect(protein.height).toBe(307);
   expect(trackLayout(all,36,[],'dna').offsets.quality).toBeNull();
   expect(trackLayout({...all,tracks:false},36,[{height:20}]).height).toBe(0);
 });
@@ -84,7 +84,7 @@ it('registers, lists and removes tracks and sizes the track area',async()=>{
   viewer.addTrack({id:'score',label:'Score',type:'bar',values:[0,0.5,1,null]});
   viewer.addTrack({id:'cols',label:'Columns',type:'text',values:'abcd',height:40});
   expect(tracksHeight(el)).toBe('216px');
-  expect([...el.querySelectorAll('.ak-custom-label')].map(n=>[n.textContent,(n as HTMLElement).style.top])).toEqual([['Score','153px'],['Columns','186px']]);
+  expect([...el.querySelectorAll('.ak-custom-label')].map(n=>[n.textContent,(n as HTMLElement).style.top])).toEqual([['Score','117px'],['Columns','150px']]);
   expect(viewer.getTracks().map(t=>t.id)).toEqual(['score','cols']);
   viewer.getTracks()[0].label='changed';expect(viewer.getTracks()[0].label).toBe('Score');
   viewer.removeTrack('score');expect(viewer.getTracks().map(t=>t.id)).toEqual(['cols']);expect(tracksHeight(el)).toBe('190px');
@@ -208,7 +208,7 @@ it('shows GR tracks only for a selected row or a pinned reference',async()=>{
   viewer.setOptions({visibility:{reference:false}});expect(labels()).toEqual(['SS_cons','PP_cons','RF']);
   viewer.setOptions({visibility:{reference:true,tracks:false}});expect(labels()).toEqual(['SS_cons','PP_cons','RF']);
 });
-it('caps the track area at 45% of the viewer height and scrolls the rest',()=>{
+it('keeps the track area free of an inner scrollbar',()=>{
   const css=readFileSync('src/style.css','utf8'),rule=css.match(/\.ak-tracks\{[^}]*\}/)![0];
-  expect(rule).toContain('max-height:45%');expect(rule).toContain('overflow-y:auto');
+  expect(rule).not.toContain('max-height');expect(rule).toContain('overflow:hidden');
 });

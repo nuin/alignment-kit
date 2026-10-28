@@ -1,7 +1,7 @@
 import { defaultVisibility, applyVisibility, trackLayout, trackNames, inspectorTabs } from './visibility';
-import type { ViewerVisibility, RulerCoordinates, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode, Annotation, AnnotationImportOptions, AnnotationImportResult, Hit, SearchOptions, SearchResult, CustomTrack } from './types';
+import type { Alphabet, ViewerVisibility, RulerCoordinates, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode, Annotation, AnnotationImportOptions, AnnotationImportResult, Hit, SearchOptions, SearchResult, CustomTrack } from './types';
 import { importAnnotations } from './annotation-import';
-import { createAlignment, columnToResidue, residueToColumn } from './model';
+import { createAlignment, columnToResidue, residueToColumn, detectAlphabet } from './model';
 import { compilePattern, hitCount } from './search';
 import { readAlignmentInput } from './parsers';
 import { AnnotationIndex, filterAnnotations } from './annotations';
@@ -39,7 +39,8 @@ export class AlignmentViewer {
   private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
   private visibility:Required<ViewerVisibility>={...defaultVisibility};
-  private get treeW(){return this.tree&&this.visibility.tree?this.options.treeWidth:0;}
+  private get grouped(){return !!(this.groupMap||this.groupBy);}
+  private get treeW(){return this.tree&&this.visibility.tree&&!this.grouped?this.options.treeWidth:0;}
   private get gutter(){return this.treeW+(this.visibility.labels?this.options.labelWidth:0);}
   private get matchDots(){return this.options.matchDisplay==='dot'&&(this.options.colorMode.startsWith('consensus')||this.pinned||this.filteredRows.includes(this.reference));}
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
@@ -92,12 +93,13 @@ export class AlignmentViewer {
   private searchState?:{pattern:string;options:SearchOptions;result:SearchResult;byRow:Map<number,Hit[]>;cursor:number;full?:SearchResult};
   private customTracks:CustomTrack[]=[];private drawn?:{a:Alignment;row:number;flag:boolean;user:CustomTrack[];list:CustomTrack[]};private trackKey='';private trackErrors=new Set<string>();
   private selectionRow(){return this.selection?.rowId&&this.a?this.a.rows.findIndex(r=>r.id===this.selection!.rowId):this.pinned?this.reference:-1;}
-  /** Tracks drawn after the built-ins: Stockholm lines first, then registered tracks whose values fit the alignment. Same array until an input changes. */
+  /** Tracks drawn after the built-in column tracks: Stockholm GC lines, registered tracks whose values fit the alignment, then the GR lines of the selected or reference row, which sit next to the pinned reference row. Same array until an input changes. */
   private drawnTracks():CustomTrack[] {
     const a=this.a;if(!a)return [];
     const row=this.selectionRow(),flag=this.visibility.stockholmTracks,d=this.drawn;
     if(d&&d.a===a&&d.row===row&&d.flag===flag&&d.user===this.customTracks)return d.list;
-    const list=[...(flag?stockholmTracks(a,row):[]),...this.customTracks.filter(t=>t.values===undefined||t.values.length===a.width)];
+    const st=flag?stockholmTracks(a,row):[],perRow=(t:CustomTrack)=>t.id.startsWith('gr:');
+    const list=[...st.filter(t=>!perRow(t)),...this.customTracks.filter(t=>t.values===undefined||t.values.length===a.width),...st.filter(perRow)];
     this.drawn={a,row,flag,user:this.customTracks,list};return list;
   }
   private checkTracks(){if(this.a)for(const t of this.customTracks)try{checkTrackLength(t,this.a.width);}catch(error){this.error(error);}}
@@ -140,6 +142,19 @@ export class AlignmentViewer {
   private error(error:unknown) {const err=error instanceof Error?error:new Error(String(error));if(err.name!=='AbortError'&&!this.disposed){this.message(err.message,true);this.emit('error',err);}return err;}
   private assertAlive(){if(this.disposed)throw new Error('This viewer has been destroyed.');}
   getAlignment():Alignment|undefined{return this.a;}
+  private detected?:{alphabet:Alphabet;other:number};private pendingAlphabet?:Alphabet;
+  /** Alphabet suggested by the residues of the loaded alignment, whatever alphabet it is displayed as. Throws before an alignment is loaded. */
+  getDetectedAlphabet():Alphabet {this.assertAlive();if(!this.detected)throw new Error('No alignment is loaded.');return this.detected.alphabet;}
+  /** Type select handler: a switch across the protein/nucleotide line from the detected alphabet waits for Switch or Cancel in the message area. */
+  private requestAlphabet(next:Alphabet) {
+    const d=this.detected;if(!d||!this.a||next===this.a.alphabet)return;
+    if((d.alphabet==='protein')===(next==='protein')){this.applyAlphabet(next);return;}
+    const name=(x:Alphabet)=>x==='protein'?'protein':x.toUpperCase(),pct=(x:number)=>`${Math.round(x*1000)/10}%`;
+    this.message(d.alphabet==='protein'?`This alignment looks like protein (${pct(d.other)} of residues are not A, C, G, T/U, N). Treat it as ${name(next)}?`:`This alignment looks like ${name(d.alphabet)} (${pct(1-d.other)} of residues are A, C, G, T/U or N). Treat it as protein?`);
+    const target=$(this.root,'.ak-message'),button=(action:string,text:string)=>{const b=document.createElement('button');b.type='button';b.dataset.action=action;b.textContent=text;return b;};
+    target.append(' ',button('alphabet-switch','Switch'),' ',button('alphabet-cancel','Cancel'));target.hidden=false;this.pendingAlphabet=next;$<HTMLSelectElement>(this.root,'[aria-label="Sequence alphabet"]').value=next;this.menus.sync();
+  }
+  private applyAlphabet(next:Alphabet) {const old=this.a!;void this.setAlignment(createAlignment(old.rows,{name:old.name,alphabet:next,annotations:old.annotations,metadata:old.metadata})).catch(()=>{});}
   getStatistics():AlignmentStats|undefined{return this.stats;}
   getSelectedRowIds():string[]{return [...this.selectedRows];}
   load(input:string|Blob|ArrayBuffer,options:ParseOptions={}):Promise<void> {return this.loadInput(input,options);}
@@ -172,7 +187,7 @@ export class AlignmentViewer {
     if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw this.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
     this.sourceUrl=this.nextSource;this.nextSource=undefined;this.loading=true;
     const index=new Map(alignment.rows.map((r,i)=>[r.id,i])),known=(id:string)=>index.has(id);
-    this.a=alignment;this.trackErrors.clear();this.checkTracks();this.stats=undefined;this.fullStats=undefined;this.reference=index.get(carry?.reference??'')??0;this.selection=carry?.selection??null;this.selectedRows=new Set(carry?.selectedRows.filter(known));this.query=carry?.query??'';this.sort=carry?.sort??'input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter=carry?.annotationFilter??{};this.featurePage=0;
+    this.a=alignment;this.detected=detectAlphabet(alignment);this.trackErrors.clear();this.checkTracks();this.stats=undefined;this.fullStats=undefined;this.reference=index.get(carry?.reference??'')??0;this.selection=carry?.selection??null;this.selectedRows=new Set(carry?.selectedRows.filter(known));this.query=carry?.query??'';this.sort=carry?.sort??'input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter=carry?.annotationFilter??{};this.featurePage=0;
     this.hidden=new Set(carry?.hidden.filter(known));this.manualOrder=carry?.manualOrder?.filter(known)??null;this.collapsed=new Set(carry?.collapsed);this.groupMap=carry?.groupMap??null;this.tree=carry?.tree?this.bindTree(carry.tree):undefined;this.manualHidden=carry?.hiddenColumns??[];this.colMap=undefined;
     this.menus.close();const schemes=colorSchemes(alignment.alphabet);
     if(!schemes.some(s=>s.id===this.options.colorScheme))this.options.colorScheme=alignment.alphabet==='protein'?'soft':'soft-nucleotide';
@@ -276,7 +291,7 @@ export class AlignmentViewer {
       });
     }
     this.rowPos=new Int32Array(a.rows.length).fill(-1);this.rows.forEach((row,p)=>{if(row>=0)this.rowPos[row]=p;});
-    this.labelKey='';this.layout();
+    this.noteTreeGroups();this.labelKey='';this.layout();
     if(this.searchState&&!this.searchBusy)this.runSearch(this.searchState.pattern,this.searchState.options,true).catch(error=>this.error(error));
   }
   private rowsChanged() {this.rebuildRows();this.inspectorDirty=true;if(this.options.statisticsScope==='filtered')void this.updateStats().catch(()=>{});this.emit('state',this.getState());}
@@ -330,6 +345,7 @@ export class AlignmentViewer {
   /** Show a Newick tree left of the labels and order rows by it. Pass null to remove it. Leaves match rows by ID, then by name; mismatches are reported in a message. */
   setTree(newick:string|null) {
     this.assertAlive();
+    this.clearTreeNote();
     if(newick===null){this.tree=undefined;if(this.sort==='tree')this.sort='input';}
     else {
       if(!this.a)throw this.error(new Error('Load an alignment before setting a tree.'));
@@ -337,6 +353,16 @@ export class AlignmentViewer {
       this.tree=this.bindTree(layout);this.sort='tree';
     }
     $<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value=this.sort;this.rebuildRows();this.emit('state',this.getState());
+  }
+  /** Clear the message area when it still shows a warning about the tree being removed or replaced. */
+  private clearTreeNote(){const text=$(this.root,'.ak-message').textContent;if(text&&(text===this.tree?.note||text===this.treeGroupNote))this.message('');}
+  private readonly treeGroupNote='The tree column is hidden while rows are grouped. Clear the groups to show it.';private treeGroupShown=false;
+  /** Say once per change that the tree column collapses while groups are active. */
+  private noteTreeGroups(){
+    const hidden=!!this.tree&&this.visibility.tree&&this.grouped;
+    if(hidden&&!this.treeGroupShown)this.message(this.treeGroupNote);
+    else if(!hidden&&this.treeGroupShown&&$(this.root,'.ak-message').textContent===this.treeGroupNote)this.message('');
+    this.treeGroupShown=hidden;
   }
   private bindTree(layout:TreeLayout):BoundTree {
     const rows=this.a!.rows,match=matchLeaves(layout,rows),treePos=new Int32Array(rows.length).fill(-1);let rank=0;
@@ -458,12 +484,13 @@ export class AlignmentViewer {
     this.root.dataset.compactRows=String(rh<32);
     $(this.root,'.ak-tracks').style.height=tracks.height+'px';$(this.root,'.ak-tracks').hidden=tracks.height===0;
     const strip=$(this.root,'.ak-track-labels');
-    $(this.root,'.ak-track-labels').children[0].textContent=this.options.rulerCoordinates==='reference'?'Reference residue':'Alignment position';
+    strip.children[0].textContent=this.options.rulerCoordinates==='reference'?'Reference residue':'Alignment position';
+    $(this.root,'.ak-logo-label').textContent=this.options.logoMode==='bits'?'Information logo · bits':'Frequency logo · non-gap';
     [...strip.children].slice(0,trackNames.length).forEach((label,i)=>{const node=label as HTMLElement,offset=tracks.offsets[trackNames[i]];node.hidden=offset===null;node.style.top=((offset??0)+(trackNames[i]==='reference'?0:3))+'px';});
     const key=extra.map((t,i)=>`${t.id}|${t.label}|${tracks.custom[i]?.offset}`).join('\n');
     if(key!==this.trackKey){this.trackKey=key;for(const old of strip.querySelectorAll('.ak-custom-label'))old.remove();
       extra.forEach((t,i)=>{const slot=tracks.custom[i];if(!slot)return;const node=document.createElement('span');node.className='ak-custom-label';node.textContent=t.label;node.title=t.label;node.style.top=(slot.offset+Math.max(0,(slot.height-20)/2))+'px';strip.append(node);});}
-    const message=$(this.root,'.ak-message');message.hidden=!this.visibility.messages||!message.textContent;
+    const message=$(this.root,'.ak-message');message.hidden=(!this.visibility.messages&&!this.pendingAlphabet)||!message.textContent;
     const spacer=$(this.root,'.ak-spacer');spacer.style.width=(gutter+this.columns.count*this.options.cellWidth)+'px';spacer.style.height=Math.max(1,this.rows.length*rh)+'px';
     $(this.root,'.ak-empty').hidden=!this.visibility.emptyState||(!!this.a&&this.rows.length>0);
     if(this.a&&!this.rows.length)$(this.root,'.ak-empty').textContent=this.hidden.size&&!this.filteredRows.length&&!this.query?'No sequences are visible. Use Show hidden to restore them.':this.pinned?(this.filteredRows.length?'The reference is pinned above.':'No sequences match this filter. The reference remains pinned.'):'No sequences match this filter.';
@@ -510,7 +537,9 @@ export class AlignmentViewer {
     this.scroll.setAttribute('aria-rowcount',String(this.a.rows.length));this.scroll.setAttribute('aria-colcount',String(m.count));
     this.emit('viewport',{start,end,firstRow:first,lastRow:last,visibleRows:last-first,totalRows:this.a.rows.length});
   }
-  private message(message:string,isError=false) {const target=$(this.root,'.ak-message');target.hidden=!message||!this.visibility.messages;target.textContent=message;target.dataset.error=String(isError);}
+  private message(message:string,isError=false) {
+    if(this.pendingAlphabet){this.pendingAlphabet=undefined;if(this.a)$<HTMLSelectElement>(this.root,'[aria-label="Sequence alphabet"]').value=this.a.alphabet;this.menus.sync();}
+    const target=$(this.root,'.ak-message');target.hidden=!message||!this.visibility.messages;target.textContent=message;target.dataset.error=String(isError);}
   private zoom(value:number) {const available=this.scroll.clientWidth-this.gutter,center=(this.scroll.scrollLeft+available/2)/this.options.cellWidth;this.setOptions({cellWidth:value});this.scroll.scrollLeft=Math.max(0,center*this.options.cellWidth-available/2);this.schedule();}
   /** The display item under a pointer in the grid: a row index, a negative group header, or undefined. */
   private itemAt(event:MouseEvent):number|undefined {
@@ -526,6 +555,8 @@ export class AlignmentViewer {
   private async action(action:string) {
     try {
       if(action==='close-fasta-options'){this.fastaPanel(false);return;}
+      if(action==='alphabet-switch'){const next=this.pendingAlphabet;this.pendingAlphabet=undefined;this.message('');if(next&&this.a)this.applyAlphabet(next);return;}
+      if(action==='alphabet-cancel'){this.message('');return;}
       if(action==='open'){$<HTMLInputElement>(this.root,'.ak-file').click();return;}
       if(action==='zoom-in')this.zoom(this.options.cellWidth+2);
       if(action==='zoom-out')this.zoom(this.options.cellWidth-2);
@@ -732,7 +763,10 @@ export class AlignmentViewer {
       if(button.dataset.row)this.setSelection({start:this.selection?.start??1,end:this.selection?.end??1,rowId:button.dataset.row},false);
       if(button.dataset.feature){const feature=this.filteredAnnotations.visible[Number(button.dataset.feature)];if(feature){if(feature.mapping==='mapped')this.setSelection({start:feature.start!,end:feature.end!,rowId:feature.rowId});this.emit('annotation',feature);this.message(`${feature.label}: ${feature.mapping==='mapped'?`alignment columns ${feature.start}–${feature.end}`:'no protein mapping'}. ${JSON.stringify(feature.metadata??{})}`);}}
     });
-    const pick=(s:Selection|null,shift:boolean)=>{if(s){if(shift&&this.selection){s.start=Math.min(this.selection.start,s.start);s.end=Math.max(this.selection.end,s.end);}this.setSelection(s,false);}};
+    // A plain click on the only selected column (and the same row, if any) clears the selection.
+    const pick=(s:Selection|null,shift:boolean)=>{if(!s)return;const c=this.selection;
+      if(!shift&&c&&c.start===s.start&&c.end===s.end&&c.rowId===s.rowId){this.setSelection(null,false);return;}
+      if(shift&&c){s.start=Math.min(c.start,s.start);s.end=Math.max(c.end,s.end);}this.setSelection(s,false);};
     let pan:{id:number;x:number;y:number;left:number;top:number;moved:boolean}|undefined,panned=false;
     on(this.scroll,'pointerdown',(event:PointerEvent)=>{
       panned=false;if(!this.options.dragToPan||event.button!==0||!this.a||event.clientX-this.scroll.getBoundingClientRect().left<this.gutter)return;
@@ -750,7 +784,7 @@ export class AlignmentViewer {
       if(!this.a||(event.target as HTMLElement).closest('button,[data-action]'))return;
       const tracks=$(this.root,'.ak-tracks'),rect=tracks.getBoundingClientRect(),y=event.clientY-rect.top+tracks.scrollTop,x=event.clientX-rect.left-this.gutter,d=Math.floor((x+this.scroll.scrollLeft)/this.options.cellWidth);
       if(x<0||d<0||d>=this.columns.count)return;const column=this.columns.cols[d]+1;
-      const ref=trackLayout(this.visibility,this.options.rowHeight,[],this.a.alphabet).offsets.reference,onRef=ref!==null&&y>=ref&&y<ref+this.options.rowHeight;
+      const ref=trackLayout(this.visibility,this.options.rowHeight,this.drawnTracks().map(t=>({height:trackHeight(t)})),this.a.alphabet).offsets.reference,onRef=ref!==null&&y>=ref&&y<ref+this.options.rowHeight;
       pick({start:column,end:column,...(onRef?{rowId:this.a.rows[this.reference].id}:{})},event.shiftKey);
     });
     const treeCanvas=$<HTMLCanvasElement>(this.root,'.ak-tree-canvas');
@@ -783,7 +817,7 @@ export class AlignmentViewer {
       if(aria==='FASTA line width')this.setOptions({fasta:{lineWidth:Number(target.value)}});
       if(aria==='FASTA header')this.setOptions({fasta:{header:target.value as 'name'|'name-species'|'id-name'}});
       if(aria==='FASTA columns')this.setOptions({fasta:{columns:target.value as 'all'|'visible'}});
-      if(aria==='Sequence alphabet'&&this.a){const old=this.a;void this.setAlignment(createAlignment(old.rows,{name:old.name,alphabet:target.value as Alignment['alphabet'],annotations:old.annotations,metadata:old.metadata})).catch(()=>{});}
+      if(aria==='Sequence alphabet'&&this.a)this.requestAlphabet(target.value as Alphabet);
       if(aria==='Feature type')this.setAnnotationFilter({...this.annotationFilter,types:target.value?[target.value]:[]});
       if(aria==='Feature consequence')this.setAnnotationFilter({...this.annotationFilter,consequences:target.value?[target.value]:[]});
       if(aria==='Features with disease evidence')this.setAnnotationFilter({...this.annotationFilter,disease:target.checked});
@@ -819,7 +853,7 @@ export class AlignmentViewer {
   clear() {
     this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.searcher.cancel();
     this.loading=false;this.pendingLink=undefined;
-    this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.dropSearch();this.selectedRows.clear();this.annotationFilter={};this.hidden.clear();this.manualHidden=[];this.colMap=undefined;this.manualOrder=null;this.collapsed.clear();this.groupMap=null;this.groupList=[];this.tree=undefined;this.treeHits=[];this.rowPos=new Int32Array(0);if(this.sort==='tree'||this.sort==='manual'){this.sort='input';$<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';}
+    this.a=undefined;this.detected=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.dropSearch();this.selectedRows.clear();this.annotationFilter={};this.hidden.clear();this.manualHidden=[];this.colMap=undefined;this.manualOrder=null;this.collapsed.clear();this.groupMap=null;this.groupList=[];this.tree=undefined;this.treeHits=[];this.rowPos=new Int32Array(0);if(this.sort==='tree'||this.sort==='manual'){this.sort='input';$<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';}
     this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
     $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).';this.message('');this.layout();this.emit('selection',null);
