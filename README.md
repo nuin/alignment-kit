@@ -188,7 +188,7 @@ All flags default to `true`, except `logo`, which defaults to `false`. Parent re
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `consensus`, `logo`, `reference` |
 | Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `labelResize` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay` |
-| Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab` |
+| Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
 | Feedback | `statusSummary`, `statusDetails`, `messages`, `emptyState` |
 
@@ -289,6 +289,32 @@ Statistics default to all loaded rows. Scrolling, pinning a reference and visual
 
 Ambiguity symbols are counted separately and never fractionally distributed. All-gap modal frequency/consensus and identity with zero comparable positions are unavailable. Pairwise identity excludes gaps, ambiguity and stops; it includes matched and compared-position counts. Its matrix is calculated only for selected rows, capped at 200, in a cancellable worker. Selecting **Identity to reference** computes and sorts reference identities; selecting a row then shows its identity and compared-position count.
 
+## Search motifs
+
+The motif box and `search()` accept three syntaxes. Auto mode picks one from the text:
+
+| Text | Mode | Example |
+|---|---|---|
+| `/.../` | Regular expression | `/N[^P][ST]/` |
+| `-` between elements, `x`, `{...}`, `[...]`, `(n)`, `<` or `>` | PROSITE | `N-{P}-[ST]-{P}` |
+| Anything else | IUPAC letters | `ACGNACGG` |
+
+- IUPAC for DNA/RNA: `R Y S W K M B D H V N`; `U` equals `T`. For protein: `X` is any residue, `B` is D or N, `Z` is E or Q, `J` is I or L.
+- PROSITE: `x` any residue, `[ST]` one of, `{P}` any except, `x(2,4)` repeat, `<` N-terminus, `>` C-terminus, `[G>]` G or C-terminus. A trailing `.` is ignored.
+- Regular expressions are case-insensitive and run on each ungapped sequence. Gaps never break a match.
+- DNA/RNA searches also scan the reverse complement unless `strands: 'forward'` is set. A palindromic site is reported once per strand.
+- Overlapping matches are all reported. The list stops at 10,000 hits (`truncated: true`).
+- Only the filtered rows are searched; changing the filter or order re-runs the search.
+
+```ts
+viewer.search('N-{P}-[ST]-{P}');              // N-glycosylation sequon
+viewer.search('ACGNACGG', { strands: 'both' }); // primer with an IUPAC code, both strands
+const { hits, truncated } = viewer.search('/C..C/', { mode: 'regex' });
+hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match }
+```
+
+`start` and `end` are alignment columns (1-based, inclusive). `seqStart` and `seqEnd` count residues of the forward sequence. `row` is the zero-based row index. For a `'-'` hit, `match` is the text found on the reverse complement. Every hit is outlined in the grid (dashed on the reverse strand), the status bar shows the count, and the **Hits** inspector tab lists the first 200. The `hitsTab` visibility key hides the tab. `findHits(alignment, pattern, options)` and `compilePattern(pattern, { alphabet, mode })` run the same engine without a viewer.
+
 ## API and controls
 
 | Method | Purpose |
@@ -302,7 +328,9 @@ Ambiguity symbols are counted separately and never fractionally distributed. All
 | `setFilter(query)` | Filter names and species |
 | `setSort('input' \| 'name' \| 'identity')` | Stable ordering; identity calculation is asynchronous |
 | `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range |
-| `findMotif(text)` | Find the next literal ungapped motif within filtered rows |
+| `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif; highlight hits; return `{ hits, truncated }` |
+| `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
+| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around |
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
 | `getState()` / `setState(state)` | Serialize/restore view state for the same dataset |
 | `getAlignment()` / `getStatistics()` | Read model / current exact statistics (may be pending) |
@@ -312,7 +340,7 @@ Ambiguity symbols are counted separately and never fractionally distributed. All
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
-Events: `ready`, `selection`, `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
+Events: `ready`, `selection`, `search` (`{ hits, truncated }`, or `null` after `clearSearch()`), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
 Options: `height`, `theme`, `colorScheme`, `colorMode`, `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 

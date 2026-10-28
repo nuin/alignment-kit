@@ -199,6 +199,9 @@
         "colorsTab": {
           "type": "boolean"
         },
+        "hitsTab": {
+          "type": "boolean"
+        },
         "pinReference": {
           "type": "boolean"
         },

@@ -18,7 +18,7 @@ export function buildShell(root:HTMLElement) {
   </div>
   <div class="ak-tools">
     <label>Go to <input type="number" min="1" value="1" aria-label="Go to alignment column"></label>
-    <label class="ak-motif"><input type="search" placeholder="Find a motif…" aria-label="Find literal motif"><button type="button" data-action="motif" aria-label="Find next motif">Find next</button></label>
+    <label class="ak-motif"><input type="search" placeholder="Find a motif…" aria-label="Find motif" title="Letters with IUPAC codes, /regex/, or PROSITE such as N-{P}-[ST]-{P}"><button type="button" data-action="motif-prev" aria-label="Find previous motif">Previous</button><button type="button" data-action="motif" aria-label="Find next motif">Find next</button></label>
     <label>Order <select aria-label="Sequence order"><option value="input">As loaded</option><option value="name">Name</option><option value="identity">Identity to reference</option></select></label>
     <select aria-label="Residues to color"><option value="all">All residues</option><option value="reference-differences">Differences to reference</option><option value="reference-matches">Matches to reference</option><option value="consensus-differences">Differences to consensus</option><option value="consensus-matches">Matches to consensus</option></select>
     <label><input type="checkbox" aria-label="Show frequency logo"> Frequency logo</label>
@@ -38,7 +38,7 @@ export function buildShell(root:HTMLElement) {
       <div class="ak-tracks"><canvas aria-hidden="true"></canvas><div class="ak-track-labels"><span>Alignment position</span><span title="Most common non-gap symbol / non-gap rows">Modal frequency</span><span title="Gap count / rows">Gap fraction</span><span>Consensus</span><span class="ak-logo-label" hidden>Frequency logo · non-gap</span><button type="button" class="ak-reference-label" data-action="reference-info">Reference</button></div></div>
       <div class="ak-grid"><div class="ak-scroll" tabindex="0" role="grid" aria-label="Alignment residues. Use arrow keys to inspect, Shift and arrows to select, plus and minus to zoom."><div class="ak-spacer"></div></div><canvas class="ak-body-canvas" aria-hidden="true"></canvas><div class="ak-labels"></div><div class="ak-gutter-resize" role="separator" aria-label="Resize sequence labels" aria-orientation="vertical" tabindex="0"></div><div class="ak-empty">Open an aligned FASTA, Stockholm or CLUSTAL file.</div></div>
     </div>
-    <aside class="ak-inspector" aria-label="Alignment inspector"><div class="ak-tabs"><button type="button" data-tab="position" aria-pressed="true">Position</button><button type="button" data-tab="annotations">Features</button><button type="button" data-tab="compare">Compare</button><button type="button" data-tab="legend">Colors</button></div><div class="ak-inspector-content"></div></aside>
+    <aside class="ak-inspector" aria-label="Alignment inspector"><div class="ak-tabs"><button type="button" data-tab="position" aria-pressed="true">Position</button><button type="button" data-tab="annotations">Features</button><button type="button" data-tab="compare">Compare</button><button type="button" data-tab="legend">Colors</button><button type="button" data-tab="hits">Hits</button></div><div class="ak-inspector-content"></div></aside>
   </div>
   <footer class="ak-status"><span class="ak-status-main">No alignment loaded</span><span class="ak-status-detail"></span></footer>
   <div class="ak-live ak-sr-only" aria-live="polite"></div>`;

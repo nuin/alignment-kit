@@ -12,3 +12,4 @@ export { parseViewerConfig } from './config';
 export type { ViewerConfig } from './config';
 export { encodeViewLink, decodeViewLink, isViewLink } from './link';
 export type { ViewLink } from './link';
+export { compilePattern, findHits } from './search';

@@ -1,6 +1,7 @@
 import { defaultVisibility, applyVisibility, trackLayout, inspectorTabs } from './visibility';
-import type { ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode } from './types';
-import { createAlignment, sequenceToAlignment } from './model';
+import type { ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode, Hit, SearchOptions, SearchResult } from './types';
+import { createAlignment } from './model';
+import { findHits, hitCount } from './search';
 import { readAlignmentInput } from './parsers';
 import { AnnotationIndex, filterAnnotations } from './annotations';
 import { getColorScheme, colorSchemes } from './colors';
@@ -32,7 +33,7 @@ export class AlignmentViewer {
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
-  private motifCursor={query:'',row:0,start:0};
+  private searchState?:{pattern:string;options:SearchOptions;result:SearchResult;byRow:Map<number,Hit[]>;cursor:number};
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
@@ -90,7 +91,7 @@ export class AlignmentViewer {
     this.menus.close();const schemes=colorSchemes(alignment.alphabet);
     if(!schemes.some(s=>s.id===this.options.colorScheme))this.options.colorScheme=alignment.alphabet==='protein'?'soft':'soft-nucleotide';
     const palette=$<HTMLSelectElement>(this.root,'select[aria-label="Color scheme"]');palette.replaceChildren(...schemes.map(s=>new Option(s.label,s.id)));palette.value=this.options.colorScheme;
-    this.motifCursor={query:'',row:0,start:0};this.scroll.scrollLeft=0;this.scroll.scrollTop=0;
+    this.searchState=undefined;this.scroll.scrollLeft=0;this.scroll.scrollTop=0;
     $<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value='';
     $<HTMLSelectElement>(this.root,'[aria-label="Sequence alphabet"]').value=alignment.alphabet;
     $<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';
@@ -150,6 +151,7 @@ export class AlignmentViewer {
     if(this.sort==='name')this.filteredRows.sort((x,y)=>this.a!.rows[x].name.localeCompare(this.a!.rows[y].name)||x-y);
     if(this.sort==='identity'&&this.identities)this.filteredRows.sort((x,y)=>this.identities![y]-this.identities![x]||x-y);
     this.rows=this.filteredRows.filter(i=>!this.pinned||i!==this.reference);this.labelKey='';this.layout();
+    if(this.searchState)this.runSearch(this.searchState.pattern,this.searchState.options);
   }
   setFilter(query:string) {this.assertAlive();this.query=query;this.scroll.scrollTop=0;this.rebuildRows();$<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value=query;if(this.options.statisticsScope==='filtered')void this.updateStats().catch(()=>{});this.emit('state',this.getState());}
   async setSort(sort:ViewState['sort']) {
@@ -165,10 +167,10 @@ export class AlignmentViewer {
     this.assertAlive();if(!this.a)return;const row=this.a.rows.findIndex(r=>r.id===id);if(row<0)throw new Error('Unknown reference sequence.');
     this.reference=row;this.identities=undefined;this.identityDetails=undefined;this.rebuildRows();this.inspectorDirty=true;this.schedule();if(this.sort==='identity')void this.setSort('identity');this.emit('state',this.getState());
   }
-  setSelection(selection:Selection|null,scrollIntoView=true) {
+  setSelection(selection:Selection|null,scrollIntoView=true,keepTab=false) {
     this.assertAlive();if(!this.a)return;
     if(selection&&(!Number.isInteger(selection.start)||!Number.isInteger(selection.end)||selection.start<1||selection.end<selection.start||selection.end>this.a.width||(selection.rowId&&!this.a.rows.some(r=>r.id===selection.rowId))))throw new Error('Invalid selection coordinates or row ID.');
-    this.selection=selection?{...selection}:null;this.tab='position';this.ensureTab();this.inspectorDirty=true;
+    this.selection=selection?{...selection}:null;if(!keepTab)this.tab='position';this.ensureTab();this.inspectorDirty=true;
     if(selection){$<HTMLInputElement>(this.root,'[aria-label="Go to alignment column"]').value=String(selection.start);if(scrollIntoView)this.reveal(selection);$(this.root,'.ak-live').textContent=`Column ${selection.start}${selection.end!==selection.start?` through ${selection.end}`:''}${selection.rowId?`, ${this.a.rows.find(r=>r.id===selection.rowId)?.name}`:''}`;}
     this.schedule();this.emit('selection',this.selection);this.emit('state',this.getState());
   }
@@ -186,7 +188,7 @@ export class AlignmentViewer {
     this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,statisticsScope:state.statisticsScope,visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
     this.scroll.scrollLeft=(state.start-1)*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
   }
-  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold};}
+  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold,hits:this.searchState?.byRow,activeHit:this.searchState?.result.hits[this.searchState.cursor]};}
   private layout() {
     if(this.disposed)return;const rh=this.options.rowHeight,gutter=this.gutter;
     const tracks=trackLayout(this.visibility,rh);
@@ -222,11 +224,11 @@ export class AlignmentViewer {
       }this.labels.replaceChildren(fragment);
     }
     for(const label of this.labels.children as HTMLCollectionOf<HTMLElement>)label.style.transform=`translateY(${Number(label.dataset.index)*v.rh-v.y}px)`;
-    if(this.inspectorDirty){this.inspectorDirty=false;if(this.tab)renderInspector(this.inspector,{a:this.a,stats:this.stats,selection:this.selection,scheme:this.options.colorScheme,reference:this.reference,selectedRows:this.selectedRows,annotations:this.filteredAnnotations.visible,annotationFilter:this.annotationFilter,unknown:this.filteredAnnotations.unknown,excluded:this.filteredAnnotations.excluded,tab:this.tab,page:this.featurePage,scope:this.options.statisticsScope,identity:this.selection?.rowId?this.identityDetails?.[this.a.rows.findIndex(r=>r.id===this.selection!.rowId)]:undefined});for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-tab]'))button.setAttribute('aria-pressed',String(button.dataset.tab===this.tab));this.menus.sync();}
+    if(this.inspectorDirty){this.inspectorDirty=false;if(this.tab)renderInspector(this.inspector,{a:this.a,stats:this.stats,selection:this.selection,scheme:this.options.colorScheme,reference:this.reference,selectedRows:this.selectedRows,annotations:this.filteredAnnotations.visible,annotationFilter:this.annotationFilter,unknown:this.filteredAnnotations.unknown,excluded:this.filteredAnnotations.excluded,tab:this.tab,page:this.featurePage,scope:this.options.statisticsScope,hits:this.searchState?.result.hits??[],truncated:this.searchState?.result.truncated??false,pattern:this.searchState?.pattern??'',hit:this.searchState?.cursor??-1,identity:this.selection?.rowId?this.identityDetails?.[this.a.rows.findIndex(r=>r.id===this.selection!.rowId)]:undefined});for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-tab]'))button.setAttribute('aria-pressed',String(button.dataset.tab===this.tab));this.menus.sync();}
     if(!this.tab)this.inspector.replaceChildren();
     applyVisibility(this.root,this.visibility);
     const start=Math.floor(v.x/v.cw)+1,end=Math.min(this.a.width,Math.ceil((v.x+width-v.gutter)/v.cw));
-    $(this.root,'.ak-status-main').textContent=`${this.a.rows.length.toLocaleString()} sequences${this.query?` · ${this.filteredRows.length.toLocaleString()} filtered`:''} · ${this.a.width.toLocaleString()} columns`;
+    $(this.root,'.ak-status-main').textContent=`${this.a.rows.length.toLocaleString()} sequences${this.query?` · ${this.filteredRows.length.toLocaleString()} filtered`:''} · ${this.a.width.toLocaleString()} columns${this.searchState?` · ${hitCount(this.searchState.result)}`:''}`;
     $(this.root,'.ak-status-detail').textContent=`${start}–${end} · ${this.stats?`${this.options.statisticsScope} rows`:'statistics pending'} · ${this.a.alphabet.toUpperCase()}`;
     this.scroll.setAttribute('aria-rowcount',String(this.a.rows.length));this.scroll.setAttribute('aria-colcount',String(this.a.width));
     this.emit('viewport',{start,end,firstRow:first,lastRow:last,visibleRows:last-first,totalRows:this.a.rows.length});
@@ -255,7 +257,11 @@ export class AlignmentViewer {
       if(action==='features-next'){this.featurePage++;this.inspectorDirty=true;this.schedule();}
       if(action==='clear-rows'){this.selectedRows.clear();this.labelKey='';this.inspectorDirty=true;this.schedule();}
       if(action==='compare'&&this.a){const ids=new Map(this.a.rows.map((r,i)=>[r.id,i])),rows=[...this.selectedRows].map(id=>ids.get(id)!);const a=this.a,revision=this.revision,selectionKey=[...this.selectedRows].join(',');this.message('Calculating pairwise identity…');const matrix=await this.comparison.pairwise(a,rows);if(this.disposed||this.revision!==revision)return;this.message('');if(this.tab!=='compare'||selectionKey!==[...this.selectedRows].join(','))return;const target=$(this.inspector,'.ak-identity-result');target.innerHTML=`<div class="ak-matrix-scroll"><table><caption>Identity over canonical comparable positions</caption><thead><tr><th>Sequence</th>${rows.map(i=>`<th>${e(this.a!.rows[i].name)}</th>`).join('')}</tr></thead><tbody>${rows.map((row,i)=>`<tr><th>${e(this.a!.rows[row].name)}</th>${matrix[i].map(cell=>`<td title="${cell.matches} matches / ${cell.compared} compared">${cell.identity===null?'NA':(cell.identity*100).toFixed(1)+'%'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
-      if(action==='motif')this.findMotif($<HTMLInputElement>(this.root,'[aria-label="Find literal motif"]').value);
+      if(action==='motif'||action==='motif-prev'){
+        const text=$<HTMLInputElement>(this.root,'[aria-label="Find motif"]').value,fresh=this.searchState?.pattern!==text.trim();
+        this.findMotif(text,action==='motif'?1:-1);
+        if(fresh&&this.searchState&&this.visibility.hitsTab){this.tab='hits';this.inspectorDirty=true;this.schedule();}
+      }
     }catch(error){this.error(error);}
   }
   /** Readable URL parameters for the current view, including `src` when the alignment came from loadUrl. */
@@ -289,16 +295,40 @@ export class AlignmentViewer {
       catch(error){this.urlSync=false;this.error(new Error(`URL sync stopped: ${(error as Error).message}`));}
     },250);
   }
-  findMotif(motif:string) {
-    if(!this.a)return;const query=motif.trim().toUpperCase();if(!/^[A-Z*]+$/.test(query)) {this.message('Enter a literal, ungapped residue motif (letters or *).');return;}
-    if(this.motifCursor.query!==query)this.motifCursor={query,row:0,start:0};
-    const rows=this.filteredRows;
-    for(let pass=0;pass<=rows.length;pass++) {
-      const index=(this.motifCursor.row+pass)%Math.max(1,rows.length),row=rows[index];if(row===undefined)break;
-      const seq=this.a.rows[row].sequence.toUpperCase().replace(/[-.]/g,''),from=pass===0?this.motifCursor.start:0,found=seq.indexOf(query,from);
-      if(found>=0){const start=sequenceToAlignment(this.a,row,found+1)!,end=sequenceToAlignment(this.a,row,found+query.length)!;this.motifCursor={query,row:index,start:found+1};this.setSelection({start,end,rowId:this.a.rows[row].id});this.message(`Found ${query} in ${this.a.rows[row].name}, sequence positions ${found+1}–${found+query.length}.`);return;}
-    }
-    this.motifCursor={query,row:0,start:0};this.message(`No match for ${query} in the filtered sequences.`);
+  /** Search every filtered row for an IUPAC, regex or PROSITE motif, highlight the hits and list them in the Hits tab. Throws on an invalid pattern. */
+  search(pattern:string,options:Pick<SearchOptions,'mode'|'strands'>={}):SearchResult {
+    this.assertAlive();if(!this.a)return {hits:[],truncated:false};
+    const state=this.runSearch(pattern.trim(),{mode:options.mode,strands:options.strands});this.message('');
+    return {hits:[...state.result.hits],truncated:state.result.truncated};
+  }
+  getSearchHits():Hit[] {return [...(this.searchState?.result.hits??[])];}
+  clearSearch() {
+    this.assertAlive();if(!this.searchState)return;
+    this.searchState=undefined;this.inspectorDirty=true;this.schedule();this.emit('search',null);
+  }
+  private runSearch(pattern:string,options:SearchOptions) {
+    const result=findHits(this.a!,pattern,{...options,rows:this.filteredRows}),byRow=new Map<number,Hit[]>(),previous=this.searchState?.pattern===pattern?this.searchState.result.hits[this.searchState.cursor]:undefined;
+    for(const hit of result.hits){const list=byRow.get(hit.row);if(list)list.push(hit);else byRow.set(hit.row,[hit]);}
+    const cursor=previous?result.hits.findIndex(h=>h.rowId===previous.rowId&&h.start===previous.start&&h.end===previous.end&&h.strand===previous.strand):-1;
+    this.searchState={pattern,options,result,byRow,cursor};this.inspectorDirty=true;this.schedule();this.emit('search',result);
+    return this.searchState;
+  }
+  private goToHit(index:number) {
+    const state=this.searchState,hit=state?.result.hits[index];if(!state||!hit||!this.a)return;
+    state.cursor=index;this.setSelection({start:hit.start,end:hit.end,rowId:hit.rowId},true,this.tab==='hits');
+    this.message(`Hit ${index+1} of ${state.result.hits.length.toLocaleString()} in ${this.a.rows[hit.row].name}, sequence positions ${hit.seqStart}–${hit.seqEnd}, ${hit.strand==='+'?'forward':'reverse'} strand.`);
+  }
+  /** Search for `motif` if it is not the active search, then select the next (1) or previous (-1) hit, wrapping around. */
+  findMotif(motif:string,direction:1|-1=1) {
+    this.assertAlive();if(!this.a)return;
+    try {
+      const text=motif.trim();
+      if(!text){this.clearSearch();return;}
+      if(this.searchState?.pattern!==text)this.runSearch(text,{});
+      const state=this.searchState!,n=state.result.hits.length;
+      if(!n){this.message(`No match for ${text}${this.filteredRows.length<this.a.rows.length?' in the filtered sequences':''}.`);return;}
+      this.goToHit(state.cursor<0?(direction>0?0:n-1):(state.cursor+direction+n)%n);
+    }catch(error){this.error(error);}
   }
   private exportRegion(a:Alignment):ExportRegion {
     const start=this.selection?.start??Math.min(a.width,Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1);
@@ -363,7 +393,8 @@ export class AlignmentViewer {
     const signal=this.controller.signal,on=(target:EventTarget,event:string,handler:(event:any)=>void)=>target.addEventListener(event,handler,{signal});
     on(this.scroll,'scroll',()=>this.schedule());
     on(this.root,'click',(event:MouseEvent)=>{
-      const target=event.target as HTMLElement,button=target.closest<HTMLElement>('[data-action],[data-tab],[data-row],[data-pin],[data-feature]');if(!button)return;
+      const target=event.target as HTMLElement,button=target.closest<HTMLElement>('[data-action],[data-tab],[data-row],[data-pin],[data-feature],[data-hit]');if(!button)return;
+      if(button.dataset.hit)this.goToHit(Number(button.dataset.hit));
       if(button.dataset.action)void this.action(button.dataset.action);
       if(button.dataset.tab){this.tab=button.dataset.tab;this.inspectorDirty=true;this.schedule();}
       if(button.dataset.pin)this.setReference(button.dataset.pin);
@@ -393,7 +424,9 @@ export class AlignmentViewer {
     });
     on($(this.root,'[aria-label="Filter sequences"]'),'input',(event:Event)=>this.setFilter((event.target as HTMLInputElement).value));
     on($(this.root,'[aria-label="Go to alignment column"]'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter'&&this.a){const c=Number((event.target as HTMLInputElement).value);if(Number.isInteger(c)&&c>=1&&c<=this.a.width)this.setSelection({start:c,end:c});else this.message(`Enter a column from 1 to ${this.a.width}.`);}});
-    on($(this.root,'[aria-label="Find literal motif"]'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter')void this.action('motif');});
+    const motif=$<HTMLInputElement>(this.root,'[aria-label="Find motif"]');
+    on(motif,'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter')void this.action(event.shiftKey?'motif-prev':'motif');});
+    on(motif,'input',()=>{if(!motif.value.trim())this.clearSearch();});
     on(this.scroll,'keydown',(event:KeyboardEvent)=>{
       if(!this.a)return;const key=event.key,start=this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1;
       if(['+','=','-','_'].includes(key)){event.preventDefault();this.zoom(this.options.cellWidth+(key==='+'||key==='='?2:-2));return;}
@@ -419,7 +452,7 @@ export class AlignmentViewer {
   clear() {
     this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();
     this.loading=false;this.pendingLink=undefined;
-    this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.selectedRows.clear();this.annotationFilter={};this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
+    this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.searchState=undefined;this.selectedRows.clear();this.annotationFilter={};this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
     $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an aligned FASTA, Stockholm or CLUSTAL file.';this.message('');this.layout();this.emit('selection',null);
   }
