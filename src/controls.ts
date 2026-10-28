@@ -26,6 +26,7 @@ export function buildShell(root:HTMLElement) {
     <select aria-label="Residues to color"><option value="all">All residues</option><option value="reference-differences">Differences to reference</option><option value="reference-matches">Matches to reference</option><option value="consensus-differences">Differences to consensus</option><option value="consensus-matches">Matches to consensus</option></select>
     <label><input type="checkbox" aria-label="Show frequency logo"> Frequency logo</label>
     <label><input type="checkbox" aria-label="Dots for matches"> Dots for matches</label>
+    <label><input type="checkbox" aria-label="Reverse complement"> Reverse complement</label>
     <label>Stats <select aria-label="Statistics scope"><option value="all">All sequences</option><option value="filtered">Filtered sequences</option></select></label>
     <label>Ruler <select aria-label="Ruler coordinates"><option value="alignment">Alignment columns</option><option value="reference">Reference residues</option></select></label>
     <label>Type <select aria-label="Sequence alphabet"><option value="protein">Protein</option><option value="dna">DNA</option><option value="rna">RNA</option></select></label>
@@ -35,6 +36,7 @@ export function buildShell(root:HTMLElement) {
     <label>Case <select aria-label="FASTA letter case"><option value="original">Original case</option><option value="upper">Upper case</option><option value="lower">Lower case</option></select></label>
     <label>Line width <select aria-label="FASTA line width"><option value="80">80</option><option value="60">60</option><option value="0">Unwrapped</option></select></label>
     <label>Columns <select aria-label="FASTA columns"><option value="all">All columns</option><option value="visible">Visible columns only</option></select></label>
+    <label>Orientation <select aria-label="FASTA orientation"><option value="source">Source</option><option value="reverse-complement">Reverse complement</option></select></label>
     <label>Header <select aria-label="FASTA header"><option value="name">Name</option><option value="name-species">Name and species</option><option value="id-name">ID and name</option></select></label>
     <button type="button" data-action="close-fasta-options">Done</button></div>
   <div class="ak-message" role="status" hidden></div>

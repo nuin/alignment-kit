@@ -12,6 +12,7 @@ export function bindForms(v:Core,on:On):void {
     if(aria==='Statistics scope')v.setOptions({statisticsScope:target.value as 'all'|'filtered'});
     if(aria==='Dots for matches')v.setOptions({matchDisplay:target.checked?'dot':'letter'});
     if(aria==='Ruler coordinates'){v.setOptions({rulerCoordinates:target.value as RulerCoordinates});v.emit('state',v.getState());}
+    if(aria==='Reverse complement')v.setReverseComplement(target.checked);
     if(aria==='Show frequency logo')v.setOptions({showLogo:target.checked});
     if(aria==='Sequence order')v.setSort(target.value as ViewState['sort']).catch(error=>{v.error(error);$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=v.sort;v.menus.sync();});
     if(aria==='Export alignment'){if(target.value==='fasta-options')v.fastaPanel(true);else void v.export(target.value);target.value='';}
@@ -20,6 +21,7 @@ export function bindForms(v:Core,on:On):void {
     if(aria==='FASTA line width')v.setOptions({fasta:{lineWidth:Number(target.value)}});
     if(aria==='FASTA header')v.setOptions({fasta:{header:target.value as 'name'|'name-species'|'id-name'}});
     if(aria==='FASTA columns')v.setOptions({fasta:{columns:target.value as 'all'|'visible'}});
+    if(aria==='FASTA orientation')v.setOptions({fasta:{orientation:target.value as 'source'|'reverse-complement'}});
     if(aria==='Sequence alphabet'&&v.a)v.requestAlphabet(target.value as Alphabet);
     if(aria==='Feature type')v.setAnnotationFilter({...v.annotationFilter,types:target.value?[target.value]:[]});
     if(aria==='Feature consequence')v.setAnnotationFilter({...v.annotationFilter,consequences:target.value?[target.value]:[]});

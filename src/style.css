@@ -90,3 +90,6 @@
 .ak-row-label:hover .ak-hide,.ak-viewer .ak-row-label .ak-hide:focus-visible{opacity:1}
 .ak-warnings{font:inherit;color:var(--ak-ink);background:var(--ak-hover);border:1px solid var(--ak-line);border-radius:10px;padding:1px 9px;cursor:pointer}.ak-warnings:hover{border-color:var(--ak-accent)}.ak-warnings[hidden]{display:none}
 .ak-message ul{margin:4px 0 0;padding-left:18px}.ak-message li code{font-size:11px;color:var(--ak-muted)}.ak-message[data-list=true]{max-height:140px}
+.ak-viewer .ak-row-label .ak-strand{flex:0 0 22px;padding:0;text-align:center;font-size:14px;font-weight:600;color:var(--ak-muted);opacity:.5}
+.ak-row-label:hover .ak-strand,.ak-viewer .ak-row-label .ak-strand:focus-visible,.ak-viewer .ak-row-label .ak-strand[aria-pressed=true]{opacity:1}
+.ak-viewer .ak-row-label .ak-strand[aria-pressed=true]{color:var(--ak-accent)}

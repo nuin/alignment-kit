@@ -7,7 +7,7 @@ import { type RenderView } from '../renderer';
 import { $ } from '../controls';
 import { trackHeight } from '../tracks';
 import { type Core } from './core';
-export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:v.options.theme==='dark',selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
+export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:v.options.theme==='dark',selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
 export function layout(v:Core):void {
   if(v.disposed)return;const rh=v.options.rowHeight,gutter=v.gutter;
   const extra=v.drawnTracks(),tracks=trackLayout(v.visibility,rh,extra.map(t=>({height:trackHeight(t)})),v.a?.alphabet);
@@ -20,7 +20,9 @@ export function layout(v:Core):void {
   v.root.dataset.compactRows=String(rh<32);
   $(v.root,'.ak-tracks').style.height=tracks.height+'px';$(v.root,'.ak-tracks').hidden=tracks.height===0;
   const strip=$(v.root,'.ak-track-labels');
-  strip.children[0].textContent=v.options.rulerCoordinates==='reference'?'Reference residue':'Alignment position';
+  strip.children[0].textContent=(v.options.rulerCoordinates==='reference'?'Reference residue':'Alignment position')+(v.reversed?' · reverse complement':'');
+  const rcBox=$<HTMLInputElement>(v.root,'[aria-label="Reverse complement"]'),isProtein=v.a?.alphabet==='protein';rcBox.checked=v.reversed;rcBox.disabled=isProtein;rcBox.title=isProtein?'Reverse complement needs a DNA or RNA alignment.':'Show columns right to left with every residue complemented';
+  const orient=$<HTMLSelectElement>(v.root,'[aria-label="FASTA orientation"]');orient.disabled=isProtein;orient.title=isProtein?'Reverse complement needs a DNA or RNA alignment.':'';
   $(v.root,'.ak-logo-label').textContent=v.options.logoMode==='bits'?'Information logo · bits':'Frequency logo · non-gap';
   [...strip.children].slice(0,trackNames.length).forEach((label,i)=>{const node=label as HTMLElement,offset=tracks.offsets[trackNames[i]];node.hidden=offset===null;node.style.top=((offset??0)+(trackNames[i]==='reference'?0:3))+'px';});
   const key=extra.map((t,i)=>`${t.id}|${t.label}|${tracks.custom[i]?.offset}`).join('\n');
@@ -42,15 +44,15 @@ export function render(v:Core):void {
   v.treeHits=v.tree&&v.treeW?v.renderer.tree($(v.root,'.ak-tree-canvas'),rv,v.tree.layout,v.tree.leafRow,v.rowPos,v.treeW,height):[];
   const ref=$(v.root,'.ak-reference-label');ref.textContent=v.a.rows[v.reference]?.name??'Reference';ref.title='Pinned reference: '+ref.textContent;
   const first=Math.max(0,Math.floor(rv.y/rv.rh)),last=Math.min(v.rows.length,Math.ceil((rv.y+height)/rv.rh));
-  const key=[first,last,v.rows.slice(first,last).join(','),[...v.selectedRows].join(',')].join(':');
+  const key=[first,last,v.rows.slice(first,last).join(','),[...v.selectedRows].join(','),v.a.alphabet,[...v.rowStrands].join(',')].join(':');
   if(v.labelKey!==key){v.labelKey=key;buildLabels(v,first,last);}
   for(const label of v.labels.children as HTMLCollectionOf<HTMLElement>)label.style.transform=`translateY(${Number(label.dataset.index)*rv.rh-rv.y}px)`;
   if(v.inspectorDirty)renderPanel(v);
   if(!v.tab)v.inspector.replaceChildren();
   applyVisibility(v.root,v.visibility);
-  const m=v.columns,start=(m.cols[Math.min(m.count-1,Math.floor(rv.x/rv.cw))]??0)+1,end=(m.cols[Math.min(m.count,Math.ceil((rv.x+width-v.gutter)/rv.cw))-1]??v.a.width-1)+1;
+  const m=v.columns,lead=(m.cols[Math.min(m.count-1,Math.floor(rv.x/rv.cw))]??0)+1,trail=(m.cols[Math.min(m.count,Math.ceil((rv.x+width-v.gutter)/rv.cw))-1]??v.a.width-1)+1,start=Math.min(lead,trail),end=Math.max(lead,trail);
   $(v.root,'.ak-status-main').textContent=`${v.a.rows.length.toLocaleString()} sequences${v.query?` · ${v.filteredRows.length.toLocaleString()} filtered`:''}${v.hidden.size?` · ${v.hidden.size.toLocaleString()} hidden`:''} · ${v.a.width.toLocaleString()} columns${m.count<m.width?` · ${(m.width-m.count).toLocaleString()} hidden`:''}${v.searchState?` · ${hitCount(v.searchState.result)}`:''}`;
-  $(v.root,'.ak-status-detail').textContent=`${start}–${end} · ${v.stats?`${v.options.statisticsScope} rows`:'statistics pending'} · ${v.a.alphabet.toUpperCase()}`;
+  $(v.root,'.ak-status-detail').textContent=`${v.reversed?`${end}–${start}`:`${start}–${end}`} · ${v.stats?`${v.options.statisticsScope} rows`:'statistics pending'} · ${v.a.alphabet.toUpperCase()}${v.reversed?' · reverse complement':''}`;
   v.scroll.setAttribute('aria-rowcount',String(v.a.rows.length));v.scroll.setAttribute('aria-colcount',String(m.count));
   v.emit('viewport',{start,end,firstRow:first,lastRow:last,visibleRows:last-first,totalRows:v.a.rows.length});
 }

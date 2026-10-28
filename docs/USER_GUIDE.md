@@ -282,7 +282,7 @@ Use the **Export** menu:
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
 | Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers, plus `entropy_bits`, `information_bits` and `quality` (`NA` when undefined). |
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
-| FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name) and columns (all, or visible only). Press **Done** or Escape to close it. |
+| FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) header (name, name and species, or ID and name), columns (all, or visible only) and orientation (source, or reverse complement). Press **Done** or Escape to close it. |
 
 FASTA options apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. Only FASTA can leave out hidden columns. CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG and PNG exports always include hidden columns. They last until the page is reloaded.
 
@@ -297,9 +297,23 @@ Tick **Dots for matches** in the second toolbar row to draw each residue that eq
 
 ## Share a view
 
-In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`), the reverse-complement view (`rc=1`) and reverse-strand rows (`strand=seq-1,seq-3`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
 
 If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
+
+## Show the reverse complement
+
+For DNA and RNA, tick **Reverse complement** in the second toolbar row to see the alignment as its reverse complement. The columns run right to left and every base is complemented, so A becomes T (U in RNA), C becomes G, and ambiguity codes swap in pairs (R/Y, K/M, B/V, D/H). Gaps stay gaps. The alignment itself does not change.
+
+The ruler counts original column numbers downwards, for example `12 ... 1`, and its label reads "Alignment position · reverse complement". The status line shows the visible columns from high to low. Selections, search hits, features, Go to, hidden columns and links keep original column numbers. The consensus and logo tracks show complemented letters. Column statistics still describe the source residues. The Position tab shows the displayed letter and, when it differs, a line "Source residue X". Press Left and Right to move one displayed column, so Right goes to a lower column number.
+
+To flag one sequence as the reverse strand, click the `+` button in its label. It turns into `−` and that row is drawn complemented in place, so columns stay aligned. Click again to clear it. With **Reverse complement** on, a flagged row is complemented twice and reads as its source letters, right to left. A developer can do the same with `setRowStrand(id, '-')`.
+
+With protein alignments the checkbox is disabled, and no strand buttons appear.
+
+Exports keep the source orientation, whatever the view shows. To export reverse-complemented FASTA, open **Export > FASTA options…** and set **Orientation** to **Reverse complement**. This applies to FASTA exports, the consensus export and Ctrl/Cmd+C, adds ` (reverse complement)` to each header and does not affect other formats. On a protein alignment the option is ignored and the select is disabled.
+
+Links carry `rc=1` for the whole view and `strand=id1,id2` for flagged rows. **Export > View state · JSON** stores the same two settings.
 
 ## Show and hide interface elements
 

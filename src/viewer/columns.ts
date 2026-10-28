@@ -1,16 +1,16 @@
-import { computeColumnMask, hidesEveryColumn, mergeColumnRanges, subtractColumnRange, type ColumnRange, type MaskOptions } from '../mask';
+import { computeColumnMask, hidesEveryColumn, mergeColumnRanges, subtractColumnRange, columnPos, keptColumn, type ColumnRange, type MaskOptions } from '../mask';
 import { type Core } from './core';
 /** Original zero-based column at the left edge of the viewport. */
 export function firstColumn(v:Core):number {const m=v.columns;return m.cols[Math.min(m.count-1,Math.max(0,Math.floor(v.scroll.scrollLeft/v.options.cellWidth)))]??0;}
-/** One-based column after stepping over kept columns from `column`; hidden columns are skipped. */
+/** One-based column after stepping one displayed column right (1) or left (-1) from `column`; hidden columns are skipped. In the reverse-complement view a step right moves to a lower column number. */
 export function stepColumn(v:Core, column:number,step:1|-1):number {
-  const m=v.columns,c=column-1,d=step<0?m.before[c]-1:m.mask[c]?m.before[c]+1:m.before[c];
-  return m.cols[Math.max(0,Math.min(m.count-1,d))]+1;
+  const m=v.columns,c=column-1,s=m.reversed?-step:step,k=s<0?m.before[c]-1:m.mask[c]?m.before[c]+1:m.before[c];
+  return keptColumn(m,Math.max(0,Math.min(m.count-1,k)))+1;
 }
 /** Apply a new mask: rebuild the map, keep the same original column at the left edge and redraw. */
 export function maskChanged(v:Core, anchor:number):void {
   v.colMap=undefined;v.overviewDirty=true;v.inspectorDirty=true;v.layout();
-  v.scroll.scrollLeft=v.columns.before[Math.min(anchor,Math.max(0,v.columns.width-1))]*v.options.cellWidth;v.schedule();v.emit('state',v.getState());
+  v.scroll.scrollLeft=columnPos(v.columns,Math.min(anchor,Math.max(0,v.columns.width-1)))*v.options.cellWidth;v.schedule();v.emit('state',v.getState());
 }
 export function maskOptions(v:Core, hidden:readonly ColumnRange[]):MaskOptions {return {gapFraction:v.options.hideGapColumns,allGap:v.options.hideAllGapColumns,hidden};}
 export function setManualHidden(v:Core, ranges:ColumnRange[]):void {const anchor=v.a?v.firstColumn():0;v.manualHidden=ranges;v.maskChanged(anchor);}

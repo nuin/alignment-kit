@@ -13,13 +13,14 @@ export function bind(v:Core):void {
     event.preventDefault();void v.load(text,{name:'Pasted alignment'}).catch(()=>{});
   });
   on(v.root,'click',(event:MouseEvent)=>{
-    const target=event.target as HTMLElement,button=target.closest<HTMLElement>('[data-action],[data-tab],[data-row],[data-pin],[data-feature],[data-hit],[data-group],[data-hide]');if(!button)return;
+    const target=event.target as HTMLElement,button=target.closest<HTMLElement>('[data-action],[data-tab],[data-row],[data-pin],[data-feature],[data-hit],[data-group],[data-hide],[data-strand]');if(!button)return;
     if(button.dataset.hit)v.goToHit(Number(button.dataset.hit));
     if(button.dataset.action)void v.action(button.dataset.action);
     if(button.dataset.tab){v.tab=button.dataset.tab;v.inspectorDirty=true;v.schedule();}
     if(button.dataset.pin)v.setReference(button.dataset.pin);
     if(button.dataset.group!==undefined)v.toggleGroup(button.dataset.group);
     if(button.dataset.hide)v.hideRows([button.dataset.hide]);
+    if(button.dataset.strand)v.setRowStrand(button.dataset.strand,v.rowStrands.has(button.dataset.strand)?'+':'-');
     if(button.dataset.row)v.setSelection({start:v.selection?.start??1,end:v.selection?.end??1,rowId:button.dataset.row},false);
     if(button.dataset.feature){const feature=v.filteredAnnotations.visible[Number(button.dataset.feature)];if(feature){if(feature.mapping==='mapped')v.setSelection({start:feature.start!,end:feature.end!,rowId:feature.rowId});v.emit('annotation',feature);v.message(`${feature.label}: ${feature.mapping==='mapped'?`alignment columns ${feature.start}–${feature.end}`:'no protein mapping'}. ${JSON.stringify(feature.metadata??{})}`);}}
   });

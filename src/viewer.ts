@@ -7,7 +7,7 @@ import { buildShell, $ } from './controls';
 import { resolveRegion } from './export';
 import { WorkerTask } from './worker-client';
 import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './link';
-import { computeColumnMask, buildColumnMap, identityColumns, type ColumnMap, type ColumnRange, type MaskOptions } from './mask';
+import { computeColumnMask, buildColumnMap, reverseColumnMap, identityColumns, type ColumnMap, type ColumnRange, type MaskOptions } from './mask';
 import { type TreeLayout } from './tree';
 import * as modColumns from './viewer/columns';
 import * as modTracks from './viewer/tracks';
@@ -22,6 +22,7 @@ import * as modDraw from './viewer/draw';
 import * as modLink from './viewer/link';
 import * as modFind from './viewer/find';
 import * as modOutput from './viewer/output';
+import * as modStrand from './viewer/strand';
 import * as modActions from './viewer/actions';
 import * as modBind from './viewer/bind';
 import * as modData from './viewer/data';
@@ -49,11 +50,14 @@ export class AlignmentViewer {
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
   private get core():Core{return this as unknown as Core;}
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
-  private manualHidden:ColumnRange[]=[];private colMap?:ColumnMap;
+  private manualHidden:ColumnRange[]=[];private colMap?:ColumnMap;private rowStrands=new Set<string>();
+  private get reversed():boolean {return this.options.reverseComplement&&this.a?.alphabet!=='protein';}
   /** Display to original column map; rebuilt when the alignment, the mask options or the hidden ranges change. */
   private get columns():ColumnMap {
     const a=this.a;if(!a)return identityColumns(0);
-    return this.colMap??=buildColumnMap(computeColumnMask(a,{gapFraction:this.options.hideGapColumns,allGap:this.options.hideAllGapColumns,hidden:this.manualHidden}));
+    if(this.colMap)return this.colMap;
+    const map=buildColumnMap(computeColumnMask(a,{gapFraction:this.options.hideGapColumns,allGap:this.options.hideAllGapColumns,hidden:this.manualHidden}));
+    return this.colMap=this.reversed?reverseColumnMap(map):map;
   }
   private firstColumn():number {return modColumns.firstColumn(this.core);}
   private stepColumn(column:number,step:1|-1):number {return modColumns.stepColumn(this.core, column, step);}
@@ -84,7 +88,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,reverseComplement:false,...options,fasta:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -163,6 +167,14 @@ export class AlignmentViewer {
   private bindTree(layout:TreeLayout):BoundTree {return modGrouping.bindTree(this.core, layout);}
   private selectClade(node:number,add=false):void {modGrouping.selectClade(this.core, node, add);}
   setReference(id:string):void {modSelection.setReference(this.core, id);}
+  /** Show the whole alignment reverse-complemented: columns run right to left and every residue is complemented. The ruler counts original columns downwards. Selection, search hits, annotations, statistics, links and exports keep source coordinates and orientation. On a protein alignment it shows a message and changes nothing. */
+  setReverseComplement(on:boolean):void {modStrand.setReverseComplement(this.core, on);}
+  /** True while the reverse-complement view is active. Always false for protein. */
+  getReverseComplement():boolean {this.assertAlive();return this.reversed;}
+  /** Flag a row as reverse strand ('-') or forward ('+'). A reverse-strand row is drawn complemented in place, so columns stay aligned; in the reverse-complement view it is complemented twice and reads as the source. The alignment is not changed. Throws for an unknown row ID; on a protein alignment it shows a message and changes nothing. */
+  setRowStrand(rowId:string,strand:'+'|'-'):void {modStrand.setRowStrand(this.core, rowId, strand);}
+  /** Strand flag of a row: '-' when flagged as reverse strand, else '+'. */
+  getRowStrand(rowId:string):'+'|'-' {this.assertAlive();return this.rowStrands.has(rowId)?'-':'+';}
   setSelection(selection:Selection|null,scrollIntoView=true,keepTab=false):void {modSelection.setSelection(this.core, selection, scrollIntoView, keepTab);}
   private goToText(column:number):string {return modSelection.goToText(this.core, column);}
   /** Select residue `position` (1-based, numbered as in the ruler, so offset by `metadata.start`) of the row with this ID. Returns false and shows a message when the row or residue does not exist. */

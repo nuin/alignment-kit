@@ -10,10 +10,10 @@ import type { TreeLayout } from '../tree';
 
 export interface BoundTree { layout:TreeLayout; leafRow:Int32Array; treePos:Int32Array; note:string }
 /** View state that survives removeRows. */
-export interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:ViewState['sort']; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter; hiddenColumns:ColumnRange[] }
+export interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:ViewState['sort']; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter; hiddenColumns:ColumnRange[]; strands?:string[] }
 export type On=(target:EventTarget,event:string,handler:(event:any)=>void)=>void;
 export interface SearchState { pattern:string; options:SearchOptions; result:SearchResult; byRow:Map<number,Hit[]>; cursor:number; full?:SearchResult }
-export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'>>;
+export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'|'reverseComplement'>>;
 export const bounded=(n:number,min:number,max:number):number=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 
 /** The state and methods of AlignmentViewer that the modules in this folder act on. The class implements it with private members, so it is cast once in AlignmentViewer.core. */
@@ -29,7 +29,7 @@ export interface Core {
   disposed:boolean; revision:number; statsRevision:number; loadRevision:number;
   tab:string; featurePage:number; labelKey:string; overviewDirty:boolean; inspectorDirty:boolean;
   visibility:Required<ViewerVisibility>;
-  manualHidden:ColumnRange[]; colMap?:ColumnMap;
+  manualHidden:ColumnRange[]; colMap?:ColumnMap; rowStrands:Set<string>;
   searchState?:SearchState;
   customTracks:CustomTrack[]; drawn?:{a:Alignment;row:number;flag:boolean;user:CustomTrack[];list:CustomTrack[]}; trackKey:string; trackErrors:Set<string>;
   hidden:Set<string>; manualOrder:string[]|null; collapsed:Set<string>; groupBy:string; groupMap:Map<string,string>|null;
@@ -37,7 +37,7 @@ export interface Core {
   sourceUrl?:string; nextSource?:string; urlSync:boolean; pendingLink?:ViewLink; linkTimer?:ReturnType<typeof setTimeout>; lastHash:string; loading:boolean;
   detected?:{alphabet:Alphabet;other:number}; pendingAlphabet?:Alphabet;
   readonly treeGroupNote:string; treeGroupShown:boolean;
-  readonly grouped:boolean; readonly treeW:number; readonly gutter:number; readonly matchDots:boolean; readonly pinned:boolean; readonly columns:ColumnMap;
+  readonly grouped:boolean; readonly treeW:number; readonly gutter:number; readonly matchDots:boolean; readonly pinned:boolean; readonly columns:ColumnMap; readonly reversed:boolean;
   emit<K extends ViewerEvent>(event:K,value:ViewerEvents[K]):void;
   error(error:unknown):Error;
   assertAlive():void;
@@ -105,6 +105,8 @@ export interface Core {
   setManualHidden(ranges:ColumnRange[]):void;
   setOptions(options:ViewerOptions):void;
   setReference(id:string):void;
+  setReverseComplement(on:boolean):void;
+  setRowStrand(rowId:string,strand:'+'|'-'):void;
   setSelection(selection:Selection|null,scrollIntoView?:boolean,keepTab?:boolean):void;
   setSort(sort:ViewState['sort']):Promise<void>;
   showColumns(start?:number,end?:number):void;

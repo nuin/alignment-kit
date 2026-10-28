@@ -1,6 +1,7 @@
 import { type Selection } from '../types';
 import { columnToResidue, residueToColumn } from '../model';
 import { $ } from '../controls';
+import { columnSpan } from '../mask';
 import { type Core } from './core';
 export function setReference(v:Core, id:string):void {
   v.assertAlive();if(!v.a)return;const row=v.a.rows.findIndex(r=>r.id===id);if(row<0)throw new Error('Unknown reference sequence.');
@@ -49,7 +50,7 @@ export function goTo(v:Core, input:string):boolean {
   v.message('Enter a number or row:residue, for example 123 or seq-1:45.');return false;
 }
 export function reveal(v:Core, s:Selection):void {
-  const available=v.scroll.clientWidth-v.gutter,x=v.columns.before[s.start-1]*v.options.cellWidth;
+  const available=v.scroll.clientWidth-v.gutter,x=columnSpan(v.columns,s.start,s.end)[0]*v.options.cellWidth;
   if(x<v.scroll.scrollLeft||x+v.options.cellWidth>v.scroll.scrollLeft+available)v.scroll.scrollLeft=Math.max(0,x-available/2);
   if(s.rowId&&v.a){const r=v.a.rows.findIndex(x=>x.id===s.rowId),index=r<0?-1:v.rowPos[r],y=index*v.options.rowHeight;if(index>=0&&(y<v.scroll.scrollTop||y+v.options.rowHeight>v.scroll.scrollTop+v.scroll.clientHeight))v.scroll.scrollTop=y;}
 }
