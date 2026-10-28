@@ -44,7 +44,7 @@ export function pairwiseIdentity(a:Alignment,rowA:number,rowB:number):Identity {
   }
   return {matches,compared,identity:compared?matches/compared:null};
 }
-export function pairwiseMatrix(a:Alignment,rows:number[]) {
+export function pairwiseMatrix(a:Alignment,rows:number[]):Identity[][] {
   if(rows.length>200) throw new Error('Pairwise comparison is limited to 200 selected sequences.');
   if(new Set(rows).size!==rows.length) throw new Error('Select distinct sequence rows.');
   return rows.map(rowA=>rows.map(rowB=>pairwiseIdentity(a,rowA,rowB)));

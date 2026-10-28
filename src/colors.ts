@@ -1,7 +1,7 @@
-import palettes from './palettes.json';
+import palettes from './palettes.json' with { type: 'json' };
 import type { Alphabet } from './types';
 export interface ColorScheme { id:string; label:string; description:string; colors:Record<string,string>; alphabets?:Alphabet[] }
-const registry=new Map<string,ColorScheme>();
+const registry:Map<string,ColorScheme>=new Map();
 export function registerColorScheme(scheme:ColorScheme) {
   if(!/^[a-z0-9_-]+$/i.test(scheme.id)) throw new Error('Color scheme IDs must contain only letters, numbers, underscores or hyphens.');
   for(const [residue,color] of Object.entries(scheme.colors)) if(!/^[A-Z*-]$/.test(residue)||!/^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(color)) throw new Error('Residue colors must be three- or six-digit hex colors.');
@@ -24,7 +24,7 @@ nucleotideScheme('nucleotide-grayscale','Nucleotide · grayscale','Four gray lev
 nucleotideScheme('nucleotide-gc','GC / AT(U)','Base groups, not a GC percentage: G/C/S are blue; A/T/U/W are gold. Ambiguity symbols spanning both groups are neutral.',{G:'#bfd8eb',C:'#bfd8eb',S:'#bfd8eb',A:'#f2dec2',T:'#f2dec2',U:'#f2dec2',W:'#f2dec2'});
 nucleotideScheme('nucleotide-purine','Purine / pyrimidine · muted','Chemical base groups: A/G/R are blue; C/T/U/Y are gold. Ambiguity symbols spanning both groups are neutral.',{A:'#c7d9ec',G:'#c7d9ec',R:'#c7d9ec',C:'#eee0b5',T:'#eee0b5',U:'#eee0b5',Y:'#eee0b5'});
 registerColorScheme({id:'conservation',label:'Consensus support',description:'Modal non-gap residue count divided by all rows in the selected statistics scope. Gaps reduce support.',colors:{}});
-export const colorSchemes=(alphabet?:Alphabet)=>[getColorScheme('soft'),getColorScheme('soft-nucleotide'),...Array.from(registry.values()).filter(s=>s.id!=='soft'&&s.id!=='soft-nucleotide')].filter(s=>!alphabet||!s.alphabets||s.alphabets.includes(alphabet));
+export const colorSchemes=(alphabet?:Alphabet):ColorScheme[]=>[getColorScheme('soft'),getColorScheme('soft-nucleotide'),...Array.from(registry.values()).filter(s=>s.id!=='soft'&&s.id!=='soft-nucleotide')].filter(s=>!alphabet||!s.alphabets||s.alphabets.includes(alphabet));
 export function getColorScheme(id:string):ColorScheme {const s=registry.get(id);if(!s) throw new Error(`Unknown color scheme “${id}”.`);return s;}
 export function residueColor(residue:string,scheme:ColorScheme,support?:number):string {
   if(residue==='-'||residue==='.') return '#f1f4f7';

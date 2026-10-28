@@ -54,7 +54,7 @@ If local servers are unavailable, `npm run preview:files` generates self-contain
 npm run build
 npm pack
 # In a consuming application:
-npm install /path/to/nuin-msa-canvas-0.1.0.tgz
+npm install /path/to/nuin-msa-canvas-0.2.0.tgz
 ```
 
 The core has no framework runtime dependency. React and Svelte are optional peers, imported only through their respective entry points. Build output includes module code, type declarations, a worker, CSS, fonts and the Svelte component source.
@@ -364,6 +364,22 @@ await viewer.loadUrl(source && isTrusted(source) ? source : defaultUrl);
 Parsing, column statistics, reference identity and bounded pairwise comparison use module workers. Cancellation terminates obsolete work on replacement or disposal. The normal Vite source and packed-package builds recognize the static worker constructor and bundle it. A bundler that does not process worker URLs must copy the complete `dist` directory and pass `workerUrl` pointing to `dist/worker.js`, retaining its sibling chunks.
 
 Importing core/React/Svelte modules is SSR-safe. Creating the actual viewer requires a browser, Canvas 2D, ResizeObserver and module Worker support. Gzip uses DecompressionStream. An explicit `worker: false` fallback is available for small inputs and DOM lifecycle tests; it runs analysis on the main thread. External workers must be permitted by your application's CSP (`worker-src`); self-contained preview files use `blob:` workers. No alignment is uploaded by the library.
+
+## Deno and JSR
+
+The core API is published on JSR from its TypeScript source:
+
+```sh
+deno add jsr:@nuin/msa-canvas
+```
+
+```ts
+import { parseAlignment, calculateStats, consensusSequence } from '@nuin/msa-canvas';
+const alignment = parseAlignment(await Deno.readTextFile('family.sto'));
+console.log(consensusSequence(calculateStats(alignment), alignment.alphabet));
+```
+
+Parsing, statistics, consensus and FASTA export run in Deno without a DOM. The viewer runs in a browser bundle. JSR has no CSS, React, Svelte or PAVI entries. Use the npm package for those, through `npm:` specifiers in Deno (`import { AlignmentViewer } from 'npm:@nuin/msa-canvas/react'`). Node projects can install the JSR build with `npx jsr add @nuin/msa-canvas`.
 
 ## Development and validation
 

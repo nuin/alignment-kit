@@ -55,9 +55,9 @@ export class AlignmentViewer {
   private emit<K extends ViewerEvent>(event:K,value:ViewerEvents[K]) {if(event==='state'||event==='viewport')this.scheduleLink();for(const handler of this.listeners.get(event)??[])handler(value);}
   private error(error:unknown) {const err=error instanceof Error?error:new Error(String(error));if(err.name!=='AbortError'&&!this.disposed){this.message(err.message,true);this.emit('error',err);}return err;}
   private assertAlive(){if(this.disposed)throw new Error('This viewer has been destroyed.');}
-  getAlignment(){return this.a;}
-  getStatistics(){return this.stats;}
-  getSelectedRowIds(){return [...this.selectedRows];}
+  getAlignment():Alignment|undefined{return this.a;}
+  getStatistics():AlignmentStats|undefined{return this.stats;}
+  getSelectedRowIds():string[]{return [...this.selectedRows];}
   load(input:string|Blob|ArrayBuffer,options:ParseOptions={}):Promise<void> {return this.loadInput(input,options);}
   private async loadInput(input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {
     this.assertAlive();this.parser.cancel();this.request?.abort();const token=++this.loadRevision;this.loading=true;
