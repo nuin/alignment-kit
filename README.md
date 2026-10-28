@@ -188,6 +188,7 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`, `stockholmTracks` |
 | Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize`, `rowStrand` |
 | Column masking and marks | `columnMasking`, `columnMarks` |
+| Thresholds and row filters | `consensusThreshold`, `colorThreshold`, `minIdentity`, `minCoverage` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
@@ -320,6 +321,8 @@ Statistics default to all loaded rows. Scrolling, pinning a reference and visual
 | Gap fraction | Gap count / rows in statistics scope |
 | Modal frequency | Largest non-gap symbol count / non-gap rows |
 | Consensus support | Largest non-gap symbol count / all scoped rows |
+| Percent identity | Rows carrying the residue / all scoped rows, per column; shaded by that fraction |
+| BLOSUM62 to consensus | Protein only: residues with a positive BLOSUM62 score against the column consensus are colored |
 | Consensus | Unique most frequent non-gap symbol; ties are explicit |
 | Consensus sequence | Track, export, copy and `getConsensus()`: modal non-gap residue; ties as IUPAC codes (DNA/RNA) or `X`; `X`/`N` below `consensusThreshold` |
 | Frequency logo | Literal symbol frequencies among non-gap rows; information content with `logoMode: 'bits'` |
@@ -488,7 +491,8 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `setOptions(options)` | Update visual/analysis options |
 | `setReference(rowId)` | Pin a stable row as reference |
 | `setFilter(query)` | Filter names and species |
-| `setSort('input' \| 'name' \| 'identity' \| 'manual' \| 'tree')` | Stable ordering; identity calculation is asynchronous; `tree` needs `setTree` first |
+| `setSort(sort, column?)` | Stable ordering by `'input'`, `'name'`, `'identity'`, `'gaps'` (fewest gaps first), `'length'` (longest ungapped first), `'residue'` (residue at `column`, default the selected column, gaps last; rejects without a valid column), `'annotations'` (most annotated first), `'manual'` or `'tree'`; identity calculation is asynchronous; `tree` needs `setTree` first. `gaps` and `length` give the same order |
+| `setRowOrderFromNames(names)` | Put the rows named in `names` (row name, then ID) first in that order, keep the rest in their current order, switch to manual order; returns names that matched no row |
 | `hideRows(ids)` / `showRows(ids?)` | Hide rows from the grid / restore some or all hidden rows |
 | `hideColumns(start, end)` / `showColumns(start?, end?)` | Hide columns by one-based range / show a range, or everything when called with no arguments (see Hide columns) |
 | `markColumns(ranges, color?)` / `unmarkColumns(ranges?)` / `getColumnMarks()` | Mark columns, remove marks (all when called with no argument), read the marks (see Mark columns) |
@@ -524,7 +528,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 
 Events: `ready`, `warnings` (the parser warnings of each loaded alignment, an empty array when there are none), `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
-Options: `reverseComplement` (default `false`, see Reverse complement view), `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+Options: `reverseComplement` (default `false`, see Reverse complement view), `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `colorThreshold` (0–1, default 0), `minIdentity` (0–100, default 0), `minCoverage` (0–100, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
 Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Clicking a residue selects its column and row; clicking the same cell again, without Shift, while it is the whole selection clears the selection. The same applies to a track column. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off.
 
@@ -554,7 +558,7 @@ viewer.getRowOrder();                   // all row IDs in the current order, inc
 await viewer.removeRows(['seq-2']);     // new alignment copy, new alignment ID, statistics recomputed
 ```
 
-`ViewState` carries `hiddenRowIds`, `manualOrder` (null until a manual order exists) and `collapsedGroups`. Links carry `sort` (`tree` included, `manual` omitted because a link holds no row list) but not hidden rows. `removeRows` keeps the filter, order, hidden rows, groups and tree, drops annotations of removed rows, and throws if no row would remain.
+`ViewState` carries `hiddenRowIds`, `manualOrder` (null until a manual order exists) and `collapsedGroups`. Links carry `sort` (`tree` and the new `gaps`, `length`, `residue` and `annotations` included, `manual` omitted because a link holds no row list), `scol` for the residue sort column, and `minid`/`mincov` for the row filters, but not hidden rows. `ViewState` also carries `sortColumn`, `consensusThreshold`, `colorThreshold`, `minIdentity` and `minCoverage`. `removeRows` keeps the filter, order, hidden rows, groups and tree, drops annotations of removed rows, and throws if no row would remain.
 
 Groups: `groupBy` takes `'species'` or a `row.metadata` key. `setGroups({ rowId: 'name' })` overrides it, and `setGroups(null)` returns to `groupBy`. Rows order by group (alphabetical, `Ungrouped` last), then by the current order inside each group. Each group has a header row with its name and visible row count, and a color bar on its labels. Click a header, in the label gutter or on the grid, to collapse or expand it; `toggleGroup(name)` does the same. The pinned reference stays above the groups.
 
@@ -593,6 +597,8 @@ Pasting text (Ctrl/Cmd+V) anywhere in the viewer, except into an input, textarea
 Ctrl/Cmd+C on the focused matrix copies gapped FASTA for the selected columns (or the visible columns). Rows are the checked rows in display order, with checked rows hidden by the filter appended; else the clicked row; else the export rows. Once statistics are ready, the copy starts with a `consensus` record for the same columns. Copy requires a secure context (HTTPS or localhost); otherwise the viewer reports an error.
 
 Consensus sequence: the modal non-gap residue per column. With a `consensusThreshold` above 0, a column whose modal frequency (among non-gap rows) is below the threshold becomes `X` (protein) or `N` (DNA/RNA). Ties become the IUPAC code covering every tied base for DNA/RNA (A+G is `R`, A+R is `R`, U counts as T; a tie involving `*` becomes `N`) and `X` for protein. All-gap columns stay `-`, so the sequence keeps the alignment width. The consensus track draws these symbols as colored cells; `getConsensus({ threshold? })` returns the full-width sequence and `consensusSequence(stats, alphabet, threshold?, start?, end?)` is exported as a pure function.
+
+Color threshold: `colorThreshold` (0–1) leaves residues uncolored when their column value is below it, for the `conservation` (support) and `percent-identity` (fraction of scoped rows sharing the residue) schemes. `blosum62` ignores it and uses `consensusThreshold` to decide which columns have a consensus. Row filters: `minIdentity` keeps rows with at least that percent identity to the reference (canonical positions, as in the identity sort); `minCoverage` keeps rows with at least that percent non-gap fraction. The tools row has controls for all four, each behind its own `visibility` key.
 
 ## Shareable links
 

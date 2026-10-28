@@ -3,7 +3,7 @@ import type { ViewerVisibility, RulerCoordinates } from './types';
 import { isGap, rowOffset } from './model';
 import type { Alignment, AlignmentStats, ColorMode, CustomTrack, Selection, Hit, ColumnMark } from './types';
 import { trackHeight, trackNumber, trackText, isTrackBlank } from './tracks';
-import { getColorScheme, residueColor, textColor } from './colors';
+import { getColorScheme, residueColor, textColor, dynamicColor, dynamicSchemes } from './colors';
 import { AnnotationIndex } from './annotations';
 import { STRIDE, SYMBOLS, consensusSymbol, movingAverage } from './analysis';
 import { treeSpans, type TreeLayout } from './tree';
@@ -15,7 +15,7 @@ export interface TreeHit { node:number; x:number; y:number }
 export interface RenderView {
   a:Alignment; stats?:AlignmentStats; rows:number[]; reference:number; x:number; y:number;
   cw:number; rh:number; gutter:number; scheme:string; mode:ColorMode; dark:boolean;
-  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; matchDots?:boolean; ruler?:RulerCoordinates; groups?:GroupInfo[];
+  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; colorThreshold?:number; matchDots?:boolean; ruler?:RulerCoordinates; groups?:GroupInfo[];
   /** Search hits by alignment row index, sorted by start column. */
   hits?:Map<number,Hit[]>; activeHit?:Hit;
   /** Tracks drawn after the built-ins, already validated against the alignment width. */
@@ -77,8 +77,8 @@ export class Renderer {
       const same=compare===code&&compare!==45&&compare!==63;
       const dot=!!v.matchDots&&same&&row!==v.reference&&!isGap(code);
       const faded=v.mode!=='all'&&compare!==undefined&&(v.mode.endsWith('differences')?same:!same);
-      if(v.scheme==='conservation') {
-        const color=residueColor(String.fromCharCode(code),scheme,v.stats?.support[c]);ctx.fillStyle=color;ctx.globalAlpha=faded?0.22:1;ctx.fillRect(x,y,v.cw,v.rh-1);
+      if(dynamicSchemes.has(v.scheme)) {
+        const color=dynamicColor(scheme,String.fromCharCode(code),v.stats,c,v.colorThreshold??0,v.threshold??0);ctx.fillStyle=color;ctx.globalAlpha=faded?0.22:1;ctx.fillRect(x,y,v.cw,v.rh-1);
         if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dot?'.':code===45?'·':String.fromCharCode(code),x+v.cw/2,y+v.rh/2);}
       } else {ctx.globalAlpha=faded?0.22:1;ctx.drawImage(atlas,code*v.cw*ratio,dot?v.rh*ratio:0,v.cw*ratio,v.rh*ratio,x,y,v.cw,v.rh);}
       ctx.globalAlpha=1;
@@ -183,7 +183,7 @@ export class Renderer {
       if(offset.entropy!==null){const h=Math.min(1,Math.max(0,movingAverage(v.stats.entropy,window,c)/bitsMax))||0;ctx.fillStyle='#8a6bb0';ctx.fillRect(x,offset.entropy+22-h*20,Math.max(1,v.cw-1),h*20);}
       if(offset.quality!==null){const h=Math.min(1,Math.max(0,movingAverage(v.stats.quality,window,c)))||0;ctx.fillStyle='#4f9a6b';ctx.fillRect(x,offset.quality+22-h*20,Math.max(1,v.cw-1),h*20);}
       if(offset.consensus!==null){
-        const symbol=viewSymbol(v,consensusSymbol(v.stats,v.a.alphabet,c,v.threshold??0)),color=residueColor(symbol,getColorScheme(v.scheme),v.stats.support[c]);
+        const raw=consensusSymbol(v.stats,v.a.alphabet,c,v.threshold??0),symbol=viewSymbol(v,raw),color=dynamicSchemes.has(v.scheme)?dynamicColor(getColorScheme(v.scheme),raw,v.stats,c,v.colorThreshold??0,v.threshold??0):residueColor(symbol,getColorScheme(v.scheme),v.stats.support[c]);
         ctx.fillStyle=color;ctx.fillRect(x,offset.consensus+4,v.cw,27);
         if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=symbol==='-'?ink:textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.fillText(symbol==='-'?'·':symbol,x+v.cw/2,offset.consensus+22);}
       }
@@ -192,7 +192,7 @@ export class Renderer {
         for(let k=0;k<27;k++){const count=v.stats.counts[c*STRIDE+k];if(count)counts.push({r:SYMBOLS[k],n:count});}
         // In bits mode the maximum information, log2 of the alphabet size, fills the 45 px track less 2 px padding top and bottom.
         const bits=v.logoMode==='bits',full=bits?41*(v.stats.information[c]||0)/bitsMax:39;counts.sort((a,b)=>a.n-b.n);let bottom=offset.logo+(bits?43:37);
-        for(const d of counts){const h=d.n/n*full,letter=viewSymbol(v,d.r);if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(letter,getColorScheme(v.scheme),1);ctx.fillText(letter,8,17);ctx.restore();bottom-=h;}
+        for(const d of counts){const h=d.n/n*full,letter=viewSymbol(v,d.r);if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(letter,getColorScheme(v.scheme==='blosum62'?'soft':v.scheme),1);ctx.fillText(letter,8,17);ctx.restore();bottom-=h;}
       }
     }
     if(offset.reference!==null&&v.reference>=0)this.row(ctx,v,v.reference,offset.reference,width);
@@ -232,7 +232,7 @@ export class Renderer {
     if(v.stats)for(let px=0;px<width;px++){
       const from=Math.floor(px*m.count/width),to=Math.min(m.count,Math.max(from+1,Math.floor((px+1)*m.count/width)));
       let support=0,occupancy=0;for(let d=from;d<to;d++){const c=m.cols[d];support+=v.stats.support[c]||0;occupancy+=v.stats.total?1-v.stats.gaps[c]/v.stats.total:0;}
-      const h=occupancy/(to-from)*30;ctx.fillStyle=residueColor(viewSymbol(v,String.fromCharCode(v.stats.consensus[m.cols[from]])),scheme,support/(to-from));ctx.fillRect(px,35-h,1,h);
+      const h=occupancy/(to-from)*30;const top=String.fromCharCode(v.stats.consensus[m.cols[from]]);ctx.fillStyle=v.scheme==='conservation'||!dynamicSchemes.has(v.scheme)?residueColor(viewSymbol(v,top),scheme,support/(to-from)):dynamicColor(scheme,top,v.stats,m.cols[from],v.colorThreshold??0,v.threshold??0);ctx.fillRect(px,35-h,1,h);
     }
   }
 }

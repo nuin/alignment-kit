@@ -35,6 +35,8 @@ export type AnnotationFormat = 'gff3' | 'bed' | 'genbank' | 'embl' | 'uniprot';
 export interface AnnotationRecord { seqid:string; start:number; end:number; kind:string; label:string; metadata:Record<string,unknown> }
 export interface AnnotationImportOptions { format?:'auto'|AnnotationFormat; rowId?:string; coordinates?:'sequence'|'alignment' }
 export interface AnnotationImportResult { annotations:Annotation[]; warnings:string[] }
+/** Row orders: gaps = fewest gaps first; length = longest ungapped sequence first; residue = by the residue in `sortColumn`, gaps last; annotations = most annotations first. */
+export type SortKey = 'input'|'name'|'identity'|'gaps'|'length'|'residue'|'annotations'|'manual'|'tree';
 export type ColorMode = 'all'|'reference-differences'|'reference-matches'|'consensus-differences'|'consensus-matches';
 /** Presentation switches. Omitted keys retain their current value on updates. */
 export interface ViewerVisibility {
@@ -109,6 +111,10 @@ export interface ViewerVisibility {
   reverseComplementToggle?:boolean;
   rowStrand?:boolean;
   columnMarks?:boolean;
+  consensusThreshold?:boolean;
+  colorThreshold?:boolean;
+  minIdentity?:boolean;
+  minCoverage?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
 /** `reversed` is true in the reverse-complement view: columns then run right to left, column `end` is drawn at `offsetX` and each lower column one `cellWidth` further right. */
@@ -127,6 +133,12 @@ export interface ViewerOptions {
   statisticsScope?:'all'|'filtered'; rulerCoordinates?:RulerCoordinates; workerUrl?:string|URL; worker?:boolean;
   /** 0 to 1. Consensus columns whose modal frequency (non-gap rows) is below this become X (protein) or N (DNA/RNA). Default 0. */
   consensusThreshold?:number;
+  /** 0 to 1 (default 0). For the conservation and percent-identity schemes, residues whose column value is below this are left uncoloured. */
+  colorThreshold?:number;
+  /** 0 to 100 (default 0). Show only rows whose identity to the reference is at least this percentage. */
+  minIdentity?:number;
+  /** 0 to 100 (default 0). Show only rows whose non-gap fraction is at least this percentage. */
+  minCoverage?:number;
   /** FASTA settings for exports and Ctrl/Cmd+C; updates merge with the current settings. */
   fasta?:FastaOptions;
   /** Keep location.hash in sync with the view and apply a link found there on the next load. */
@@ -152,13 +164,16 @@ export interface ViewerOptions {
 }
 export interface ViewState {
   visibility?:ViewerVisibility;
-  version:1; alignmentId:string; referenceId:string|null; query:string; sort:'input'|'name'|'identity'|'manual'|'tree';
+  version:1; alignmentId:string; referenceId:string|null; query:string; sort:SortKey;
   start:number; rowOffset:number; cellWidth:number; selection:Selection|null;
   colorScheme:string; colorMode:ColorMode; matchDisplay?:'letter'|'dot'; statisticsScope:'all'|'filtered'; annotationFilter:AnnotationFilter;
   /** Ruler numbering; omitted in older states, which mean 'alignment'. */
   rulerCoordinates?:RulerCoordinates;
   /** Manually hidden columns as merged one-based inclusive [start, end] ranges. Gap-based hiding comes from options. */
   hiddenColumns?:[number,number][];
+  /** One-based alignment column of a 'residue' sort. */
+  sortColumn?:number;
+  consensusThreshold?:number; colorThreshold?:number; minIdentity?:number; minCoverage?:number;
   hiddenRowIds?:string[]; manualOrder?:string[]|null; collapsedGroups?:string[];
   /** Reverse-complement view; omitted in older states, which mean false. */
   reverseComplement?:boolean;

@@ -95,3 +95,6 @@
 .ak-viewer .ak-row-label .ak-strand[aria-pressed=true]{color:var(--ak-accent)}
 
 .ak-class-legend{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:6px}.ak-inspector .ak-class-legend{padding-left:0;line-height:1.4}.ak-class-legend li{display:flex;align-items:center;gap:8px;font-size:11px}.ak-class-legend span{font:12px ui-monospace,monospace;min-width:54px;padding:4px 6px;border-radius:3px;text-align:center}
+.ak-tools .ak-range input[type=range]{-webkit-appearance:auto;appearance:auto;width:88px;height:20px;min-height:20px;padding:0;border:0;background:none;accent-color:var(--ak-accent)}
+.ak-tools .ak-range output{min-width:3.5ch;text-align:right;color:var(--ak-muted);font-variant-numeric:tabular-nums}
+.ak-tools .ak-range input:disabled{opacity:.45}

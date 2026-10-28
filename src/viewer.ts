@@ -1,5 +1,5 @@
 import { defaultVisibility } from './visibility';
-import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack, type ParseWarning, type ColumnMark } from './types';
+import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack, type ParseWarning, type ColumnMark, type SortKey } from './types';
 import { AnnotationIndex, filterAnnotations } from './annotations';
 import { ThemedSelects } from './selects';
 import { Renderer, type RenderView, type GroupInfo, type TreeHit } from './renderer';
@@ -36,7 +36,7 @@ export class AlignmentViewer {
   private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
   private options:ViewerSettings;
   private a?:Alignment; private stats?:AlignmentStats;private fullStats?:AlignmentStats;
-  private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
+  private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:SortKey='input';private sortColumn?:number;private identityJob?:{a:Alignment;ref:number;promise:Promise<import('./types').Identity[]>};private identities?:number[];private identityDetails?:import('./types').Identity[];
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
   private filteredAnnotations:ReturnType<typeof filterAnnotations>={visible:[],unknown:0,excluded:0};private annotationIndex=new AnnotationIndex([]);
   private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;private menus:ThemedSelects;
@@ -98,7 +98,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,reverseComplement:false,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,colorThreshold:0,minIdentity:0,minCoverage:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,reverseComplement:false,...options,fasta:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -153,7 +153,11 @@ export class AlignmentViewer {
   private rebuildRows():void {modRows.rebuildRows(this.core);}
   private rowsChanged():void {modRows.rowsChanged(this.core);}
   setFilter(query:string):void {modRows.setFilter(this.core, query);}
-  setSort(sort:ViewState['sort']):Promise<void> {return modRows.setSort(this.core, sort);}
+  /** Order rows. 'gaps' puts rows with fewest gaps first, 'length' the longest ungapped first, 'annotations' the most annotated first, 'residue' sorts by the residue at `column` (one-based, default the selected column; gaps last). Rejects when 'residue' has no valid column. */
+  setSort(sort:SortKey,column?:number):Promise<void> {return modRows.setSort(this.core, sort, column);}
+  /** Put the rows named in `names` (row names, then IDs) first in that order and keep the rest in their current order, as a manual order. Returns the names that matched no row. */
+  setRowOrderFromNames(names:string[]):string[] {return modRows.setRowOrderFromNames(this.core, names);}
+  private loadIdentities():Promise<boolean> {return modRows.loadIdentities(this.core);}
   private rowIndexes(ids:string[]):number[] {return modRows.rowIndexes(this.core, ids);}
   /** Hide rows from the grid, the filtered statistics scope and exports of visible rows; the alignment is unchanged. */
   hideRows(ids:string[]):void {modRows.hideRows(this.core, ids);}

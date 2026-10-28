@@ -5,7 +5,7 @@ import { columnSpan } from '../mask';
 import { type Core } from './core';
 export function setReference(v:Core, id:string):void {
   v.assertAlive();if(!v.a)return;const row=v.a.rows.findIndex(r=>r.id===id);if(row<0)throw new Error('Unknown reference sequence.');
-  v.reference=row;v.identities=undefined;v.identityDetails=undefined;v.rebuildRows();v.inspectorDirty=true;v.schedule();if(v.sort==='identity')void v.setSort('identity');v.emit('state',v.getState());
+  v.reference=row;v.identityJob=undefined;v.identities=undefined;v.identityDetails=undefined;v.rebuildRows();v.inspectorDirty=true;v.schedule();if(v.sort==='identity')void v.setSort('identity');v.emit('state',v.getState());
 }
 export function setSelection(v:Core, selection:Selection|null,scrollIntoView=true,keepTab=false):void {
   v.assertAlive();if(!v.a)return;

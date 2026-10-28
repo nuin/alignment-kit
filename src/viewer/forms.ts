@@ -1,4 +1,4 @@
-import { type Alphabet, type RulerCoordinates, type ViewState, type ColorMode } from '../types';
+import { type Alphabet, type RulerCoordinates, type SortKey, type ColorMode } from '../types';
 import { $ } from '../controls';
 
 import type { Core, On } from './core';
@@ -10,11 +10,13 @@ export function bindForms(v:Core,on:On):void {
     if(aria==='Color scheme')v.setOptions({colorScheme:target.value});
     if(aria==='Residues to color')v.setOptions({colorMode:target.value as ColorMode});
     if(aria==='Statistics scope')v.setOptions({statisticsScope:target.value as 'all'|'filtered'});
+    if(aria==='Minimum identity to reference')v.setOptions({minIdentity:Number(target.value)||0});
+    if(aria==='Minimum coverage')v.setOptions({minCoverage:Number(target.value)||0});
     if(aria==='Dots for matches')v.setOptions({matchDisplay:target.checked?'dot':'letter'});
     if(aria==='Ruler coordinates'){v.setOptions({rulerCoordinates:target.value as RulerCoordinates});v.emit('state',v.getState());}
     if(aria==='Reverse complement')v.setReverseComplement(target.checked);
     if(aria==='Show frequency logo')v.setOptions({showLogo:target.checked});
-    if(aria==='Sequence order')v.setSort(target.value as ViewState['sort']).catch(error=>{v.error(error);$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=v.sort;v.menus.sync();});
+    if(aria==='Sequence order')v.setSort(target.value as SortKey).catch(error=>{v.error(error);$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=v.sort;v.menus.sync();});
     if(aria==='Export alignment'){if(target.value==='fasta-options')v.fastaPanel(true);else void v.export(target.value);target.value='';}
     if(aria==='FASTA gaps')v.setOptions({fasta:{gaps:target.value as 'keep'|'remove'}});
     if(aria==='FASTA letter case')v.setOptions({fasta:{letterCase:target.value as 'original'|'upper'|'lower'}});
@@ -27,6 +29,11 @@ export function bindForms(v:Core,on:On):void {
     if(aria==='Feature consequence')v.setAnnotationFilter({...v.annotationFilter,consequences:target.value?[target.value]:[]});
     if(aria==='Features with disease evidence')v.setAnnotationFilter({...v.annotationFilter,disease:target.checked});
     if(aria==='Features with phenotype evidence')v.setAnnotationFilter({...v.annotationFilter,phenotype:target.checked});
+  });
+  on(v.root,'input',(event:Event)=>{
+    const target=event.target as HTMLInputElement,aria=target.getAttribute('aria-label');
+    if(aria==='Consensus threshold')v.setOptions({consensusThreshold:Number(target.value)/100});
+    if(aria==='Color threshold')v.setOptions({colorThreshold:Number(target.value)/100});
   });
   on($(v.root,'[aria-label="Filter sequences"]'),'input',(event:Event)=>v.setFilter((event.target as HTMLInputElement).value));
   on($(v.root,'[aria-label="Go to alignment column"]'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Enter'&&v.a){const input=event.target as HTMLInputElement,typed=input.value;if(v.goTo(typed))input.value=typed.trim();}});

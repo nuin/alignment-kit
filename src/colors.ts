@@ -1,5 +1,6 @@
 import palettes from './palettes.json' with { type: 'json' };
-import type { Alphabet } from './types';
+import type { Alphabet, AlignmentStats } from './types';
+import { STRIDE, SYMBOLS, blosum62 } from './analysis';
 /** `classes` lists the distinct color groups for the legend. `cvdSafe` marks schemes whose classes stay distinguishable under simulated deuteranopia and protanopia; `highContrast` marks schemes whose letters keep a 7:1 contrast ratio. */
 export interface ColorScheme { id:string; label:string; description:string; colors:Record<string,string>; alphabets?:Alphabet[]; classes?:{label:string;residues:string;color:string}[]; cvdSafe?:boolean; highContrast?:boolean }
 const registry:Map<string,ColorScheme>=new Map();
@@ -32,11 +33,19 @@ classScheme('cvd-nucleotide','Nucleotide · colorblind-safe','Okabe-Ito based ba
 classScheme('hc-protein','Residue classes · high contrast','The seven residue classes with strong fills: every letter has at least 7:1 contrast against its fill, and the classes also stay distinguishable under simulated deuteranopia and protanopia. Ambiguity symbols use a neutral gray that keeps the same distance.',['protein'],aminoClasses(['#f8f3aa','#eebc4d','#3ccaa0','#2b5a75','#735000','#89cbf0','#004f3a']),{cvdSafe:true,highContrast:true,neutral:'#f5f5f5'});
 classScheme('hc-nucleotide','Nucleotide · high contrast','Light and very dark base fills: A teal, C yellow, G navy, T/U brown. Every letter has at least 7:1 contrast against its fill, and the bases stay distinguishable under simulated deuteranopia and protanopia. Ambiguity symbols use a dark gray that keeps the same distance.',['dna','rna'],baseClasses(['#3ccaa0','#f0e442','#003959','#6b2f00']),{cvdSafe:true,highContrast:true,neutral:'#585858'});
 registerColorScheme({id:'conservation',label:'Consensus support',description:'Modal non-gap residue count divided by all rows in the selected statistics scope. Gaps reduce support.',colors:{}});
+registerColorScheme({id:'percent-identity',label:'Percent identity',description:'Shade by the fraction of rows in the statistics scope that carry the same residue in the column; gaps count as rows. Residues below the color threshold are not colored.',colors:{}});
+registerColorScheme({id:'blosum62',label:'BLOSUM62 to consensus',alphabets:['protein'],description:'Residues with a positive BLOSUM62 score against the column consensus are colored. Tied, gap and below-threshold consensus columns stay uncolored.',colors:{}});
+/** Schemes whose color depends on the column statistics. */
+export const dynamicSchemes:ReadonlySet<string>=new Set(['conservation','percent-identity','blosum62']);
+/** Schemes that honor the colorThreshold option. */
+export const thresholdSchemes:ReadonlySet<string>=new Set(['conservation','percent-identity']);
 export const colorSchemes=(alphabet?:Alphabet):ColorScheme[]=>[getColorScheme('soft'),getColorScheme('soft-nucleotide'),...Array.from(registry.values()).filter(s=>s.id!=='soft'&&s.id!=='soft-nucleotide')].filter(s=>!alphabet||!s.alphabets||s.alphabets.includes(alphabet));
 export function getColorScheme(id:string):ColorScheme {const s=registry.get(id);if(!s) throw new Error(`Unknown color scheme “${id}”.`);return s;}
+const NEUTRAL='#e9edf2';
 export function residueColor(residue:string,scheme:ColorScheme,support?:number):string {
   if(residue==='-'||residue==='.') return '#f1f4f7';
-  if(scheme.id==='conservation') {
+  if(scheme.id==='blosum62') return NEUTRAL;
+  if(scheme.id==='conservation'||scheme.id==='percent-identity') {
     if(support===undefined||!Number.isFinite(support)) return '#edf0f4';
     const t=Math.max(0,Math.min(1,support));
     const mix=(a:number,b:number)=>Math.round(a+(b-a)*t).toString(16).padStart(2,'0');
@@ -48,4 +57,20 @@ export function textColor(hex:string) {
   const h=hex.length===4?'#'+[...hex.slice(1)].map(x=>x+x).join(''):hex;
   const rgb=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(c=>c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4);
   return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2]>0.24?'#172737':'#ffffff';
+}
+/** Color of one cell for a statistics-dependent scheme. `column` is the 0-based alignment column; `threshold` is colorThreshold (conservation, percent-identity) and consensusThreshold (blosum62). */
+export function dynamicColor(scheme:ColorScheme,residue:string,stats:AlignmentStats|undefined,column:number,colorThreshold:number,consensusThreshold:number):string {
+  if(residue==='-'||residue==='.') return '#f1f4f7';
+  if(!stats) return '#edf0f4';
+  if(scheme.id==='blosum62') {
+    const code=stats.consensus[column],n=stats.total-stats.gaps[column];
+    if(code===45||code===63||!(stats.frequency[column]>=consensusThreshold)||!n) return NEUTRAL;
+    const score=blosum62(residue.toUpperCase(),String.fromCharCode(code));
+    return score!==null&&score>0?'#b4cfe8':NEUTRAL;
+  }
+  let value:number;
+  if(scheme.id==='percent-identity') {const k=SYMBOLS.indexOf(residue.toUpperCase());value=k<0||!stats.total?NaN:stats.counts[column*STRIDE+k]/stats.total;}
+  else value=stats.support[column];
+  if(!Number.isFinite(value)) return '#edf0f4';
+  return value<colorThreshold?NEUTRAL:residueColor(residue,scheme,value);
 }

@@ -165,7 +165,7 @@ An invalid pattern shows a message that names the problem, such as an unbalanced
 
 Click the diamond beside a sequence to pin it as the reference. You can also click a residue and choose **Pin reference** in the Position inspector. The reference is displayed once above the scrolling rows; pinning does not give it an extra statistical vote.
 
-**Order** offers input order, name order, identity to reference, manual order and tree order (the last once a tree is loaded). Identity ordering runs an exact comparison against the pinned sequence. After choosing it, selecting a row shows matched and compared-position counts in the inspector. Changing the reference while using identity order recomputes those comparisons.
+**Order** offers input order, name order, identity to reference, fewest gaps, longest sequence, residue at the selected column, most annotations, manual order and tree order (the last once a tree is loaded). Fewest gaps and longest sequence give the same order, because ungapped length is alignment width minus gap count. Residue at the selected column groups rows by the residue in the first selected column, alphabetically with gaps last; select a column first, and choose the order again after selecting another one. Most annotations counts annotations attached to each row. The API method `setRowOrderFromNames(names)` puts rows named in a list first, in list order, and returns the names it could not match. Identity ordering runs an exact comparison against the pinned sequence. After choosing it, selecting a row shows matched and compared-position counts in the inspector. Changing the reference while using identity order recomputes those comparisons.
 
 Row IDs keep annotations attached to their original sequence when you reorder or filter. The viewer does not infer a phylogenetic tree or cluster sequences by evolutionary distance; it draws a Newick tree you supply (see **Hide, reorder and group rows, and show a tree**).
 
@@ -198,6 +198,8 @@ Open **Color** to choose a scheme, then open the inspector's **Colors** tab for 
 | Purine / pyrimidine · muted | Explore chemical classes | A/G/R are blue; C/T/U/Y are gold. |
 | Purine / pyrimidine | Vivid chemical-class coloring | The attributed Nightingale group palette. |
 | Consensus support | Locate well-supported columns | Shade represents modal residue count divided by all rows in the chosen statistics scope. |
+| Percent identity | See how many rows share each residue | Each residue is shaded by the fraction of rows in the statistics scope that carry the same residue in its column. Gaps count as rows. |
+| BLOSUM62 to consensus | Spot conservative substitutions (protein only) | Residues with a positive BLOSUM62 score against the column consensus are colored. Tied, all-gap and below-threshold consensus columns stay uncolored. |
 
 The new four-base schemes give mixed ambiguity symbols a neutral background. Group schemes color an ambiguity symbol only when every possible base belongs to the same group: S means G/C; W means A/T; R means A/G; Y means C/T. Symbols spanning both groups remain neutral. The color choice does not change statistics, search semantics or pairwise identity exclusions.
 
@@ -225,6 +227,16 @@ For protein alignments, **Residue classes** is the muted default. Fixed schemes 
 The menu next to **Order** controls which residues receive full color. Choose all residues, matches/differences to the reference, or matches/differences to the consensus. De-emphasized cells remain present; no rows, columns or letters are deleted.
 
 Reference comparison uses the pinned row. Consensus comparison uses the selected statistics scope. Gaps and tied-consensus markers are not treated as matching residue identities. Coloring and identity percentages are different operations: identity uses only canonical, comparable positions.
+
+## Set consensus and color thresholds
+
+Three controls in the second toolbar row set cutoffs.
+
+- **Consensus** (0 to 100%) is the `consensusThreshold` option. A consensus column whose modal frequency among non-gap rows is below it becomes `X` (protein) or `N` (DNA/RNA) in the consensus track, the consensus export and Ctrl/Cmd+C. The BLOSUM62 scheme uses the same cutoff to decide which columns have a consensus.
+- **Color cutoff** (0 to 100%) is the `colorThreshold` option. It applies to **Consensus support** and **Percent identity**: a residue whose column value is below the cutoff keeps its letter and loses its color. The slider is disabled for other schemes.
+- **Min identity** and **Min coverage** (percent) filter rows. Min identity keeps rows whose identity to the pinned reference is at least that value, using the same canonical-position comparison as the identity order; it recomputes when the reference changes. Min coverage keeps rows whose non-gap fraction (ungapped length divided by alignment width) is at least that value. Both filters combine with the name filter and hidden rows, and the status line shows the filtered row count. With **Stats → Filtered sequences**, statistics follow the filters.
+
+`visibility.consensusThreshold`, `colorThreshold`, `minIdentity` and `minCoverage` hide each control. The values are part of **View state · JSON**; links carry the two filters (`minid`, `mincov`).
 
 ## Understand the tracks and statistics
 
@@ -319,7 +331,7 @@ Tick **Dots for matches** in the second toolbar row to draw each residue that eq
 
 ## Share a view
 
-In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`), column marks (`marks=10-12,40`), the reverse-complement view (`rc=1`) and reverse-strand rows (`strand=seq-1,seq-3`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, minimum identity and coverage, order (with `scol` for the residue order) and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`), column marks (`marks=10-12,40`), the reverse-complement view (`rc=1`) and reverse-strand rows (`strand=seq-1,seq-3`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
 
 If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
 
