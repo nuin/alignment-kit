@@ -1,7 +1,7 @@
 import { defaultVisibility, applyVisibility, trackLayout, trackNames, inspectorTabs } from './visibility';
 import type { ViewerVisibility, RulerCoordinates, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, EventHandler, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, ColorMode, Annotation, AnnotationImportOptions, AnnotationImportResult, Hit, SearchOptions, SearchResult, CustomTrack } from './types';
 import { importAnnotations } from './annotation-import';
-import { createAlignment, sequenceToAlignment, columnToResidue, residueToColumn } from './model';
+import { createAlignment, columnToResidue, residueToColumn } from './model';
 import { findHits, hitCount } from './search';
 import { readAlignmentInput } from './parsers';
 import { AnnotationIndex, filterAnnotations } from './annotations';
@@ -28,7 +28,7 @@ const textExports:Record<string,{ext:string;write:(a:Alignment,region:ExportRegi
 export class AlignmentViewer {
   readonly element:HTMLElement;
   private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
-  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'>>;
+  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'>>;
   private a?:Alignment; private stats?:AlignmentStats;private fullStats?:AlignmentStats;
   private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
@@ -120,7 +120,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,...options,fasta:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -215,7 +215,7 @@ export class AlignmentViewer {
     this.options.cellWidth=bounded(this.options.cellWidth,3,32);this.options.rowHeight=bounded(this.options.rowHeight,18,48);this.options.labelWidth=bounded(this.options.labelWidth,100,420);this.options.height=bounded(this.options.height,360,2000);this.options.consensusThreshold=bounded(this.options.consensusThreshold,0,1);{const w=Math.round(bounded(this.options.conservationWindow,1,51));this.options.conservationWindow=w%2?w:w-1;}this.options.treeWidth=bounded(this.options.treeWidth,0,400);
     const masked=maskSig()!==maskBefore;if(masked)this.colMap=undefined;
     const regroup=groupBy!==undefined&&groupBy!==this.groupBy;if(regroup)this.groupBy=groupBy!;
-    this.root.style.height=this.options.height+'px';this.root.dataset.theme=this.options.theme;this.root.dataset.inspector=String(this.options.showInspector);
+    this.root.style.height=this.options.height+'px';this.root.dataset.theme=this.options.theme;this.root.dataset.inspector=String(this.options.showInspector);this.root.dataset.dragPan=String(this.options.dragToPan);
     if(wasPinned!==this.pinned||regroup)this.rebuildRows();
     $<HTMLSelectElement>(this.root,'[aria-label="Color scheme"]').value=this.options.colorScheme;
     $<HTMLSelectElement>(this.root,'[aria-label="Residues to color"]').value=this.options.colorMode;
@@ -601,7 +601,7 @@ export class AlignmentViewer {
     this.searchState=undefined;this.emit('search',null);
   }
   private runSearch(pattern:string,options:SearchOptions,refilter=false) {
-    const old=this.searchState,same=old?.pattern===pattern;let full=same?old!.full:undefined,result:SearchResult;
+    const old=this.searchState,same=old?.pattern===pattern&&old.options.mode===options.mode&&old.options.strands===options.strands;let full=same?old!.full:undefined,result:SearchResult;
     if(!same){full=findHits(this.a!,pattern,options);if(full.truncated)full=undefined;}
     if(full){
       const hits=new Map<number,Hit[]>();for(const hit of full.hits){const list=hits.get(hit.row);if(list)list.push(hit);else hits.set(hit.row,[hit]);}
@@ -612,7 +612,7 @@ export class AlignmentViewer {
     const cursor=previous?result.hits.findIndex(h=>h.rowId===previous.rowId&&h.start===previous.start&&h.end===previous.end&&h.strand===previous.strand):-1;
     this.searchState={pattern,options,result,byRow,cursor,full};this.inspectorDirty=true;this.schedule();
     const key=(h:Hit)=>`${h.row}:${h.start}:${h.end}:${h.strand}`;
-    if(!refilter||!old||old.result.truncated!==result.truncated||old.result.hits.length!==result.hits.length||result.hits.some((h,i)=>key(h)!==key(old.result.hits[i])))this.emit('search',result);
+    if(!refilter||!old||old.result.truncated!==result.truncated||old.result.hits.length!==result.hits.length||result.hits.some((h,i)=>key(h)!==key(old.result.hits[i])))this.emit('search',{hits:[...result.hits],truncated:result.truncated});
     return this.searchState;
   }
   private goToHit(index:number) {
@@ -721,12 +721,24 @@ export class AlignmentViewer {
       if(button.dataset.feature){const feature=this.filteredAnnotations.visible[Number(button.dataset.feature)];if(feature){if(feature.mapping==='mapped')this.setSelection({start:feature.start!,end:feature.end!,rowId:feature.rowId});this.emit('annotation',feature);this.message(`${feature.label}: ${feature.mapping==='mapped'?`alignment columns ${feature.start}–${feature.end}`:'no protein mapping'}. ${JSON.stringify(feature.metadata??{})}`);}}
     });
     const pick=(s:Selection|null,shift:boolean)=>{if(s){if(shift&&this.selection){s.start=Math.min(this.selection.start,s.start);s.end=Math.max(this.selection.end,s.end);}this.setSelection(s,false);}};
-      on(this.scroll,'click',(event:MouseEvent)=>{const item=this.itemAt(event);if(item!==undefined&&item<0){this.toggleGroup(this.groupList[-item-1].name);return;}pick(this.eventAt(event),event.shiftKey);});
+    let pan:{id:number;x:number;y:number;left:number;top:number;moved:boolean}|undefined,panned=false;
+    on(this.scroll,'pointerdown',(event:PointerEvent)=>{
+      panned=false;if(!this.options.dragToPan||event.button!==0||!this.a||event.clientX-this.scroll.getBoundingClientRect().left<this.gutter)return;
+      pan={id:event.pointerId,x:event.clientX,y:event.clientY,left:this.scroll.scrollLeft,top:this.scroll.scrollTop,moved:false};
+    });
+    on(this.scroll,'pointermove',(event:PointerEvent)=>{
+      if(!pan||event.pointerId!==pan.id)return;const dx=event.clientX-pan.x,dy=event.clientY-pan.y;
+      if(!pan.moved){if(Math.hypot(dx,dy)<4)return;pan.moved=true;this.scroll.setPointerCapture?.(pan.id);this.root.dataset.panning='true';}
+      this.scroll.scrollLeft=pan.left-dx;this.scroll.scrollTop=pan.top-dy;this.schedule();
+    });
+    const endPan=(event:PointerEvent)=>{if(!pan||event.pointerId!==pan.id)return;panned=pan.moved;pan=undefined;delete this.root.dataset.panning;};
+    on(this.scroll,'pointerup',endPan);on(this.scroll,'pointercancel',endPan);
+    on(this.scroll,'click',(event:MouseEvent)=>{if(panned){panned=false;return;}const item=this.itemAt(event);if(item!==undefined&&item<0){this.toggleGroup(this.groupList[-item-1].name);return;}pick(this.eventAt(event),event.shiftKey);});
     on($(this.root,'.ak-tracks'),'click',(event:MouseEvent)=>{
       if(!this.a||(event.target as HTMLElement).closest('button,[data-action]'))return;
-      const rect=$(this.root,'.ak-tracks').getBoundingClientRect(),x=event.clientX-rect.left-this.gutter,d=Math.floor((x+this.scroll.scrollLeft)/this.options.cellWidth);
+      const tracks=$(this.root,'.ak-tracks'),rect=tracks.getBoundingClientRect(),y=event.clientY-rect.top+tracks.scrollTop,x=event.clientX-rect.left-this.gutter,d=Math.floor((x+this.scroll.scrollLeft)/this.options.cellWidth);
       if(x<0||d<0||d>=this.columns.count)return;const column=this.columns.cols[d]+1;
-      const ref=trackLayout(this.visibility,this.options.rowHeight,[],this.a.alphabet).offsets.reference,onRef=ref!==null&&event.clientY-rect.top>=ref&&event.clientY-rect.top<ref+this.options.rowHeight;
+      const ref=trackLayout(this.visibility,this.options.rowHeight,[],this.a.alphabet).offsets.reference,onRef=ref!==null&&y>=ref&&y<ref+this.options.rowHeight;
       pick({start:column,end:column,...(onRef?{rowId:this.a.rows[this.reference].id}:{})},event.shiftKey);
     });
     const treeCanvas=$<HTMLCanvasElement>(this.root,'.ak-tree-canvas');
@@ -778,7 +790,7 @@ export class AlignmentViewer {
       if(['ArrowLeft','ArrowRight','Home','End','ArrowUp','ArrowDown'].includes(key)){
         event.preventDefault();let column=start,rowId=this.selection?.rowId;
         if(key==='ArrowLeft')column=this.stepColumn(start,-1);if(key==='ArrowRight')column=this.stepColumn(event.shiftKey?this.selection?.end??start:start,1);if(key==='Home')column=this.columns.cols[0]+1;if(key==='End')column=this.columns.cols[this.columns.count-1]+1;
-        if(key==='ArrowDown'||key==='ArrowUp'){const index=rowId?this.rowPos[this.a.rows.findIndex(r=>r.id===rowId)]:Math.floor(this.scroll.scrollTop/this.options.rowHeight),row=this.stepRow(index,key==='ArrowDown'?1:-1);if(row!==undefined)rowId=this.a.rows[row].id;}
+        if(key==='ArrowDown'||key==='ArrowUp'){const index=rowId?this.rowPos[this.a.rows.findIndex(r=>r.id===rowId)]:Math.floor(this.scroll.scrollTop/this.options.rowHeight),row=this.stepRow(index,key==='ArrowDown'?1:-1)??(rowId?undefined:this.stepRow(index-1,1));if(row!==undefined)rowId=this.a.rows[row].id;}
         this.setSelection({start:event.shiftKey?Math.min(start,column):column,end:event.shiftKey?Math.max(this.selection?.end??start,column):column,rowId});
       }
     });

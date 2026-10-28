@@ -152,7 +152,7 @@ The Svelte component accepts `class`, `style` and `id`. It supports SSR and only
 }}></div>
 ```
 
-Both framework integrations accept `alignment`, `options`, `onReady`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick` and `onError`. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
+Both framework integrations accept `alignment`, `options`, `onReady`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick`, `onSearch` and `onError`. `onSearch` receives a copy of `{ hits, truncated }` after each search, or `null` when the search is cleared. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
 
 ## Configure the interface
 
@@ -301,6 +301,16 @@ Public positions are **1-based, inclusive alignment columns**. Sequence coordina
 
 A row starts counting at `row.metadata.start` when that is a positive integer, otherwise at 1. The Stockholm parser sets it from names of the form `NAME/START-END` (START at least 1 and not above END) and does not rename the row. Reverse-strand ranges (START above END) are not numbered backwards. This numbering applies to the ruler, the Position tab and go-to; `alignmentToSequence` and `sequenceToAlignment` stay offset-free.
 
+### Which APIs apply the row offset
+
+| Uses `metadata.start` (residue numbers) | Uses raw positions (1-based, ungapped, first residue is 1) |
+|---|---|
+| Reference ruler, Position tab, **Go to** and `goToResidue` | `alignmentToSequence`, `sequenceToAlignment` |
+| `columnToResidue`, `residueToColumn`, `rowOffset` (exported) | Search hits: `Hit.seqStart`, `Hit.seqEnd` and the hit message |
+| | `importAnnotations` and `viewer.importAnnotations` with `coordinates: 'sequence'`; parser records (`parseGff3` and the others) keep the file's numbers |
+
+For a row with `metadata.start` 51, residue 51 is raw position 1. Convert a raw position with `position + rowOffset(row) - 1`. An annotation file that numbers a Stockholm `seqA/51-120` row from 51 needs its positions shifted by `rowOffset(row) - 1` before import, or `coordinates: 'alignment'`.
+
 The **Go to** box accepts `123` (an alignment column, or a reference residue number when the ruler is in reference mode) and `rowIdOrName:45` (residue 45 of that row; the ID is tried before the name, and the last `:` splits the text). Out-of-range numbers and unknown rows show a message. `goToResidue(rowId, position)` does the same by row ID. The view link carries `ruler=ref` in reference mode, and `getState()` includes `rulerCoordinates`. Hide the menu with `visibility.rulerCoordinates`.
 
 Statistics default to all loaded rows. Scrolling, pinning a reference and visually filtering rows do not change that scope. Select **Filtered sequences** explicitly to recompute for a subset. Each row receives one vote; no deduplication, phylogenetic weighting or sampling is implicit.
@@ -343,7 +353,7 @@ viewer.getColumnMask();            // Uint8Array, 1 = visible, 0 = hidden, one e
 
 Rendering: a dashed amber line marks each collapsed boundary in the grid and the tracks, with a small tab on the ruler. Ruler labels show original column numbers. A label appears at the first column after a boundary when it has room (about 36 px from the previous label). In reference mode the residue numbers count residues in hidden columns, so the labels still match the sequence. A hit or annotation that spans hidden columns draws as one box over its visible columns, and one that lies entirely in hidden columns is not drawn. A selection draws over the visible part of its range and stays at least 2 px wide when all of it is hidden. Custom track `render` callbacks run once per run of adjacent visible columns, clipped to that run, with `start`, `end` and `offsetX` describing the run. Arrow keys step over hidden columns, Shift+arrows extends a selection across a boundary, and Go to refuses a hidden column with a message.
 
-Export: default exports contain every column. **Export > Visible columns · FASTA** writes every row without the hidden columns. The FASTA options panel has a **Columns** menu (`fasta: { columns: 'visible' }`) that applies the same rule to **Selection · FASTA**, **All rows · FASTA**, the consensus export and Ctrl/Cmd+C. In code, `exportFasta(a, { columns: viewer.getColumnMask() })` keeps only the visible columns inside `start` to `end`; the other text exporters accept the same `columns` region field. A range with no visible column throws. SVG, PNG and TSV exports are not masked.
+Export: default exports contain every column. **Export > Visible columns · FASTA** writes every row without the hidden columns. The FASTA options panel has a **Columns** menu (`fasta: { columns: 'visible' }`) that applies the same rule to **Selection · FASTA**, **All rows · FASTA**, the consensus export and Ctrl/Cmd+C. In code, `exportFasta(a, { columns: viewer.getColumnMask() })` keeps only the visible columns inside `start` to `end`; the other text exporters accept the same `columns` region field. A range with no visible column throws. In the viewer, only FASTA honours hidden columns (`fasta.columns: 'visible'` or **Visible columns · FASTA**). The viewer's CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG, PNG and TSV exports include hidden columns; pass a `columns` mask to the standalone text exporters to drop them.
 
 The link parameter is `hide=10-20,30-35` (manual ranges only). A link without `hide` shows all manually hidden columns again; a range beyond the alignment width is skipped and reported as `hide`. The helpers `computeColumnMask(alignment, { gapFraction, allGap, hidden })`, `mergeColumnRanges` and `buildColumnMap` are exported for use outside the viewer.
 
@@ -362,7 +372,7 @@ The motif box and `search()` accept three syntaxes. Auto mode picks one from the
 - Regular expressions are case-insensitive and run on each ungapped sequence. Gaps never break a match.
 - DNA/RNA searches also scan the reverse complement unless `strands: 'forward'` is set. A site that reads the same on both strands (`ACGT`) is reported once, as `+`.
 - Overlapping matches are all reported. The list stops at 10,000 hits or after 2 seconds (`truncated: true`); past the cap each row's scan also stops early.
-- Searches run on the main thread, including with `worker: true`. Regexes with a repeated group that contains a repeat, such as `(A+)+B`, are rejected because they can freeze the page. Other pathological patterns are bounded only by the 2 second budget between rows.
+- Searches run on the main thread, including with `worker: true`. Regexes with a repeated group that contains a repeat, such as `(A+)+B`, or alternatives, such as `(A|AA)+C` or `(?:A|C)*`, are rejected because they can freeze the page; use a character class such as `[AC]+` instead. A group followed by `?` may contain `|`. Other pathological patterns are bounded only by the 2 second budget between rows.
 - Only the filtered rows are searched; changing the filter or order re-derives the hits from one scan of all rows and emits `search` only when the hit list changes. Loading another alignment or calling `clear()` removes the search, empties the motif box and emits `search` with `null`.
 
 ```ts
@@ -372,7 +382,7 @@ const { hits, truncated } = viewer.search('/C..C/', { mode: 'regex' });
 hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match }
 ```
 
-`start` and `end` are alignment columns (1-based, inclusive). `seqStart` and `seqEnd` count residues of the forward sequence. `row` is the zero-based row index into the alignment. `findHits` throws on a `rows` entry outside the alignment and ignores a non-finite `limit`. For a `'-'` hit, `match` is the text found on the reverse complement. Every hit is outlined in the grid (dashed on the reverse strand), the status bar shows the count, and the **Hits** inspector tab lists the first 200. The `hitsTab` visibility key hides the tab. `findHits(alignment, pattern, options)` and `compilePattern(pattern, { alphabet, mode })` run the same engine without a viewer.
+`start` and `end` are alignment columns (1-based, inclusive). `seqStart` and `seqEnd` count residues of the forward sequence from 1 and ignore `metadata.start` (see Which APIs apply the row offset). `row` is the zero-based row index into the alignment. `findHits` throws on a `rows` entry outside the alignment and ignores a non-finite `limit`. For a `'-'` hit, `match` is the text found on the reverse complement. Every hit is outlined in the grid (dashed on the reverse strand), the status bar shows the count, and the **Hits** inspector tab lists the first 200. The `hitsTab` visibility key hides the tab. `findHits(alignment, pattern, options)` and `compilePattern(pattern, { alphabet, mode })` run the same engine without a viewer.
 
 ## Tracks
 
@@ -430,7 +440,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range |
 | `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif; highlight hits; return `{ hits, truncated }` |
 | `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
-| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; returns `true` when it started a new search |
+| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; returns a boolean, `true` when it started a new search. Auto mode applies, so in IUPAC text `N` (DNA/RNA) and `X` (protein) match any residue |
 | `addAnnotations(list)` / `removeAnnotations(ids?)` | Add annotations / remove some by ID (all when omitted) |
 | `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
@@ -447,6 +457,8 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 Events: `ready`, `selection`, `search` (`{ hits, truncated }`, or `null` after `clearSearch()` or a new alignment), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
 Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+
+Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
 

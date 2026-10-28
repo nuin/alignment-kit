@@ -122,6 +122,8 @@ export interface ViewerOptions {
   fasta?:FastaOptions;
   /** Keep location.hash in sync with the view and apply a link found there on the next load. */
   urlSync?:boolean;
+  /** Pan by dragging the residue grid. A press that moves under 4 px is a click. Default true. */
+  dragToPan?:boolean;
   /** Registered tracks; replaces the current set. */
   tracks?:CustomTrack[];
   /** 'bits' scales each logo stack by information content. Default 'frequency'. */

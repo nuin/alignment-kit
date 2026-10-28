@@ -58,6 +58,7 @@ The matrix is a window into the full alignment. Ordinary scroll controls move th
 
 | Control | What it does |
 |---|---|
+| Drag the residues | Press on the residue grid and drag to pan left, right, up and down. Works with a mouse, pen or finger. The cursor shows a hand. A press that moves under 4 px is an ordinary click. Panning stops when you release. |
 | Overview | Click or drag to move horizontally across the alignment. |
 | Go to | Enter a **1-based alignment column**, a reference residue number (when Ruler is set to Reference residues), or `row:residue` such as `seq-3:45`, then press Enter. The row part matches a row ID first, then an exact name; duplicate names resolve to the first row. |
 | − / + | Change residue cell width, preserving the viewport's horizontal center. |
@@ -70,7 +71,7 @@ At small cell widths, letters disappear to keep rendering legible. Zoom in to re
 
 ## Select a position or region
 
-Click a residue to select its row and alignment column. **Shift-click** another column to select an inclusive range. The Position inspector reports the start of the selection and its full range.
+Click a residue to select its row and alignment column. Dragging the grid pans the view and leaves the selection unchanged. **Shift-click** another column to select an inclusive range. The Position inspector reports the start of the selection and its full range.
 
 Row checkboxes select sequences for pairwise comparison and region export. They are separate from the clicked residue: clicking a residue does not check its row. Checked sequences remain selected when you scroll or filter names.
 
@@ -94,7 +95,7 @@ Alignment column 3 has no sequence position for this row. Column 4 corresponds t
 
 Choose **Ruler > Reference residues** in the second toolbar row to number the ruler with the residues of the pinned reference sequence. Columns where the reference has a gap show no number. Pin a different row to renumber from that row. The Position tab shows the alignment column and the reference residue number together.
 
-Rows can start counting above 1. Stockholm names like `seqA/51-120` start at residue 51, and the row keeps its full name. Residue numbers in the ruler, the Position tab and Go to use that start.
+Rows can start counting above 1. Stockholm names like `seqA/51-120` start at residue 51, and the row keeps its full name. Residue numbers in the ruler, the Position tab and Go to use that start. Search hit positions (the message after jumping to a hit and `seqStart`/`seqEnd` in the API) and imported annotation positions do not: they count from 1 at the first residue of the row. For `seqA/51-120`, hit position 1 is residue 51.
 
 To jump to a residue, type `seq-3:45` in **Go to** (row ID or exact row name, a colon, then the residue number). In Reference residues mode a plain number such as `123` means reference residue 123; in Alignment columns mode it means column 123. If the row or residue does not exist, a message appears above the alignment. Shared links carry the ruler setting as `ruler=ref`.
 
@@ -122,13 +123,13 @@ The viewer picks the syntax from what you type:
 | `-` between elements, a whole `x` element, `{...}`, `[...]`, `(n)`, `<` or `>` | PROSITE | `N-{P}-[ST]-{P}` |
 | Anything else | Letters with IUPAC codes | `ACGNACGG` |
 
-**IUPAC codes.** DNA and RNA: R (A/G), Y (C/T), S (C/G), W (A/T), K (G/T), M (A/C), B, D, H, V, N (any). U and T are the same. An ambiguity letter you type also matches itself in the data. Lowercase text like `acx` stays IUPAC. Protein: X is any residue, B is D or N, Z is E or Q, J is I or L.
+**IUPAC codes.** The motif box and `findMotif` use these codes, so `N` (DNA/RNA) and `X` (protein) match any residue. DNA and RNA: R (A/G), Y (C/T), S (C/G), W (A/T), K (G/T), M (A/C), B, D, H, V, N (any). U and T are the same. An ambiguity letter you type also matches itself in the data. Lowercase text like `acx` stays IUPAC. Protein: X is any residue, B is D or N, Z is E or Q, J is I or L.
 
 **PROSITE.** `x` is any residue, `[ST]` is S or T, `{P}` is anything except P, `x(2,4)` repeats two to four times, `<` anchors the N-terminus and `>` the C-terminus. The N-glycosylation site is `N-{P}-[ST]-{P}`.
 
 **Example: a primer.** In a DNA alignment, `ACGNACGG` finds the primer with any base at position 4. DNA and RNA alignments are also searched on the reverse complement; those hits have a dashed outline and the strand `-` in the Hits tab. Hit columns are always forward alignment columns. A site that reads the same on both strands, such as `ACGT`, is listed once, as `+`.
 
-Every hit is outlined in the grid, and the status bar shows the count, such as `12 hits`. The **Hits** inspector tab lists the first 200 hits with row name, columns, strand and match. Click one to jump to it. Overlapping hits are all listed. The search stops at 10,000 hits or after 2 seconds and the count then reads `10,000+ hits`. Regular expressions with a repeated group that contains a repeat, such as `(A+)+B`, are rejected with a message because they can freeze the page. Clearing the box removes the highlights. Changing the sequence filter or order updates the hits without a new scan. Loading another alignment clears the search and the box. An invalid pattern shows an error and leaves the current hits and tab as they were.
+Every hit is outlined in the grid, and the status bar shows the count, such as `12 hits`. The **Hits** inspector tab lists the first 200 hits with row name, columns, strand and match. Click one to jump to it. Overlapping hits are all listed. The search stops at 10,000 hits or after 2 seconds and the count then reads `10,000+ hits`. Regular expressions with a repeated group that contains a repeat, such as `(A+)+B`, or alternatives, such as `(A|AA)+C`, are rejected with a message because they can freeze the page. Use a character class such as `[AC]+` instead. Clearing the box removes the highlights. Changing the sequence filter or order updates the hits without a new scan. Loading another alignment clears the search and the box. An invalid pattern shows an error and leaves the current hits and tab as they were.
 
 An invalid pattern shows a message that names the problem, such as an unbalanced bracket.
 
@@ -240,7 +241,7 @@ Click a mapped feature to select its alignment range. Unmapped features remain i
 With an alignment loaded, choose **Open alignment** or drop a `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` file. The viewer adds its features to the Features tab and keeps the alignment. Gzip-compressed files work too. Without a loaded alignment, these files are rejected as alignments.
 
 - Each feature is matched to a sequence by its ID, then its display name. GenBank and EMBL also match accession numbers.
-- Positions are residue numbers in the ungapped sequence. The viewer converts them to alignment columns.
+- Positions are residue numbers in the ungapped sequence, counted from 1 at the first residue of the row. A row start such as `seqA/51-120` is not applied, so shift such files by 50 before import. The viewer converts them to alignment columns.
 - A BED12 line becomes one `exon` feature per block. A GenBank or EMBL `join()` becomes one feature from its first to its last position.
 - Features with no matching sequence or a position past the sequence end are listed as unmapped. The message area shows how many were imported and the first warnings.
 
@@ -266,7 +267,7 @@ Use the **Export** menu:
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
 | FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name) and columns (all, or visible only). Press **Done** or Escape to close it. |
 
-FASTA options apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. They last until the page is reloaded.
+FASTA options apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. Only FASTA can leave out hidden columns. CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG and PNG exports always include hidden columns. They last until the page is reloaded.
 
 For selection exports, a selected column range takes precedence over the horizontal viewport. Checked rows take precedence over the vertical viewport. Without checked rows, export uses the pinned reference plus the currently visible scrolling rows. A checked row hidden by a name filter remains part of the export. Clear checked rows when you want a viewport-only export.
 
@@ -311,6 +312,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | + or − / matrix | Increase/decrease cell width. |
 | Escape / matrix | Clear residue selection. |
 | Ctrl/Cmd + C / matrix | Copy the selection as gapped FASTA. |
+| Drag / matrix | Pan the view; a press that moves under 4 px is a click. |
 | Enter / Go to | Navigate to the entered column, reference residue or `row:residue`. |
 | Enter / motif input | Find the next hit. Shift+Enter finds the previous hit. |
 | Left / Right / overview | Move the viewport horizontally. |

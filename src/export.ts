@@ -57,7 +57,7 @@ function textRows(a:Alignment,region:ExportRegion) {
   const sequences=rows.map(r=>cut(a.rows[r].sequence,resolved));
   return {width:sequences[0].length,rows:rows.map((r,i)=>({name:a.rows[r].name,sequence:sequences[i]}))};
 }
-const padNames=(names:string[],extra:number)=>Math.max(...names.map(n=>n.length))+extra;
+const padNames=(names:string[],extra:number)=>names.reduce((max,n)=>Math.max(max,n.length),0)+extra;
 /** CLUSTAL text with 60-column blocks; `*` marks columns where every row carries the same non-gap residue. Whitespace in names becomes `_` and repeated names get `_2`, `_3` suffixes. */
 export function exportClustal(a:Alignment,region:ExportRegion={}):string {
   const {width,rows}=textRows(a,region),names=uniqueNames(rows.map(r=>plainName(r.name))),pad=padNames(names,6),out=['CLUSTAL W (1.83) multiple sequence alignment\n\n'];
@@ -85,8 +85,8 @@ const uniqueStrictNames=(names:string[])=>{
 /** PHYLIP with one line per sequence. `strict` pads names to 10 characters, truncates longer names and appends numeric suffixes to keep them unique. */
 export function exportPhylip(a:Alignment,region:ExportRegion={},options:{variant?:'relaxed'|'strict'}={}):string {
   if(options.variant!==undefined&&options.variant!=='relaxed'&&options.variant!=='strict')throw new Error('PHYLIP variant must be relaxed or strict.');
-  const {width,rows}=textRows(a,region),names=rows.map(r=>plainName(r.name)),strict=options.variant==='strict';
-  const labels=strict?uniqueStrictNames(names).map(n=>n.padEnd(10)):names.map(n=>n.padEnd(padNames(names,2)));
+  const {width,rows}=textRows(a,region),names=rows.map(r=>plainName(r.name)),strict=options.variant==='strict',pad=strict?10:padNames(names,2);
+  const labels=(strict?uniqueStrictNames(names):names).map(n=>n.padEnd(pad));
   return `${rows.length} ${width}\n${rows.map((r,i)=>labels[i]+r.sequence+'\n').join('')}`;
 }
 const nexusName=(name:string)=>/^[A-Za-z0-9_.]+$/.test(name)?name:`'${name.replace(/[\r\n]+/g,' ').replace(/'/g,"''")}'`;

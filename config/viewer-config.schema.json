@@ -348,6 +348,10 @@
       "type": "boolean",
       "description": "Keep location.hash in sync with the view and apply a link found there on the next load."
     },
+    "dragToPan": {
+      "type": "boolean",
+      "description": "Drag the residue grid to pan. A press that moves under 4 px stays a click. Default true."
+    },
     "showLogo": {
       "type": "boolean"
     },

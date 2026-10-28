@@ -9,6 +9,19 @@ const protein:Record<string,string>={B:'DN',Z:'EQ',J:'IL'};
 const complement:Record<string,string>={A:'T',C:'G',G:'C',T:'A',U:'A',R:'Y',Y:'R',K:'M',M:'K',B:'V',V:'B',D:'H',H:'D'};
 const escape=(text:string):string=>text.replace(/[\\^$.*+?()[\]{}|/-]/g,'\\$&');
 const isNucleotide=(alphabet:Alphabet):boolean=>alphabet!=='protein';
+/** True when a group repeated by +, * or {…} contains '|' at any depth, as in (A|AA)+; such patterns can backtrack exponentially. */
+function repeatedAlternation(body:string):boolean {
+  const open:boolean[]=[];
+  for(let i=0;i<body.length;i++){
+    const ch=body[i];
+    if(ch==='\\'){i++;continue;}
+    if(ch==='['){for(i++;i<body.length&&body[i]!==']';i++)if(body[i]==='\\')i++;continue;}
+    if(ch==='(')open.push(false);
+    else if(ch==='|'){if(open.length)open[open.length-1]=true;}
+    else if(ch===')'&&open.length&&open.pop()){if(/[+*{]/.test(body[i+1]??''))return true;if(open.length)open[open.length-1]=true;}
+  }
+  return false;
+}
 
 function iupac(pattern:string,alphabet:Alphabet):string {
   const table=isNucleotide(alphabet)?nucleotide:protein,any=isNucleotide(alphabet)?'N':'X';
@@ -70,6 +83,7 @@ export function compilePattern(pattern:string,options:{alphabet:Alphabet;mode?:S
   if(mode==='regex'){
     const m=/^\/(.+)\/i?$/.exec(text),body=m?m[1]:text;
     if(nested.test(body))throw new Error('Nested repetition such as (A+)+ can freeze the page. Rewrite the pattern without a repeated group that contains a repeat.');
+    if(repeatedAlternation(body))throw new Error('A repeated group with alternatives such as (A|AA)+ can freeze the page. Use a character class such as [AC]+ or write out a fixed number of repeats.');
     try{return new RegExp(body,'gi');}catch(error){throw new Error(`Invalid regular expression: ${(error as Error).message}`);}
   }
   if(mode==='literal')source=escape(text.toUpperCase());
