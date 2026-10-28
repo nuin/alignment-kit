@@ -11,7 +11,7 @@ export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Se
 export interface SummaryView { block?:{start:number;end:number};data?:ColumnAnalysis;error?:string;page:number }
 export const SUMMARY_PAGE=20;
 export const HIT_LIST_LIMIT=200;
-const legendClasses=(scheme:ColorScheme)=>scheme.classes?`<ul class="ak-class-legend">${scheme.classes.map(c=>`<li><span style="background:${c.color};color:${textColor(c.color)}">${e(c.residues.slice(0,5))}</span>${e(c.label)}</li>`).join('')}</ul>${scheme.cvdSafe?'<p>Colorblind-safe: checked under simulated deuteranopia and protanopia.</p>':''}${scheme.highContrast?'<p>High contrast: letters keep at least 7:1 contrast against their fill.</p>':''}`:'';
+const legendClasses=(scheme:ColorScheme)=>scheme.classes?`<ul class="ak-class-legend">${scheme.classes.map(c=>`<li><span style="background:${e(c.color)};color:${e(textColor(c.color))}">${e(c.residues.slice(0,5))}</span>${e(c.label)}</li>`).join('')}</ul>${scheme.cvdSafe?'<p>Colorblind-safe: checked under simulated deuteranopia and protanopia.</p>':''}${scheme.highContrast?'<p>High contrast: letters keep at least 7:1 contrast against their fill.</p>':''}`:'';
 const bits=(n:number|null)=>n===null?'Unavailable':`${n.toFixed(2)} bits`;
 const percent=(n:number|null)=>n===null?'Unavailable':`${(n*100).toFixed(1)}%`;
 export function renderInspector(target:HTMLElement,v:InspectorInput) {

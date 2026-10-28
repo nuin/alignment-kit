@@ -7,7 +7,8 @@ const registry:Map<string,ColorScheme>=new Map();
 export function registerColorScheme(scheme:ColorScheme) {
   if(!/^[a-z0-9_-]+$/i.test(scheme.id)) throw new Error('Color scheme IDs must contain only letters, numbers, underscores or hyphens.');
   for(const [residue,color] of Object.entries(scheme.colors)) if(!/^[A-Z*-]$/.test(residue)||!/^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(color)) throw new Error('Residue colors must be three- or six-digit hex colors.');
-  registry.set(scheme.id,{...scheme,colors:{...scheme.colors}});
+  for(const c of scheme.classes??[]) if(typeof c.label!=='string'||typeof c.residues!=='string'||!/^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(c.color)) throw new Error('Legend classes need a label, residues and a three- or six-digit hex color.');
+  registry.set(scheme.id,{...scheme,colors:{...scheme.colors},...(scheme.classes?{classes:scheme.classes.map(c=>({...c}))}:{})});
 }
 const aliases:Record<string,string>={buried:'buried_index',helix:'helix_propensity',strand:'strand_propensity',turn:'turn_propensity',hydrophobicity:'hydro'};
 const labels:Record<string,string>={clustal2:'Clustal2',clustal:'Clustal',hydro:'Hydrophobicity',buried_index:'Buried index',helix_propensity:'Helix propensity',strand_propensity:'Strand propensity',turn_propensity:'Turn propensity',mae:'MAE',cinema:'Cinema',purine:'Purine / pyrimidine'};
