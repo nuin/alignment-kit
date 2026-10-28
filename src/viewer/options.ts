@@ -2,19 +2,23 @@ import { type ViewerVisibility, type ViewerOptions, type CustomTrack } from '../
 import { getColorScheme, colorSchemes } from '../colors';
 import { $ } from '../controls';
 import { validateFastaOptions } from '../export';
+import { columnPos } from '../mask';
 import { validateTracks } from '../tracks';
 import { type Core, bounded } from './core';
+export const protein='Reverse complement needs a DNA or RNA alignment. This one is protein.';
 export function setOptions(v:Core, options:ViewerOptions):void {
   v.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
   if(options.rulerCoordinates!==undefined&&!['alignment','reference'].includes(options.rulerCoordinates))throw new Error('Unknown ruler coordinate mode.');
   const gap=options.hideGapColumns;
   if(gap!==undefined&&gap!==null&&!(typeof gap==='number'&&gap>=0&&gap<=1))throw v.error(new Error('hideGapColumns must be null or a number from 0 to 1.'));
   if(options.hideAllGapColumns!==undefined&&typeof options.hideAllGapColumns!=='boolean')throw v.error(new Error('hideAllGapColumns must be a boolean.'));
-  const maskSig=()=>`${v.options.hideGapColumns}|${v.options.hideAllGapColumns}`,maskBefore=maskSig(),anchor=v.a?v.firstColumn():0;
+  if(options.reverseComplement!==undefined&&typeof options.reverseComplement!=='boolean')throw v.error(new Error('reverseComplement must be a boolean.'));
+  const maskSig=()=>`${v.options.hideGapColumns}|${v.options.hideAllGapColumns}|${v.reversed}`,maskBefore=maskSig(),anchor=v.a?v.firstColumn():0;
   const oldScope=v.options.statisticsScope;
   const wasPinned=v.pinned;
   const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,groupBy,...visual}=options;
   if(visual.logoMode!==undefined&&visual.logoMode!=='frequency'&&visual.logoMode!=='bits')throw v.error(new Error('logoMode must be "frequency" or "bits".'));
+  if(visual.reverseComplement&&v.a?.alphabet==='protein'){visual.reverseComplement=false;v.message(protein);}
   let validTracks:CustomTrack[]|undefined;
   if(tracks!==undefined){try{validTracks=validateTracks(tracks);}catch(error){throw v.error(error);}}
   if(validTracks){v.customTracks=validTracks;v.trackErrors.clear();v.checkTracks();v.trackKey='';}
@@ -38,12 +42,13 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   $<HTMLSelectElement>(v.root,'[aria-label="Ruler coordinates"]').value=v.options.rulerCoordinates;
   $<HTMLInputElement>(v.root,'[aria-label="Show frequency logo"]').checked=v.options.showLogo;
   $<HTMLInputElement>(v.root,'[aria-label="Dots for matches"]').checked=v.options.matchDisplay==='dot';
+  $<HTMLSelectElement>(v.root,'[aria-label="FASTA orientation"]').value=v.options.fasta.orientation??'source';
   const f=v.options.fasta,width=$<HTMLSelectElement>(v.root,'[aria-label="FASTA line width"]'),lineWidth=String(f.lineWidth??80);
   if(![...width.options].some(o=>o.value===lineWidth))width.add(new Option(lineWidth,lineWidth));
   width.value=lineWidth;$<HTMLSelectElement>(v.root,'[aria-label="FASTA gaps"]').value=f.gaps??'keep';
   $<HTMLSelectElement>(v.root,'[aria-label="FASTA letter case"]').value=f.letterCase??'original';$<HTMLSelectElement>(v.root,'[aria-label="FASTA header"]').value=f.header??'name';$<HTMLSelectElement>(v.root,'[aria-label="FASTA columns"]').value=f.columns??'all';
   v.labelKey='';v.overviewDirty=true;v.inspectorDirty=true;v.layout();
-  if(masked){v.scroll.scrollLeft=v.columns.before[Math.min(anchor,Math.max(0,v.columns.width-1))]*v.options.cellWidth;v.emit('state',v.getState());}
+  if(masked){v.scroll.scrollLeft=columnPos(v.columns,Math.min(anchor,Math.max(0,v.columns.width-1)))*v.options.cellWidth;v.emit('state',v.getState());}
   const focused=v.root.ownerDocument.activeElement as HTMLElement|null;
   if(focused&&v.root.contains(focused)&&focused.closest('[hidden]')){const target=v.visibility.alignment?v.scroll:v.root;if(target===v.root)target.tabIndex=-1;target.focus();}
   if(oldScope!==v.options.statisticsScope&&v.a)void v.updateStats().catch(()=>{});

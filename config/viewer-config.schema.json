@@ -274,6 +274,12 @@
         },
         "columnMasking": {
           "type": "boolean"
+        },
+        "reverseComplementToggle": {
+          "type": "boolean"
+        },
+        "rowStrand": {
+          "type": "boolean"
         }
       }
     },
@@ -330,6 +336,13 @@
             "visible"
           ],
           "description": "visible leaves out columns hidden by column masking in FASTA exports and copy."
+        },
+        "orientation": {
+          "enum": [
+            "source",
+            "reverse-complement"
+          ],
+          "description": "reverse-complement writes each exported region reversed and complemented (DNA and RNA only). Default source."
         }
       }
     },
@@ -448,6 +461,10 @@
     "hideAllGapColumns": {
       "type": "boolean",
       "description": "Hide columns that are gaps in every row."
+    },
+    "reverseComplement": {
+      "type": "boolean",
+      "description": "Show the whole alignment reverse-complemented (DNA and RNA only). Default false."
     }
   }
 }

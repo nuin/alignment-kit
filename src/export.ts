@@ -1,6 +1,7 @@
 import type { Alignment, AlignmentStats, ExportRegion, ColorMode, FastaOptions, Sequence } from './types';
 import { columnDetail } from './analysis';
 import { isGap } from './model';
+import { reverseComplementSequence } from './strand';
 import { getColorScheme, residueColor, textColor } from './colors';
 export const escapeXml=(s:unknown)=>String(s).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
 export function resolveRegion(a:Alignment,region:ExportRegion={}) {
@@ -17,7 +18,7 @@ export function resolveRegion(a:Alignment,region:ExportRegion={}) {
 }
 /** The columns of an aligned sequence that a resolved region keeps. */
 const cut=(sequence:string,r:ReturnType<typeof resolveRegion>)=>r.columns?r.columns.map(c=>sequence[c]).join(''):sequence.slice(r.start-1,r.end);
-const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name'],columns:['all','visible']};
+const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name'],columns:['all','visible'],orientation:['source','reverse-complement']};
 /** Validate FASTA settings from untrusted input; returns a copy. */
 export function validateFastaOptions(input:unknown):FastaOptions {
   if(typeof input!=='object'||input===null||Array.isArray(input))throw new Error('FASTA options must be an object.');
@@ -39,8 +40,8 @@ export function formatFastaRecord(header:string,sequence:string,options:FastaOpt
   return `>${header.replace(/[\r\n]/g,' ')}\n${lines.map(line=>line+'\n').join('')}`;
 }
 export function exportFasta(a:Alignment,region:ExportRegion={},options:FastaOptions={}):string {
-  const resolved=resolveRegion(a,region),header=headers[options.header??'name'];
-  return resolved.rows.map(r=>formatFastaRecord(header(a.rows[r]),cut(a.rows[r].sequence,resolved),options)).join('');
+  validateFastaOptions(options);const resolved=resolveRegion(a,region),header=headers[options.header??'name'],flip=options.orientation==='reverse-complement';
+  return resolved.rows.map(r=>{const sequence=cut(a.rows[r].sequence,resolved);return formatFastaRecord(header(a.rows[r])+(flip?' (reverse complement)':''),flip?reverseComplementSequence(sequence,a.alphabet):sequence,options);}).join('');
 }
 const plainName=(name:string)=>name.replace(/\s+/g,'_').replace(/^#/,'_')||'seq';
 const uniqueNames=(names:string[])=>{

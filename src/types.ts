@@ -101,9 +101,12 @@ export interface ViewerVisibility {
   rowReordering?:boolean;
   tree?:boolean;
   columnMasking?:boolean;
+  reverseComplementToggle?:boolean;
+  rowStrand?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
-export interface TrackRenderInfo { start:number; end:number; cellWidth:number; offsetX:number; top:number; height:number; alignment:Alignment }
+/** `reversed` is true in the reverse-complement view: columns then run right to left, column `end` is drawn at `offsetX` and each lower column one `cellWidth` further right. */
+export interface TrackRenderInfo { start:number; end:number; cellWidth:number; offsetX:number; top:number; height:number; alignment:Alignment; reversed?:boolean }
 /** A track drawn below the built-in tracks. `values` holds one entry per alignment column; a string gives one character per column (digits read as 0 to 9 for bar and heatmap). `render` is required for `custom` and is called with the context clipped to the track; `start` and `end` are the visible 1-based inclusive columns and `offsetX` is the x of column `start`. */
 export interface CustomTrack {
   id:string; label:string; /** 12 to 120, default 26. */ height?:number; type:TrackType;
@@ -138,6 +141,8 @@ export interface ViewerOptions {
   hideGapColumns?:number|null;
   /** Hide columns that are gaps in every row. Default false. */
   hideAllGapColumns?:boolean;
+  /** Show the whole alignment reverse-complemented: columns run right to left and every residue is complemented. DNA and RNA only; on a protein alignment the option stays false and a message explains why. The source alignment, coordinates and statistics do not change. Default false. */
+  reverseComplement?:boolean;
 }
 export interface ViewState {
   visibility?:ViewerVisibility;
@@ -149,13 +154,17 @@ export interface ViewState {
   /** Manually hidden columns as merged one-based inclusive [start, end] ranges. Gap-based hiding comes from options. */
   hiddenColumns?:[number,number][];
   hiddenRowIds?:string[]; manualOrder?:string[]|null; collapsedGroups?:string[];
+  /** Reverse-complement view; omitted in older states, which mean false. */
+  reverseComplement?:boolean;
+  /** IDs of rows flagged as reverse strand (shown complemented). */
+  reverseStrandRowIds?:string[];
 }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
 export interface ViewerEvents { selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }
 export type ViewerEvent = keyof ViewerEvents;
 export type EventHandler<K extends ViewerEvent> = (event:ViewerEvents[K])=>void;
 /** FASTA output settings shared by export and copy. Defaults: keep gaps, original case, 80 columns, name header. */
-export interface FastaOptions { gaps?:'keep'|'remove'; letterCase?:'original'|'upper'|'lower'; /** 0 writes each sequence on one line; otherwise 10 to 1000. */ lineWidth?:number; header?:'name'|'name-species'|'id-name'; /** 'visible' leaves out columns hidden by column masking in the viewer's FASTA exports and copy. Default 'all'. */ columns?:'all'|'visible' }
+export interface FastaOptions { gaps?:'keep'|'remove'; letterCase?:'original'|'upper'|'lower'; /** 0 writes each sequence on one line; otherwise 10 to 1000. */ lineWidth?:number; header?:'name'|'name-species'|'id-name'; /** 'visible' leaves out columns hidden by column masking in the viewer's FASTA exports and copy. Default 'all'. */ columns?:'all'|'visible'; /** 'reverse-complement' writes each exported region reversed and complemented (DNA and RNA only; protein throws). Exports otherwise stay in source orientation, whatever the view shows. Default 'source'. */ orientation?:'source'|'reverse-complement' }
 /** `columns` is a mask of length alignment width (1 keeps a column, 0 drops it, as from getColumnMask) applied inside start to end. */
 export interface ExportRegion { rowIds?:string[]; start?:number; end?:number; columns?:ArrayLike<number> }
 export type SearchMode = 'auto'|'literal'|'iupac'|'regex'|'prosite';

@@ -184,9 +184,9 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 |---|---|
 | Main layout | `toolbar`, `tools`, `overview`, `overviewTitle`, `tracks`, `alignment`, `inspector`, `inspectorTabs`, `status` |
 | Main toolbar | `open`, `search`, `colorScheme`, `zoom`, `fit`, `theme`, `inspectorToggle`, `fullscreen`, `export` |
-| Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `rulerCoordinates`, `alphabet` |
+| Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `rulerCoordinates`, `alphabet`, `reverseComplementToggle` |
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`, `stockholmTracks` |
-| Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize` |
+| Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize`, `rowStrand` |
 | Column masking | `columnMasking` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
@@ -357,6 +357,31 @@ Export: default exports contain every column. **Export > Visible columns · FAST
 
 The link parameter is `hide=10-20,30-35` (manual ranges only). A link without `hide` shows all manually hidden columns again; a range beyond the alignment width is skipped and reported as `hide`. The helpers `computeColumnMask(alignment, { gapFraction, allGap, hidden })`, `mergeColumnRanges` and `buildColumnMap` are exported for use outside the viewer.
 
+## Reverse complement view
+
+DNA and RNA alignments can be shown reverse-complemented without changing the alignment. There are two display switches.
+
+```ts
+viewer.setReverseComplement(true);       // whole view; also the option reverseComplement and the "Reverse complement" checkbox
+viewer.getReverseComplement();           // true while active; always false for protein
+viewer.setRowStrand('seq-3', '-');       // flag one row as reverse strand; '+' clears it
+viewer.getRowStrand('seq-3');            // '-' or '+'
+```
+
+Coordinate model:
+
+- Whole view (`setReverseComplement`) is a display transform. Columns run right to left and every residue is complemented (A pairs with T for DNA and U for RNA; IUPAC codes swap in pairs: C/G, R/Y, K/M, B/V, D/H; gaps and other symbols stay). The ruler shows original column numbers, descending (`12 ... 1`), or reference residue numbers descending in reference mode. The ruler label and the status line say "reverse complement".
+- Row strand (`setRowStrand(id, '-')`) complements one row in place. Columns stay aligned and the row label shows a `−` button (`+` for forward rows) that toggles the flag. With the whole view on, a flagged row is complemented twice and reads as its source letters, right to left.
+- Coordinates never change. Selection, `getState()`, search hits, annotations, Go to, hidden columns, column statistics and `viewport` events (`start <= end`) all use original 1-based columns. Search runs on the source rows; the `-` strand of a hit still means the reverse complement of the source.
+- Consensus and logo tracks complement their letters in the whole view; the statistics themselves stay in source orientation. Row strand flags do not change them. The Position tab reports source residues.
+- Keyboard: in the whole view, Left and Right move one displayed column, so Right moves to a lower column number.
+- Custom track `render` callbacks receive `reversed: true` in the whole view. Runs of adjacent columns are drawn right to left: column `end` sits at `offsetX` and each lower column one `cellWidth` further right.
+- Protein alignments cannot be reverse-complemented. `setReverseComplement(true)`, `setOptions({reverseComplement:true})` and `setRowStrand` leave the viewer unchanged and show "Reverse complement needs a DNA or RNA alignment." The checkbox is disabled. Switching a loaded alignment to protein turns the view off; switching back turns it on again if the option is still true.
+
+Exports stay in source orientation, whatever the view shows. To export reverse-complemented FASTA, set the FASTA option `orientation: 'reverse-complement'` (panel: **FASTA options > Orientation**). It applies to FASTA exports, the consensus export and Ctrl/Cmd+C: each exported region is reversed and complemented, headers gain ` (reverse complement)` and the column range stays in source coordinates. It does not follow the view or row strand flags. Other formats are never reverse-complemented. `complementSequence(seq, alphabet)` and `reverseComplementSequence(seq, alphabet)` are exported for scripts.
+
+State and links: `ViewState.reverseComplement` and `ViewState.reverseStrandRowIds`; link parameters `rc=1` and `strand=id1,id2` (IDs percent-encoded inside the list). A link without `rc` turns the view off and clears flags. `rc` on a protein alignment and unknown row IDs are skipped and listed. Config: `reverseComplement` (boolean), `fasta.orientation`, `visibility.reverseComplementToggle` and `visibility.rowStrand`.
+
 ## Search motifs
 
 The motif box and `search()` accept three syntaxes. Auto mode picks one from the text:
@@ -459,7 +484,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 
 Events: `ready`, `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
-Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+Options: `reverseComplement` (default `false`, see Reverse complement view), `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
 Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Clicking a residue selects its column and row; clicking the same cell again, without Shift, while it is the whole selection clears the selection. The same applies to a track column. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off.
 
@@ -517,7 +542,7 @@ Override scoped CSS properties (`--ak-bg`, `--ak-panel`, `--ak-ink`, `--ak-muted
 
 The toolbar exports all rows or a selected region as FASTA, CLUSTAL, Stockholm, PHYLIP (relaxed) or NEXUS, a selected region as SVG/PNG, or the consensus of the selected (or visible) columns as FASTA. Checked rows define exported rows; otherwise the pinned reference and currently visible rows are used. Selected columns define the range; otherwise the visible range is used. Figure exports preserve active annotation filters, palette and reference/consensus emphasis. Figures include coordinate scope, legend and source metadata when supplied.
 
-**FASTA options…** in the Export menu opens a panel with gap removal, letter case (original, upper, lower), line width (80, 60, unwrapped) and header (name; name and species; ID and name). The same settings apply to FASTA exports, the consensus export and Ctrl/Cmd+C. `fasta.columns: 'visible'` leaves out hidden columns (see Hide columns); **Visible columns · FASTA** in the Export menu does the same for all rows. Set them in code with `setOptions({ fasta: { gaps: 'remove', letterCase: 'upper', lineWidth: 0, header: 'id-name' } })`; updates merge with the current settings. `lineWidth` is 0 (unwrapped) or 10 to 1000.
+**FASTA options…** in the Export menu opens a panel with gap removal, letter case (original, upper, lower), line width (80, 60, unwrapped), header (name; name and species; ID and name) and orientation (source or reverse complement, see Reverse complement view). The same settings apply to FASTA exports, the consensus export and Ctrl/Cmd+C. `fasta.columns: 'visible'` leaves out hidden columns (see Hide columns); **Visible columns · FASTA** in the Export menu does the same for all rows. Set them in code with `setOptions({ fasta: { gaps: 'remove', letterCase: 'upper', lineWidth: 0, header: 'id-name' } })`; updates merge with the current settings. `lineWidth` is 0 (unwrapped) or 10 to 1000.
 
 The standalone `exportFasta(alignment, region?, fastaOptions?)`, `exportClustal(alignment, region?)` (60-column blocks, `*` under identical non-gap columns; CLUSTAL, Stockholm and NEXUS add `_2`, `_3` to repeated names so the file re-opens), `exportStockholm(alignment, region?)`, `exportPhylip(alignment, region?, { variant?: 'relaxed' | 'strict' })` (strict truncates names to 10 characters and adds numeric suffixes to keep them unique), `exportNexus(alignment, region?)` (DATA block, `gap=-`, `missing=?`, names quoted when needed), `formatFastaRecord`, `exportStatistics`, `exportSvg` and `exportPng` functions are also exported. SVG/PNG figures are capped at **200,000 cells**; PNG additionally caps raster dimensions/area. Use a smaller region or SVG when raster dimensions are excessive. TSV exports define denominators in column headers. JSON view state contains navigation/filter/selection settings, not alignment data or hosted sharing URLs.
 
@@ -531,7 +556,7 @@ Consensus sequence: the modal non-gap residue per column. With a `consensusThres
 
 `getViewLink()` returns readable parameters such as `src=…&aln=…&sel=50-60&row=seq-3&ref=seq-1&scheme=soft&zoom=16&q=human&x=41`. `src` appears only when the alignment came from `loadUrl`; links to local files carry the view without the data. `src` is the full URL passed to `loadUrl`, query string included; with `urlSync` it lands in the address bar, so do not use it with signed or token-bearing URLs. Hash changes without link parameters, such as in-page anchors, are ignored. If `history.replaceState` is blocked (for example in a sandboxed iframe), sync stops and an `error` event reports it. Annotation filters and visibility are not part of links.
 
-`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `hide`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
+`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `hide`, `rc`, `strand`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
 
 With `urlSync: true` the viewer keeps `location.hash` in sync (via `history.replaceState`) and applies a hash link after the next load. The viewer never fetches `src` itself; the host decides what to load:
 

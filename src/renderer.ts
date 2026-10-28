@@ -7,7 +7,8 @@ import { getColorScheme, residueColor, textColor } from './colors';
 import { AnnotationIndex } from './annotations';
 import { STRIDE, SYMBOLS, consensusSymbol, movingAverage } from './analysis';
 import { treeSpans, type TreeLayout } from './tree';
-import { identityColumns, type ColumnMap } from './mask';
+import { identityColumns, columnSpan, type ColumnMap } from './mask';
+import { complementTable } from './strand';
 export interface GroupInfo { name:string; count:number; color:string; collapsed:boolean }
 export interface TreeHit { node:number; x:number; y:number }
 /** `rows` holds row indexes; a negative entry -n is the header of groups[n-1]. */
@@ -20,9 +21,18 @@ export interface RenderView {
   /** Tracks drawn after the built-ins, already validated against the alignment width. */
   /** Display to original column map; omitted means every column is shown. */
   columns?:ColumnMap;
+  /** Reverse-complement view: every row is drawn complemented and the consensus and logo letters are complemented. Needs a nucleotide alignment. */
+  reverse?:boolean;
+  /** IDs of rows flagged as reverse strand; their residues are drawn complemented (twice, so unchanged, in the reverse-complement view). */
+  strands?:ReadonlySet<string>;
   tracks?:CustomTrack[]; logoMode?:'frequency'|'bits'; window?:number; trackError?:(id:string,error:Error)=>void;
 }
 const colMap=(v:RenderView):ColumnMap=>v.columns??identityColumns(v.a.width);
+const identityCodes=Uint8Array.from({length:128},(_,i)=>i);
+/** Code-to-code table for how a row is drawn: complemented when exactly one of the whole-view toggle and the row's strand flag is set. */
+const drawTable=(v:RenderView,row:number):Uint8Array|undefined=>v.a.alphabet!=='protein'&&!!v.reverse!==!!v.strands?.has(v.a.rows[row].id)?complementTable(v.a.alphabet):undefined;
+/** Complement of a consensus or logo symbol in the reverse-complement view. */
+const viewSymbol=(v:RenderView,symbol:string):string=>v.reverse&&v.a.alphabet!=='protein'&&symbol.length===1&&symbol.charCodeAt(0)<128?String.fromCharCode(complementTable(v.a.alphabet)[symbol.charCodeAt(0)]):symbol;
 export function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
   const dpr=Math.min(window.devicePixelRatio||1,3);
   w=Math.max(1,Math.round(w));h=Math.max(1,Math.round(h));
@@ -51,9 +61,11 @@ export class Renderer {
   private row(ctx:CanvasRenderingContext2D,v:RenderView,row:number,y:number,width:number) {
     const m=colMap(v),start=Math.max(0,Math.floor(v.x/v.cw)),end=Math.min(m.count,Math.ceil((v.x+width-v.gutter)/v.cw));
     const atlas=this.tile(v),ratio=this.atlasRatio,scheme=getColorScheme(v.scheme);
+    const own=drawTable(v,row)??identityCodes,ref=drawTable(v,v.reference)??identityCodes,view=(v.reverse?complementTable(v.a.alphabet):undefined)??identityCodes;
     for(let d=start;d<end;d++) {
-      const c=m.cols[d],code=v.a.codes[row*v.a.width+c],x=v.gutter+d*v.cw-v.x;
-      const compare=!v.mode.startsWith('consensus')?v.a.codes[v.reference*v.a.width+c]:v.stats?.consensus[c];
+      const c=m.cols[d],code=own[v.a.codes[row*v.a.width+c]],x=v.gutter+d*v.cw-v.x;
+      const byConsensus=v.mode.startsWith('consensus'),raw=byConsensus?v.stats?.consensus[c]:v.a.codes[v.reference*v.a.width+c];
+      const compare=raw===undefined?undefined:(byConsensus?view:ref)[raw]??raw;
       const same=compare===code&&compare!==45&&compare!==63;
       const dot=!!v.matchDots&&same&&row!==v.reference&&!isGap(code);
       const faded=v.mode!=='all'&&compare!==undefined&&(v.mode.endsWith('differences')?same:!same);
@@ -65,7 +77,7 @@ export class Renderer {
     }
     const hits=v.hits?.get(row);
     if(hits)for(const hit of hits){
-      const left=m.before[hit.start-1],right=m.before[hit.end];
+      const [left,right]=columnSpan(m,hit.start,hit.end);
       if(right<=left||left>=end||right<=start)continue;
       const x=v.gutter+left*v.cw-v.x,w=Math.max(2,(right-left)*v.cw),active=hit===v.activeHit;
       ctx.strokeStyle=active?'#d63b00':v.dark?'#ffb347':'#e08a00';ctx.lineWidth=active?3:2;ctx.setLineDash(hit.strand==='-'?[4,3]:[]);
@@ -74,10 +86,10 @@ export class Renderer {
     ctx.setLineDash([]);
     if(v.visibility?.annotationMarks===false)return;
     if(start>=end)return;
-    const from=m.cols[start]+1,to=m.cols[end-1]+1,items=[...v.annotations.query(v.a.rows[row].id,from,to),...v.annotations.query('*',from,to)];
+    const from=Math.min(m.cols[start],m.cols[end-1])+1,to=Math.max(m.cols[start],m.cols[end-1])+1,items=[...v.annotations.query(v.a.rows[row].id,from,to),...v.annotations.query('*',from,to)];
     // Merge overlapping marks into pixel bins at low zoom; never draw unbounded feature DOM.
     const bins=new Set<number>();
-    for(const item of items){const left=Math.max(start,m.before[item.start!-1]),right=Math.min(end,m.before[item.end!]);if(right<=left)continue;const x=v.gutter+left*v.cw-v.x;
+    for(const item of items){const span=columnSpan(m,item.start!,item.end!),left=Math.max(start,span[0]),right=Math.min(end,span[1]);if(right<=left)continue;const x=v.gutter+left*v.cw-v.x;
       if(v.cw<9){const bin=Math.floor(x/4);if(bins.has(bin))continue;bins.add(bin);ctx.fillStyle='#a63d59';ctx.fillRect(x,y,Math.max(3,(right-left)*v.cw),3);}
       else{ctx.strokeStyle=item.color&&/^#[0-9a-f]{6}$/i.test(item.color)?item.color:'#a63d59';ctx.lineWidth=1.7;ctx.strokeRect(x+1,y+1,Math.max(1,(right-left)*v.cw-2),v.rh-3);}
     }
@@ -113,7 +125,7 @@ export class Renderer {
     const first=Math.max(0,Math.floor(v.y/v.rh)),last=Math.min(v.rows.length,Math.ceil((v.y+height)/v.rh));
     for(let i=first;i<last;i++)v.rows[i]<0?this.header(ctx,v,v.groups?.[-v.rows[i]-1],i*v.rh-v.y,width):this.row(ctx,v,v.rows[i],i*v.rh-v.y,width);
     const m=colMap(v);this.edges(ctx,v,m,0,height,false,width);
-    if(v.selection&&v.visibility?.selectionOverlay!==false){const x=v.gutter+m.before[v.selection.start-1]*v.cw-v.x,w=Math.max(2,(m.before[v.selection.end]-m.before[v.selection.start-1])*v.cw);ctx.fillStyle='rgba(36,99,166,0.09)';ctx.fillRect(x,0,w,height);ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(x+.75,.75,w-1.5,height-1.5);}
+    if(v.selection&&v.visibility?.selectionOverlay!==false){const [l,r]=columnSpan(m,v.selection.start,v.selection.end),x=v.gutter+l*v.cw-v.x,w=Math.max(2,(r-l)*v.cw);ctx.fillStyle='rgba(36,99,166,0.09)';ctx.fillRect(x,0,w,height);ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(x+.75,.75,w-1.5,height-1.5);}
     ctx.restore();ctx.fillStyle=v.dark?'#172333':'#f9fbfc';ctx.fillRect(0,0,v.gutter,height);ctx.strokeStyle=v.dark?'#354356':'#d7e0e7';ctx.beginPath();ctx.moveTo(v.gutter-.5,0);ctx.lineTo(v.gutter-.5,height);ctx.stroke();
   }
   /** Dashed line at each collapsed boundary; `cap` adds a solid tab for the ruler. */
@@ -136,11 +148,14 @@ export class Renderer {
     const tick=v.cw<5?50:v.cw<10?20:10,refRow=v.ruler==='reference'?v.reference*v.a.width:-1,first=rowOffset(v.a.rows[v.reference]),showFirst=tick-first%tick>=Math.ceil(24/v.cw);
     // Reference numbering counts residues in hidden columns too, so labels stay in original coordinates.
     let residue=first-1,counted=0,lastLabel=-1e9,lastEdge=false;const gap=Math.ceil(36/v.cw);
+    // Right-to-left display visits columns out of order, so residue numbers come from one pass over the reference row (0 marks a gap).
+    const refNums=refRow>=0&&m.reversed?Int32Array.from({length:v.a.width},(_,c)=>isGap(v.a.codes[refRow+c])?0:++residue):null;
     for(let d=start;d<end;d++) {
       const c=m.cols[d],x=v.gutter+d*v.cw-v.x;
       let number:number|null=c+1;
-      if(refRow>=0){while(counted<c){if(!isGap(v.a.codes[refRow+counted]))residue++;counted++;}number=isGap(v.a.codes[refRow+c])?null:++residue;counted=c+1;}
-      const regular=number!==null&&(refRow>=0?number%tick===0||showFirst&&number===first:c===0||number%tick===0),edge=number!==null&&!regular&&(d>0?c-m.cols[d-1]>1:c>0)&&d-lastLabel>=gap;
+      if(refNums)number=refNums[c]||null;
+      else if(refRow>=0){while(counted<c){if(!isGap(v.a.codes[refRow+counted]))residue++;counted++;}number=isGap(v.a.codes[refRow+c])?null:++residue;counted=c+1;}
+      const regular=number!==null&&(refRow>=0?number%tick===0||showFirst&&number===first:c===0||number%tick===0),edge=number!==null&&!regular&&(d>0?Math.abs(c-m.cols[d-1])>1:m.reversed?c<v.a.width-1:c>0)&&d-lastLabel>=gap;
       if(offset.ruler!==null&&(edge||regular&&!(lastEdge&&d-lastLabel<gap))){lastLabel=d;lastEdge=edge;ctx.fillStyle=ink;ctx.font='11px "Alignment Mono", monospace';ctx.fillText(String(number),x+v.cw/2,17);ctx.fillStyle=line;ctx.fillRect(x+v.cw/2,23,1,height-23);}
       if(!v.stats)continue;
       if(offset.modalFrequency!==null){ctx.fillStyle='#3a7da4';ctx.fillRect(x,offset.modalFrequency+22-(v.stats.frequency[c]||0)*20,Math.max(1,v.cw-1),(v.stats.frequency[c]||0)*20);}
@@ -148,7 +163,7 @@ export class Renderer {
       if(offset.entropy!==null){const h=Math.min(1,Math.max(0,movingAverage(v.stats.entropy,window,c)/bitsMax))||0;ctx.fillStyle='#8a6bb0';ctx.fillRect(x,offset.entropy+22-h*20,Math.max(1,v.cw-1),h*20);}
       if(offset.quality!==null){const h=Math.min(1,Math.max(0,movingAverage(v.stats.quality,window,c)))||0;ctx.fillStyle='#4f9a6b';ctx.fillRect(x,offset.quality+22-h*20,Math.max(1,v.cw-1),h*20);}
       if(offset.consensus!==null){
-        const symbol=consensusSymbol(v.stats,v.a.alphabet,c,v.threshold??0),color=residueColor(symbol,getColorScheme(v.scheme),v.stats.support[c]);
+        const symbol=viewSymbol(v,consensusSymbol(v.stats,v.a.alphabet,c,v.threshold??0)),color=residueColor(symbol,getColorScheme(v.scheme),v.stats.support[c]);
         ctx.fillStyle=color;ctx.fillRect(x,offset.consensus+4,v.cw,27);
         if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=symbol==='-'?ink:textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.fillText(symbol==='-'?'·':symbol,x+v.cw/2,offset.consensus+22);}
       }
@@ -157,13 +172,13 @@ export class Renderer {
         for(let k=0;k<27;k++){const count=v.stats.counts[c*STRIDE+k];if(count)counts.push({r:SYMBOLS[k],n:count});}
         // In bits mode the maximum information, log2 of the alphabet size, fills the 45 px track less 2 px padding top and bottom.
         const bits=v.logoMode==='bits',full=bits?41*(v.stats.information[c]||0)/bitsMax:39;counts.sort((a,b)=>a.n-b.n);let bottom=offset.logo+(bits?43:37);
-        for(const d of counts){const h=d.n/n*full;if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(d.r,getColorScheme(v.scheme),1);ctx.fillText(d.r,8,17);ctx.restore();bottom-=h;}
+        for(const d of counts){const h=d.n/n*full,letter=viewSymbol(v,d.r);if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(letter,getColorScheme(v.scheme),1);ctx.fillText(letter,8,17);ctx.restore();bottom-=h;}
       }
     }
     if(offset.reference!==null&&v.reference>=0)this.row(ctx,v,v.reference,offset.reference,width);
     extra.forEach((t,i)=>tracks.custom[i]&&this.customTrack(ctx,v,m,t,tracks.custom[i],start,end,width,ink,line));
     this.edges(ctx,v,m,0,height,offset.ruler!==null,width);
-    if(v.selection&&v.visibility?.selectionOverlay!==false){const l=m.before[v.selection.start-1];ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(v.gutter+l*v.cw-v.x+.75,.75,Math.max(2,(m.before[v.selection.end]-l)*v.cw)-1.5,height-1.5);}
+    if(v.selection&&v.visibility?.selectionOverlay!==false){const [l,r]=columnSpan(m,v.selection.start,v.selection.end);ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(v.gutter+l*v.cw-v.x+.75,.75,Math.max(2,(r-l)*v.cw)-1.5,height-1.5);}
     ctx.restore();return height;
   }
   private customTrack(ctx:CanvasRenderingContext2D,v:RenderView,m:ColumnMap,t:CustomTrack,slot:{offset:number;height:number},start:number,end:number,width:number,ink:string,line:string) {
@@ -173,9 +188,9 @@ export class Renderer {
       // One call per run of adjacent kept columns, clipped to that run when columns are hidden.
       const masked=m.count<m.width;
       for(let d=start,e=start;d<end;d=e){
-        for(e=d+1;e<end&&m.cols[e]===m.cols[e-1]+1;)e++;
+        const step=m.reversed?-1:1;for(e=d+1;e<end&&m.cols[e]===m.cols[e-1]+step;)e++;
         ctx.save();ctx.beginPath();ctx.rect(masked?v.gutter+d*v.cw-v.x:v.gutter,top,masked?(e-d)*v.cw:width-v.gutter,height);ctx.clip();
-        try{t.render!(ctx,{start:m.cols[d]+1,end:m.cols[e-1]+1,cellWidth:v.cw,offsetX:v.gutter+d*v.cw-v.x,top,height,alignment:v.a});}catch(error){v.trackError?.(t.id,error instanceof Error?error:new Error(String(error)));}
+        try{t.render!(ctx,{start:Math.min(m.cols[d],m.cols[e-1])+1,end:Math.max(m.cols[d],m.cols[e-1])+1,cellWidth:v.cw,offsetX:v.gutter+d*v.cw-v.x,top,height,alignment:v.a,...(m.reversed?{reversed:true}:{})});}catch(error){v.trackError?.(t.id,error instanceof Error?error:new Error(String(error)));}
         ctx.restore();
       }
       ctx.globalAlpha=1;return;
@@ -197,7 +212,7 @@ export class Renderer {
     if(v.stats)for(let px=0;px<width;px++){
       const from=Math.floor(px*m.count/width),to=Math.min(m.count,Math.max(from+1,Math.floor((px+1)*m.count/width)));
       let support=0,occupancy=0;for(let d=from;d<to;d++){const c=m.cols[d];support+=v.stats.support[c]||0;occupancy+=v.stats.total?1-v.stats.gaps[c]/v.stats.total:0;}
-      const h=occupancy/(to-from)*30;ctx.fillStyle=residueColor(String.fromCharCode(v.stats.consensus[m.cols[from]]),scheme,support/(to-from));ctx.fillRect(px,35-h,1,h);
+      const h=occupancy/(to-from)*30;ctx.fillStyle=residueColor(viewSymbol(v,String.fromCharCode(v.stats.consensus[m.cols[from]])),scheme,support/(to-from));ctx.fillRect(px,35-h,1,h);
     }
   }
 }

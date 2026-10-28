@@ -6,7 +6,7 @@ export type ColumnRange = [number, number];
 /** Which columns hide: `gapFraction` hides columns whose gap fraction over all rows is at least that value (0 to 1), `allGap` hides columns that are gaps in every row, `hidden` lists manually hidden ranges. */
 export interface MaskOptions { gapFraction?:number|null; allGap?:boolean; hidden?:readonly (readonly [number,number])[] }
 /** Display to original column map. `cols[d]` is the zero-based original column shown at display index d; `before[c]` counts kept columns left of original column c (for a hidden column, the display index of the next kept one). `edges` lists the display positions (0 to count) where hidden columns were collapsed. */
-export interface ColumnMap { width:number; count:number; mask:Uint8Array; cols:Int32Array; before:Int32Array; edges:Int32Array }
+export interface ColumnMap { width:number; count:number; mask:Uint8Array; cols:Int32Array; before:Int32Array; edges:Int32Array; /** True when display runs right to left: `cols` and `edges` are then in display order, while `before` still counts kept columns left of each original column. */ reversed?:boolean }
 
 const counts=new WeakMap<Alignment,Uint32Array>();
 /** Rows holding a gap in each column. Cached per alignment object. */
@@ -62,3 +62,11 @@ export function identityColumns(width:number):ColumnMap {
   if(identity?.width!==width)identity=buildColumnMap(new Uint8Array(width).fill(1));
   return identity;
 }
+/** The same columns shown right to left. Use columnSpan and columnPos for original-to-display lookups on a reversed map. */
+export function reverseColumnMap(m:ColumnMap):ColumnMap {return {...m,cols:Int32Array.from(m.cols).reverse(),edges:Int32Array.from(m.edges,e=>m.count-e).reverse(),reversed:true};}
+/** Display interval [left, right) of original columns `start` to `end` (one-based, inclusive). Hidden columns collapse to zero width. */
+export const columnSpan=(m:ColumnMap,start:number,end:number):[number,number]=>m.reversed?[m.count-m.before[end],m.count-m.before[start-1]]:[m.before[start-1],m.before[end]];
+/** Display index of zero-based original column `c`; for a hidden column, the nearest kept column on the side the display runs towards. */
+export const columnPos=(m:ColumnMap,c:number):number=>m.reversed?Math.max(0,m.count-1-m.before[c]):m.before[c];
+/** Zero-based original column of the k-th kept column counted left to right in the source. */
+export const keptColumn=(m:ColumnMap,k:number):number=>m.cols[m.reversed?m.count-1-k:k];

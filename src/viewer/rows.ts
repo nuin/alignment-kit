@@ -67,7 +67,7 @@ export async function removeRows(v:Core, ids:string[]):Promise<void> {
   if(!drop.size)return;if(drop.size>=a!.rows.length)throw new Error('At least one sequence must remain.');
   const next=createAlignment(a!.rows.filter(r=>!drop.has(r.id)),{name:a!.name,alphabet:a!.alphabet,metadata:a!.metadata,annotations:a!.annotations.filter(x=>!x.rowId||!drop.has(x.rowId))});
   const filter=v.annotationFilter,selected=v.selection?.rowId;
-  await v.replace(next,{reference:a!.rows[v.reference].id,selection:selected&&drop.has(selected)?null:v.selection,selectedRows:[...v.selectedRows],query:v.query,sort:v.sort==='identity'?'input':v.sort,hidden:[...v.hidden],manualOrder:v.manualOrder,collapsed:[...v.collapsed],groupMap:v.groupMap,tree:v.tree?.layout,annotationFilter:{...filter,hiddenRowIds:filter.hiddenRowIds?.filter(id=>!drop.has(id))},hiddenColumns:v.manualHidden});
+  await v.replace(next,{reference:a!.rows[v.reference].id,selection:selected&&drop.has(selected)?null:v.selection,selectedRows:[...v.selectedRows],query:v.query,sort:v.sort==='identity'?'input':v.sort,hidden:[...v.hidden],manualOrder:v.manualOrder,collapsed:[...v.collapsed],groupMap:v.groupMap,tree:v.tree?.layout,annotationFilter:{...filter,hiddenRowIds:filter.hiddenRowIds?.filter(id=>!drop.has(id))},hiddenColumns:v.manualHidden,strands:[...v.rowStrands].filter(id=>!drop.has(id))});
   if(v.a===next&&v.tree?.note)v.message(v.tree.note);
 }
 export function setGroups(v:Core, groups:Record<string,string>|null):void {
