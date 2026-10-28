@@ -1,0 +1,11 @@
+{
+  "name": "@nuin/msa-canvas",
+  "version": "0.2.0",
+  "exports": "./src/index.ts",
+  "unstable": ["sloppy-imports"],
+  "compilerOptions": { "lib": ["ES2022", "DOM", "DOM.Iterable", "deno.ns"] },
+  "publish": {
+    "include": ["src/**/*.ts", "src/worker.js", "src/palettes.json", "README.md", "LICENSE"],
+    "exclude": ["src/react.tsx", "src/svelte.ts", "src/integration.ts", "src/pavi.ts", "src/svelte"]
+  }
+}

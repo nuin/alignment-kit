@@ -21,7 +21,7 @@ export class AnnotationIndex {
     return result;
   }
 }
-export function filterAnnotations(annotations:Annotation[],filter:AnnotationFilter) {
+export function filterAnnotations(annotations:Annotation[],filter:AnnotationFilter):{visible:Annotation[];unknown:number;excluded:number} {
   const hidden=new Set(filter.hiddenRowIds??[]);let unknown=0,excluded=0;
   const visible=annotations.filter(a=>{
     if((filter.disease&&a.disease===undefined)||(filter.phenotype&&a.phenotype===undefined)) unknown++;

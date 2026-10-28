@@ -1,12 +1,24 @@
-# npm release preparation
+# Release preparation
 
-The package is published to npm as `@nuin/msa-canvas`. The GitHub repository `nuin/alignment-kit` stays private; the npm package exposes its distributed code, source maps and included documentation.
+The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub repository `nuin/alignment-kit` is public. Each release has a `v<version>` git tag and a GitHub release.
 
 ## Release decisions
 
-- Name: `@nuin/msa-canvas`, under the npm user scope `nuin`.
+- Name: `@nuin/msa-canvas`, under the npm user scope `nuin` and the JSR scope `@nuin`.
 - License: MIT, copyright Bioinformat. Third-party MIT and OFL notices remain in `THIRD_PARTY_NOTICES.md`.
-- First version: `0.1.0`, public, on the `latest` tag.
+- Versions: `0.1.0` (commit `0e1b6ef`, tag `v0.1.0`), then `0.2.0`, public, on the `latest` tag.
+- JSR publishes the core TypeScript source (`deno.json`). React, Svelte, PAVI and CSS stay npm-only.
+
+## Automated release
+
+`.github/workflows/release.yml` runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `deno.json`. Then it runs `release:check`, `npm publish --provenance`, `deno publish` and `gh release create --generate-notes`. `.github/workflows/ci.yml` runs tests, type checks and `deno publish --dry-run` on every pull request.
+
+One-time setup:
+
+- Add an npm automation token as the repository secret `NPM_TOKEN`.
+- Create the `@nuin/msa-canvas` package on jsr.io and link it to `nuin/alignment-kit` in its settings. JSR then accepts the workflow's GitHub OIDC token, so no JSR secret is stored.
+
+To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, merge to master, then run `git tag -a v0.2.0 -m v0.2.0 && git push origin v0.2.0` on that merge commit.
 - Browser acceptance checks are still outstanding. Recorded local CPU benchmarks are not browser frame-rate measurements.
 
 Authentication is checked with `npm whoami`. No credentials are stored in the repository.
