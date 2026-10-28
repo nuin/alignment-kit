@@ -22,6 +22,7 @@ export function layout(v:Core):void {
   const strip=$(v.root,'.ak-track-labels');
   strip.children[0].textContent=(v.options.rulerCoordinates==='reference'?'Reference residue':'Alignment position')+(v.reversed?' · reverse complement':'');
   const rcBox=$<HTMLInputElement>(v.root,'[aria-label="Reverse complement"]'),isProtein=v.a?.alphabet==='protein';rcBox.checked=v.reversed;rcBox.disabled=isProtein;rcBox.title=isProtein?'Reverse complement needs a DNA or RNA alignment.':'Show columns right to left with every residue complemented';
+  const orient=$<HTMLSelectElement>(v.root,'[aria-label="FASTA orientation"]');orient.disabled=isProtein;orient.title=isProtein?'Reverse complement needs a DNA or RNA alignment.':'';
   $(v.root,'.ak-logo-label').textContent=v.options.logoMode==='bits'?'Information logo · bits':'Frequency logo · non-gap';
   [...strip.children].slice(0,trackNames.length).forEach((label,i)=>{const node=label as HTMLElement,offset=tracks.offsets[trackNames[i]];node.hidden=offset===null;node.style.top=((offset??0)+(trackNames[i]==='reference'?0:3))+'px';});
   const key=extra.map((t,i)=>`${t.id}|${t.label}|${tracks.custom[i]?.offset}`).join('\n');

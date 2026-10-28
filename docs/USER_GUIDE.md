@@ -290,13 +290,13 @@ If the alignment has changed since the link was made, the viewer applies what st
 
 For DNA and RNA, tick **Reverse complement** in the second toolbar row to see the alignment as its reverse complement. The columns run right to left and every base is complemented, so A becomes T (U in RNA), C becomes G, and ambiguity codes swap in pairs (R/Y, K/M, B/V, D/H). Gaps stay gaps. The alignment itself does not change.
 
-The ruler counts original column numbers downwards, for example `12 ... 1`, and its label reads "Alignment position · reverse complement". The status line shows the visible columns from high to low. Selections, search hits, features, Go to, hidden columns and links keep original column numbers. The consensus and logo tracks show complemented letters. Column statistics and the Position tab still describe the source residues. Press Left and Right to move one displayed column, so Right goes to a lower column number.
+The ruler counts original column numbers downwards, for example `12 ... 1`, and its label reads "Alignment position · reverse complement". The status line shows the visible columns from high to low. Selections, search hits, features, Go to, hidden columns and links keep original column numbers. The consensus and logo tracks show complemented letters. Column statistics still describe the source residues. The Position tab shows the displayed letter and, when it differs, a line "Source residue X". Press Left and Right to move one displayed column, so Right goes to a lower column number.
 
 To flag one sequence as the reverse strand, click the `+` button in its label. It turns into `−` and that row is drawn complemented in place, so columns stay aligned. Click again to clear it. With **Reverse complement** on, a flagged row is complemented twice and reads as its source letters, right to left. A developer can do the same with `setRowStrand(id, '-')`.
 
 With protein alignments the checkbox is disabled, and no strand buttons appear.
 
-Exports keep the source orientation, whatever the view shows. To export reverse-complemented FASTA, open **Export > FASTA options…** and set **Orientation** to **Reverse complement**. This applies to FASTA exports, the consensus export and Ctrl/Cmd+C, adds ` (reverse complement)` to each header and does not affect other formats.
+Exports keep the source orientation, whatever the view shows. To export reverse-complemented FASTA, open **Export > FASTA options…** and set **Orientation** to **Reverse complement**. This applies to FASTA exports, the consensus export and Ctrl/Cmd+C, adds ` (reverse complement)` to each header and does not affect other formats. On a protein alignment the option is ignored and the select is disabled.
 
 Links carry `rc=1` for the whole view and `strand=id1,id2` for flagged rows. **Export > View state · JSON** stores the same two settings.
 

@@ -19,3 +19,5 @@ export function complementSequence(sequence:string,alphabet:Alphabet):string {
 }
 /** Reverse complement of a residue string, keeping case and gaps. */
 export const reverseComplementSequence=(sequence:string,alphabet:Alphabet):string=>[...complementSequence(sequence,alphabet)].reverse().join('');
+/** Letter drawn for a residue code: complemented when the view and the row flag differ, as in the grid. Protein is never complemented. */
+export const displayCode=(alphabet:Alphabet,code:number,reverse:boolean,flagged:boolean):number=>alphabet!=='protein'&&reverse!==flagged&&code<128?complementTable(alphabet)[code]:code;

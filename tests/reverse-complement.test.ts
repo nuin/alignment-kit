@@ -249,3 +249,34 @@ it('draws custom tracks right to left in the reverse view',async()=>{
   new Renderer().tracks(document.createElement('canvas'),{...base,reverse:true,columns:reverseColumnMap(identityColumns(4))},100);
   expect(seen).toEqual([{start:1,end:4,offsetX:10,reversed:true}]);
 });
+it('ignores the FASTA orientation option on protein alignments and disables its select',async()=>{
+  const v=await viewerFor(FASTA,'dna',{fasta:{lineWidth:0}}),select=rootOf(v).querySelector<HTMLSelectElement>('[aria-label="FASTA orientation"]')!;
+  v.setOptions({fasta:{orientation:'reverse-complement'}});
+  await v.setAlignment(parseAlignment(PROTEIN,{alphabet:'protein'}));
+  Object.defineProperty(priv(v).scroll,'clientHeight',{value:300,configurable:true});Object.defineProperty(rootOf(v).querySelector('.ak-main'),'clientWidth',{value:400,configurable:true});
+  stubCanvas();priv(v).render();
+  v.setSelection({start:1,end:5,rowId:'seq-1'},false);
+  expect(select.disabled).toBe(true);expect(()=>v.getSelectionText()).not.toThrow();
+  expect(v.getSelectionText()).toContain('\nMKVLA\n');expect(v.getSelectionText()).not.toContain('reverse complement');
+});
+it('shows the displayed letter and the source letter in the Position tab',async()=>{
+  const v=await viewerFor(),root=rootOf(v);
+  Object.defineProperty(priv(v).scroll,'clientHeight',{value:300,configurable:true});Object.defineProperty(root.querySelector('.ak-main'),'clientWidth',{value:400,configurable:true});
+  stubCanvas();v.setSelection({start:1,end:1,rowId:'seq-1'},false);priv(v).render();
+  const text=()=>root.querySelector('.ak-selected-residue')!.textContent!;
+  expect(root.querySelector('.ak-selected-residue b')!.textContent).toBe('A');expect(text()).not.toContain('Source residue');
+  v.setRowStrand('seq-1','-');priv(v).render();
+  expect(root.querySelector('.ak-selected-residue b')!.textContent).toBe('T');expect(text()).toContain('Source residue A');
+  v.setReverseComplement(true);priv(v).render();
+  expect(root.querySelector('.ak-selected-residue b')!.textContent).toBe('A');expect(text()).not.toContain('Source residue');
+});
+it('caches reference numbering across redraws in the reverse view',()=>{
+  const a=parseAlignment('>r\nAC-GT\n>s\nACGGT',{alphabet:'dna'});
+  vi.spyOn(HTMLCanvasElement.prototype,'getContext').mockReturnValue(new Proxy({},{get:()=>()=>{},set:()=>true}) as any);
+  const spy=vi.spyOn(Int32Array,'from');
+  const base={a,stats:calculateStats(a),rows:[0],reference:0,x:0,y:0,cw:16,rh:22,gutter:0,scheme:'soft',mode:'all',dark:false,selection:null,annotations:new AnnotationIndex([]),logo:false,ruler:'reference',reverse:true,columns:reverseColumnMap(identityColumns(5))} as any;
+  const built=()=>spy.mock.calls.filter(c=>(c[0] as any).length===a.width&&typeof c[1]==='function').length,r=new Renderer();
+  r.tracks(document.createElement('canvas'),base,200);const first=built();
+  r.tracks(document.createElement('canvas'),base,200);r.tracks(document.createElement('canvas'),base,200);
+  expect(first).toBe(1);expect(built()).toBe(first);
+});

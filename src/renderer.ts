@@ -30,6 +30,12 @@ export interface RenderView {
 const colMap=(v:RenderView):ColumnMap=>v.columns??identityColumns(v.a.width);
 const identityCodes=Uint8Array.from({length:128},(_,i)=>i);
 /** Code-to-code table for how a row is drawn: complemented when exactly one of the whole-view toggle and the row's strand flag is set. */
+const refNumbers=new WeakMap<Uint8Array,Map<number,{first:number;nums:Int32Array}>>();
+const referenceNumbers=(a:Alignment,row:number,first:number):Int32Array=>{
+  let byRow=refNumbers.get(a.codes);if(!byRow)refNumbers.set(a.codes,byRow=new Map());
+  let hit=byRow.get(row);if(!hit||hit.first!==first){let n=first-1;hit={first,nums:Int32Array.from({length:a.width},(_,c)=>isGap(a.codes[row*a.width+c])?0:++n)};byRow.set(row,hit);}
+  return hit.nums;
+};
 const drawTable=(v:RenderView,row:number):Uint8Array|undefined=>v.a.alphabet!=='protein'&&!!v.reverse!==!!v.strands?.has(v.a.rows[row].id)?complementTable(v.a.alphabet):undefined;
 /** Complement of a consensus or logo symbol in the reverse-complement view. */
 const viewSymbol=(v:RenderView,symbol:string):string=>v.reverse&&v.a.alphabet!=='protein'&&symbol.length===1&&symbol.charCodeAt(0)<128?String.fromCharCode(complementTable(v.a.alphabet)[symbol.charCodeAt(0)]):symbol;
@@ -148,8 +154,8 @@ export class Renderer {
     const tick=v.cw<5?50:v.cw<10?20:10,refRow=v.ruler==='reference'?v.reference*v.a.width:-1,first=rowOffset(v.a.rows[v.reference]),showFirst=tick-first%tick>=Math.ceil(24/v.cw);
     // Reference numbering counts residues in hidden columns too, so labels stay in original coordinates.
     let residue=first-1,counted=0,lastLabel=-1e9,lastEdge=false;const gap=Math.ceil(36/v.cw);
-    // Right-to-left display visits columns out of order, so residue numbers come from one pass over the reference row (0 marks a gap).
-    const refNums=refRow>=0&&m.reversed?Int32Array.from({length:v.a.width},(_,c)=>isGap(v.a.codes[refRow+c])?0:++residue):null;
+    // Right-to-left display visits columns out of order, so residue numbers come from a cached pass over the reference row (0 marks a gap).
+    const refNums=refRow>=0&&m.reversed?referenceNumbers(v.a,v.reference,first):null;
     for(let d=start;d<end;d++) {
       const c=m.cols[d],x=v.gutter+d*v.cw-v.x;
       let number:number|null=c+1;

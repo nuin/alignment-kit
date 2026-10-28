@@ -1,4 +1,4 @@
-import { type Alignment, type ExportRegion } from '../types';
+import { type Alignment, type ExportRegion, type FastaOptions } from '../types';
 import { $, download } from '../controls';
 import { exportFasta, exportClustal, exportStockholm, exportPhylip, exportNexus, formatFastaRecord, exportStatistics, exportSvg, exportPng, resolveRegion } from '../export';
 import { consensusSequence } from '../analysis';
@@ -21,11 +21,12 @@ export function copyRegion(v:Core, a:Alignment):ExportRegion {
   } else if(v.selection?.rowId) region.rowIds=[v.selection.rowId];
   return region;
 }
+const fastaOf=(v:Core):FastaOptions=>v.a?.alphabet==='protein'&&v.options.fasta.orientation==='reverse-complement'?{...v.options.fasta,orientation:'source'}:v.options.fasta;
 export function copyPayload(v:Core):{text:string;region:ReturnType<typeof resolveRegion>} {
   v.assertAlive();if(!v.a)throw new Error('No alignment is loaded.');
   const region=v.fastaRegion(v.copyRegion(v.a));if(!region.rowIds?.length)throw new Error('No sequences to copy.');
   const resolved=resolveRegion(v.a,region);
-  return {text:(v.stats?v.consensusFasta(resolved.start,resolved.end,!!resolved.columns):'')+exportFasta(v.a,region,v.options.fasta),region:resolved};
+  return {text:(v.stats?v.consensusFasta(resolved.start,resolved.end,!!resolved.columns):'')+exportFasta(v.a,region,fastaOf(v)),region:resolved};
 }
 export function getConsensus(v:Core, options:{threshold?:number}={}):string {
   v.assertAlive();if(!v.a)throw new Error('No alignment is loaded.');if(!v.stats)throw new Error('Column statistics are still being calculated.');
@@ -34,8 +35,8 @@ export function getConsensus(v:Core, options:{threshold?:number}={}):string {
 export function consensusFasta(v:Core, start:number,end:number,visible=false):string {
   const s=v.stats!,t=v.options.consensusThreshold,mask=v.columns.mask;let sequence=consensusSequence(s,v.a!.alphabet,t,start,end);
   if(visible)sequence=[...sequence].filter((_,i)=>mask[start-1+i]).join('');
-  const flip=v.options.fasta.orientation==='reverse-complement';if(flip)sequence=reverseComplementSequence(sequence,v.a!.alphabet);
-  return formatFastaRecord(`consensus columns ${start}-${end}${visible?' (visible columns)':''}${flip?' (reverse complement)':''}; ${v.options.statisticsScope} rows (${s.total}); threshold ${t}`,sequence,v.options.fasta);
+  const fasta=fastaOf(v),flip=fasta.orientation==='reverse-complement';if(flip)sequence=reverseComplementSequence(sequence,v.a!.alphabet);
+  return formatFastaRecord(`consensus columns ${start}-${end}${visible?' (visible columns)':''}${flip?' (reverse complement)':''}; ${v.options.statisticsScope} rows (${s.total}); threshold ${t}`,sequence,fasta);
 }
 export function getSelectionText(v:Core):string {return v.copyPayload().text;}
 export async function copySelection(v:Core):Promise<void> {
@@ -56,9 +57,9 @@ export async function exportKind(v:Core, kind:string):Promise<void> {
   if(!v.a)return;
   try{
     const region=v.exportRegion(v.a);
-    if(kind==='fasta-all')download(exportFasta(v.a,v.fastaRegion({}),v.options.fasta),'alignment.fasta');
-    if(kind==='fasta')download(exportFasta(v.a,v.fastaRegion(region),v.options.fasta),'selection.fasta');
-    if(kind==='fasta-visible')download(exportFasta(v.a,v.fastaRegion({},true),v.options.fasta),'visible-columns.fasta');
+    if(kind==='fasta-all')download(exportFasta(v.a,v.fastaRegion({}),fastaOf(v)),'alignment.fasta');
+    if(kind==='fasta')download(exportFasta(v.a,v.fastaRegion(region),fastaOf(v)),'selection.fasta');
+    if(kind==='fasta-visible')download(exportFasta(v.a,v.fastaRegion({},true),fastaOf(v)),'visible-columns.fasta');
     const text=textExports[kind.replace(/-all$/,'')];
     if(text)download(text.write(v.a,kind.endsWith('-all')?{}:region),`${kind.endsWith('-all')?'alignment':'selection'}.${text.ext}`);
     if(kind==='state')download(JSON.stringify(v.getState(),null,2),'alignment-view.json','application/json');
