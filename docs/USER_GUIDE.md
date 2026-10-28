@@ -74,6 +74,8 @@ Row checkboxes select sequences for pairwise comparison and region export. They 
 
 Use **Escape** while the matrix is focused to clear the residue/range selection. Use **Clear rows** in the Compare tab to clear checked sequences.
 
+Press **Ctrl+C** (**Cmd+C** on macOS) while the matrix is focused to copy the selection as gapped FASTA. Checked rows are copied in their on-screen order, followed by checked rows hidden by the name filter. Without checked rows, the clicked row is copied; without either, the rows that Export uses. Copying works on HTTPS pages and localhost.
+
 ## Alignment columns versus sequence positions
 
 Alignment columns count every displayed column, including gaps. Sequence positions count non-gap residues in one particular sequence. Both are 1-based in the public UI/API.
@@ -219,6 +221,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | Home / End / matrix | Jump to the first/last alignment column. |
 | + or − / matrix | Increase/decrease cell width. |
 | Escape / matrix | Clear residue selection. |
+| Ctrl/Cmd + C / matrix | Copy the selection as gapped FASTA. |
 | Enter / Go to | Navigate to the entered alignment column. |
 | Enter / motif input | Find the next literal motif. |
 | Left / Right / overview | Move the viewport horizontally. |

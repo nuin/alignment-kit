@@ -8,7 +8,7 @@ import { ThemedSelects } from './selects';
 import { Renderer, type RenderView } from './renderer';
 import { buildShell, $, download } from './controls';
 import { renderInspector } from './inspector';
-import { exportFasta, exportStatistics, exportSvg, exportPng, escapeXml as e } from './export';
+import { exportFasta, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
 import { WorkerTask } from './worker-client';
 
 const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
@@ -250,10 +250,41 @@ export class AlignmentViewer {
     }
     this.motifCursor={query,row:0,start:0};this.message(`No match for ${query} in the filtered sequences.`);
   }
+  private exportRegion(a:Alignment):ExportRegion {
+    const start=this.selection?.start??Math.min(a.width,Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1);
+    return {start,end:this.selection?.end??Math.max(start,Math.min(a.width,Math.ceil((this.scroll.scrollLeft+this.scroll.clientWidth-this.gutter)/this.options.cellWidth))),rowIds:this.selectedRows.size?[...this.selectedRows]:[...(this.pinned?[a.rows[this.reference].id]:[]),...this.rows.slice(Math.floor(this.scroll.scrollTop/this.options.rowHeight),Math.ceil((this.scroll.scrollTop+this.scroll.clientHeight)/this.options.rowHeight)).map(i=>a.rows[i].id)]};
+  }
+  /** Rows to copy: checked rows in display order (filtered-out ones last), else the selected row, else the export rows. */
+  private copyRegion(a:Alignment):ExportRegion {
+    const region=this.exportRegion(a);
+    if(this.selectedRows.size) {
+      const display=[...(this.pinned?[this.reference]:[]),...this.filteredRows.filter(i=>!this.pinned||i!==this.reference)].map(i=>a.rows[i].id);
+      const shown=display.filter(id=>this.selectedRows.has(id)),seen=new Set(shown);
+      region.rowIds=[...shown,...a.rows.map(r=>r.id).filter(id=>this.selectedRows.has(id)&&!seen.has(id))];
+    } else if(this.selection?.rowId) region.rowIds=[this.selection.rowId];
+    return region;
+  }
+  private copyPayload() {
+    this.assertAlive();if(!this.a)throw new Error('No alignment is loaded.');
+    const region=this.copyRegion(this.a);if(!region.rowIds?.length)throw new Error('No sequences to copy.');
+    return {text:exportFasta(this.a,region),region:resolveRegion(this.a,region)};
+  }
+  /** Gapped FASTA for the rows and columns that Ctrl/Cmd+C copies. */
+  getSelectionText():string {return this.copyPayload().text;}
+  async copySelection():Promise<void> {
+    try {
+      const {text,region}=this.copyPayload();
+      if(!navigator.clipboard?.writeText)throw new Error('Clipboard access needs a secure (HTTPS) page. Use Export instead.');
+      await navigator.clipboard.writeText(text);
+      if(this.disposed)return;
+      const summary=`Copied ${region.rows.length.toLocaleString()} sequence${region.rows.length===1?'':'s'}, columns ${region.start}–${region.end}, as FASTA.`;
+      this.message(summary);$(this.root,'.ak-live').textContent=summary;
+    }catch(error){throw this.error(error);}
+  }
   private async export(kind:string) {
     if(!this.a)return;
     try{
-      const region:ExportRegion={start:this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,end:this.selection?.end??Math.min(this.a.width,Math.ceil((this.scroll.scrollLeft+this.scroll.clientWidth-this.gutter)/this.options.cellWidth)),rowIds:this.selectedRows.size?[...this.selectedRows]:[...(this.pinned?[this.a.rows[this.reference].id]:[]),...this.rows.slice(Math.floor(this.scroll.scrollTop/this.options.rowHeight),Math.ceil((this.scroll.scrollTop+this.scroll.clientHeight)/this.options.rowHeight)).map(i=>this.a!.rows[i].id)]};
+      const region=this.exportRegion(this.a);
       if(kind==='fasta-all')download(exportFasta(this.a),'alignment.fasta');
       if(kind==='fasta')download(exportFasta(this.a,region),'selection.fasta');
       if(kind==='state')download(JSON.stringify(this.getState(),null,2),'alignment-view.json','application/json');
@@ -298,6 +329,7 @@ export class AlignmentViewer {
       if(!this.a)return;const key=event.key,start=this.selection?.start??Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1;
       if(['+','=','-','_'].includes(key)){event.preventDefault();this.zoom(this.options.cellWidth+(key==='+'||key==='='?2:-2));return;}
       if(key==='Escape'){this.setSelection(null);return;}
+      if((event.ctrlKey||event.metaKey)&&!event.shiftKey&&!event.altKey&&(key.toLowerCase()==='c'||event.code==='KeyC')&&!this.root.ownerDocument.getSelection()?.toString()){event.preventDefault();void this.copySelection().catch(()=>{});return;}
       if(['ArrowLeft','ArrowRight','Home','End','ArrowUp','ArrowDown'].includes(key)){
         event.preventDefault();let column=start,rowId=this.selection?.rowId;
         if(key==='ArrowLeft')column=Math.max(1,start-1);if(key==='ArrowRight')column=Math.min(this.a.width,(event.shiftKey?this.selection?.end??start:start)+1);if(key==='Home')column=1;if(key==='End')column=this.a.width;

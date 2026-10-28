@@ -112,3 +112,28 @@ it('keeps identity ordering when a pairwise comparison starts during the sort',a
   expect(internal.rows.map((i:number)=>viewer.getAlignment()!.rows[i].name)).toEqual(['c','b']);
   expect(document.querySelector('.ak-message')!.textContent).toBe('');
 });
+it('copies the clicked row, else checked rows in display order with filtered-out rows last',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());
+  viewer.setSelection({start:2,end:3,rowId:'seq-2'});expect(viewer.getSelectionText()).toBe('>b\nTC\n');
+  (viewer as any).selectedRows=new Set(['seq-3','seq-2','seq-1']);
+  viewer.setFilter('c');viewer.setSelection({start:1,end:4});
+  expect(viewer.getSelectionText()).toBe('>a\nA-CG\n>c\nAT-G\n>b\nATCG\n');
+});
+it('writes the copy to the clipboard on Ctrl/Cmd+C and reports clipboard failures',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());viewer.setSelection({start:1,end:2,rowId:'seq-3'});
+  const writeText=vi.fn(async(_:string)=>{});Object.defineProperty(navigator,'clipboard',{value:{writeText},configurable:true});
+  const scroll=el.querySelector<HTMLElement>('.ak-scroll')!,key=new KeyboardEvent('keydown',{key:'c',metaKey:true,bubbles:true,cancelable:true});
+  scroll.dispatchEvent(key);expect(key.defaultPrevented).toBe(true);expect(writeText).toHaveBeenCalledWith('>c\nAT\n');
+  await vi.waitFor(()=>expect(el.querySelector('.ak-live')!.textContent).toBe('Copied 1 sequence, columns 1–2, as FASTA.'));
+  Reflect.deleteProperty(navigator,'clipboard');const errors=vi.fn();viewer.on('error',errors);
+  await expect(viewer.copySelection()).rejects.toThrow('secure');expect(errors).toHaveBeenCalledOnce();
+});
+it('copies at least one column in a zero-width viewer and ignores Ctrl+Shift+C',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());(viewer as any).selectedRows=new Set(['seq-2']);
+  expect(viewer.getSelectionText()).toBe('>b\nA\n');
+  const key=new KeyboardEvent('keydown',{key:'C',code:'KeyC',ctrlKey:true,shiftKey:true,bubbles:true,cancelable:true});
+  el.querySelector('.ak-scroll')!.dispatchEvent(key);expect(key.defaultPrevented).toBe(false);
+});
