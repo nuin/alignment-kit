@@ -90,6 +90,8 @@ export interface ViewerOptions {
   colorScheme?:string; colorMode?:ColorMode; cellWidth?:number; rowHeight?:number;
   labelWidth?:number; showLogo?:boolean; showInspector?:boolean; showToolbar?:boolean;
   statisticsScope?:'all'|'filtered'; workerUrl?:string|URL; worker?:boolean;
+  /** Keep location.hash in sync with the view and apply a link found there on the next load. */
+  urlSync?:boolean;
 }
 export interface ViewState {
   visibility?:ViewerVisibility;

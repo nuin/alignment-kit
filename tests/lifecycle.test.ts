@@ -137,3 +137,41 @@ it('copies at least one column in a zero-width viewer and ignores Ctrl+Shift+C',
   const key=new KeyboardEvent('keydown',{key:'C',code:'KeyC',ctrlKey:true,shiftKey:true,bubbles:true,cancelable:true});
   el.querySelector('.ak-scroll')!.dispatchEvent(key);expect(key.defaultPrevented).toBe(false);
 });
+it('applies a view link leniently and reports settings that do not fit',async()=>{
+  const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());
+  const skipped=await viewer.applyViewLink('aln=other&sel=2-3&row=seq-2&ref=seq-9&scheme=taylor&mode=consensus-matches&zoom=20&q=b');
+  expect(skipped).toEqual(['scheme','ref']);
+  const state=viewer.getState();
+  expect([state.selection,state.colorMode,state.cellWidth,state.query,state.colorScheme]).toEqual([{start:2,end:3,rowId:'seq-2'},'consensus-matches',20,'b','soft-nucleotide']);
+  expect(document.querySelector('.ak-message')!.textContent).toBe('This link was made for a different version of this alignment. Skipped link settings: scheme, ref.');
+  expect(await viewer.applyViewLink('sel=9')).toEqual(['sel']);expect(viewer.getState().selection).toBeNull();
+});
+it('restores a link from location.hash on load and keeps the hash in sync',async()=>{
+  history.replaceState(null,'','/#sel=3&row=seq-3&zoom=10');
+  const viewer=createViewer(host(),{worker:false,urlSync:true});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());
+  expect(viewer.getState().selection).toEqual({start:3,end:3,rowId:'seq-3'});expect(viewer.getState().cellWidth).toBe(10);
+  viewer.setSelection({start:1,end:2,rowId:'seq-1'});
+  await vi.waitFor(()=>expect(location.hash).toContain('sel=1-2&row=seq-1'),{timeout:2000});
+  expect(location.hash).not.toContain('src=');
+  history.replaceState(null,'','/');
+});
+it('includes src only for alignments loaded from a URL',async()=>{
+  const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());
+  const original=globalThis.fetch;vi.stubGlobal('fetch',vi.fn(async()=>new Response('>a\nACGT\n>b\nACGA')));
+  await viewer.loadUrl('https://example.org/data/a.fasta');
+  expect(new URLSearchParams(viewer.getViewLink()).get('src')).toBe('https://example.org/data/a.fasta');
+  await viewer.setAlignment(data());expect(viewer.getViewLink()).not.toContain('src=');
+  vi.stubGlobal('fetch',original);
+});
+it('ignores in-page anchors and resets missing scroll fields when applying a link',async()=>{
+  history.replaceState(null,'','/');
+  const el=host(),viewer=createViewer(el,{worker:false,urlSync:true});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());viewer.setSelection({start:2,end:2,rowId:'seq-2'});
+  history.replaceState(null,'','/#viewer');window.dispatchEvent(new HashChangeEvent('hashchange'));
+  expect(viewer.getState().selection).toEqual({start:2,end:2,rowId:'seq-2'});
+  const scroll=el.querySelector<HTMLElement>('.ak-scroll')!;Object.defineProperty(scroll,'scrollLeft',{value:96,writable:true});
+  await viewer.applyViewLink('sel=1');expect(scroll.scrollLeft).toBe(0);
+  history.replaceState(null,'','/');
+});

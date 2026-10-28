@@ -194,6 +194,12 @@ Figures preserve the palette, match/difference emphasis and annotation filters. 
 
 FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button and does not create a hosted share link.
 
+## Share a view
+
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view. A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+
+If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
+
 ## Show and hide interface elements
 
 In the Explorer, open **Customize viewer** above the alignment. Check or uncheck individual elements in the Layout, Main controls, Navigation and analysis, Tracks and residues, Sequence labels, and Inspector groups. **Restore default view** restores presentation defaults, including a hidden frequency logo. It does not reset your data, selection, filters, zoom or palette.
