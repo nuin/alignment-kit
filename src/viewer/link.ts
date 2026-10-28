@@ -22,6 +22,8 @@ export async function applyViewLink(v:Core, input:ViewLink|string):Promise<strin
   if((link.start??1)<=a.width)v.scroll.scrollLeft=v.columns.before[(link.start??1)-1]*v.options.cellWidth;else skipped.push('x');
   if((link.rowOffset??0)<Math.max(1,v.rows.length))v.scroll.scrollTop=(link.rowOffset??0)*v.options.rowHeight;else skipped.push('y');
   v.schedule();
+  if(!await v.restoreSearch(link.find,link.findMode,link.strands)&&!v.disposed&&v.a===a)skipped.push('find');
+  if(v.disposed||v.a!==a)return skipped;
   const notes=[link.alignmentId&&link.alignmentId!==a.id?'This link was made for a different version of this alignment.':'',skipped.length?`Skipped link settings: ${skipped.join(', ')}.`:''].filter(Boolean);
   if(notes.length)v.message(notes.join(' '));
   return skipped;

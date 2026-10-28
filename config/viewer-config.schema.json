@@ -329,7 +329,21 @@
             "all",
             "visible"
           ],
-          "description": "visible leaves out columns hidden by column masking in FASTA exports and copy."
+          "description": "Deprecated alias of export.columns."
+        }
+      }
+    },
+    "export": {
+      "type": "object",
+      "description": "Settings for every export and copy.",
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "enum": [
+            "all",
+            "visible"
+          ],
+          "description": "visible leaves out columns hidden by column masking in every export and copy, and marks collapsed boundaries in SVG and PNG. Default all."
         }
       }
     },

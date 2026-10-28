@@ -8,8 +8,8 @@ export function exportRegion(v:Core, a:Alignment):ExportRegion {
   const m=v.columns,start=v.selection?.start??v.firstColumn()+1;
   return {start,end:v.selection?.end??Math.max(start,(m.cols[Math.max(0,Math.min(m.count,Math.ceil((v.scroll.scrollLeft+v.scroll.clientWidth-v.gutter)/v.options.cellWidth))-1)]??a.width-1)+1),rowIds:v.selectedRows.size?[...v.selectedRows]:[...(v.pinned?[a.rows[v.reference].id]:[]),...v.rows.slice(Math.floor(v.scroll.scrollTop/v.options.rowHeight),Math.ceil((v.scroll.scrollTop+v.scroll.clientHeight)/v.options.rowHeight)).filter(i=>i>=0).map(i=>a.rows[i].id)]};
 }
-/** Attach the column mask when `visible` is set or the FASTA option columns is 'visible'. */
-export function fastaRegion(v:Core, region:ExportRegion,visible=v.options.fasta.columns==='visible'):ExportRegion {return visible?{...region,columns:v.columns.mask}:region;}
+/** Attach the column mask when `visible` is set or the export option columns is 'visible'. Applies to every export and copy. */
+export function fastaRegion(v:Core, region:ExportRegion,visible=v.options.export.columns==='visible'):ExportRegion {return visible?{...region,columns:v.columns.mask}:region;}
 /** Rows to copy: checked rows in display order (filtered-out ones last), else the selected row, else the export rows. */
 export function copyRegion(v:Core, a:Alignment):ExportRegion {
   const region=v.exportRegion(a);
@@ -53,17 +53,17 @@ export function fastaPanel(v:Core, open:boolean):void {
 export async function exportKind(v:Core, kind:string):Promise<void> {
   if(!v.a)return;
   try{
-    const region=v.exportRegion(v.a);
+    const region=v.exportRegion(v.a),masked=v.fastaRegion(region);
     if(kind==='fasta-all')download(exportFasta(v.a,v.fastaRegion({}),v.options.fasta),'alignment.fasta');
-    if(kind==='fasta')download(exportFasta(v.a,v.fastaRegion(region),v.options.fasta),'selection.fasta');
+    if(kind==='fasta')download(exportFasta(v.a,masked,v.options.fasta),'selection.fasta');
     if(kind==='fasta-visible')download(exportFasta(v.a,v.fastaRegion({},true),v.options.fasta),'visible-columns.fasta');
     const text=textExports[kind.replace(/-all$/,'')];
-    if(text)download(text.write(v.a,kind.endsWith('-all')?{}:region),`${kind.endsWith('-all')?'alignment':'selection'}.${text.ext}`);
+    if(text)download(text.write(v.a,kind.endsWith('-all')?v.fastaRegion({}):masked),`${kind.endsWith('-all')?'alignment':'selection'}.${text.ext}`);
     if(kind==='state')download(JSON.stringify(v.getState(),null,2),'alignment-view.json','application/json');
     if(['svg','png','tsv','consensus'].includes(kind)&&!v.stats)throw new Error('Wait for column statistics to finish before exporting.');
-    if(kind==='consensus')download(v.consensusFasta(region.start!,region.end!,v.options.fasta.columns==='visible'),'consensus.fasta');
-    if(kind==='tsv')download(exportStatistics(v.stats!),'column-statistics.tsv','text/tab-separated-values');
-    if(kind==='svg')download(exportSvg({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,referenceId:v.a.rows[v.reference].id}),'alignment.svg','image/svg+xml');
-    if(kind==='png')download(await exportPng({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,referenceId:v.a.rows[v.reference].id}),'alignment.png');
+    if(kind==='consensus')download(v.consensusFasta(region.start!,region.end!,v.options.export.columns==='visible'),'consensus.fasta');
+    if(kind==='tsv')download(exportStatistics(v.stats!,v.fastaRegion({})),'column-statistics.tsv','text/tab-separated-values');
+    if(kind==='svg')download(exportSvg({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,masked,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,referenceId:v.a.rows[v.reference].id}),'alignment.svg','image/svg+xml');
+    if(kind==='png')download(await exportPng({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,masked,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,referenceId:v.a.rows[v.reference].id}),'alignment.png');
   }catch(error){v.error(error);}
 }

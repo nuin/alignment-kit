@@ -1,5 +1,5 @@
 import { defaultVisibility } from './visibility';
-import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack } from './types';
+import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type SearchMode, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack } from './types';
 import { AnnotationIndex, filterAnnotations } from './annotations';
 import { ThemedSelects } from './selects';
 import { Renderer, type RenderView, type GroupInfo, type TreeHit } from './renderer';
@@ -82,7 +82,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,...options,fasta:{},export:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -182,12 +182,13 @@ export class AlignmentViewer {
   getSearchHits():Hit[] {return [...(this.searchState?.result.hits??[])];}
   clearSearch():void {modFind.clearSearch(this.core);}
   private dropSearch():void {modFind.dropSearch(this.core);}
+  private restoreSearch(pattern:string|undefined,mode?:SearchMode,strands?:'both'|'forward'):Promise<boolean> {return modFind.restoreSearch(this.core, pattern, mode, strands);}
   private runSearch(pattern:string,options:SearchOptions,refilter=false):Promise<SearchState> {return modFind.runSearch(this.core, pattern, options, refilter);}
   private goToHit(index:number):void {modFind.goToHit(this.core, index);}
   /** Search for `motif` if it is not the active search, then select the next (1) or previous (-1) hit, wrapping around. Resolves true when it started a new search. Errors go to the status line and the `error` event. */
   findMotif(motif:string,direction:1|-1=1):Promise<boolean> {return modFind.findMotif(this.core, motif, direction);}
   private exportRegion(a:Alignment):ExportRegion {return modOutput.exportRegion(this.core, a);}
-  private fastaRegion(region:ExportRegion,visible=this.options.fasta.columns==='visible'):ExportRegion {return modOutput.fastaRegion(this.core, region, visible);}
+  private fastaRegion(region:ExportRegion,visible=this.options.export.columns==='visible'):ExportRegion {return modOutput.fastaRegion(this.core, region, visible);}
   private copyRegion(a:Alignment):ExportRegion {return modOutput.copyRegion(this.core, a);}
   private copyPayload():{text:string;region:ReturnType<typeof resolveRegion>} {return modOutput.copyPayload(this.core);}
   /** Consensus over all columns from the current statistics scope; `threshold` defaults to the consensusThreshold option. */

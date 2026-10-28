@@ -109,7 +109,7 @@ To hide columns by hand, select them (click, then Shift+click, or Shift+arrows) 
 
 Selections, search hits, features, Go to and the Position tab keep using original columns. A selection that crosses a boundary still includes the hidden columns inside it. Go to a hidden column shows a message instead of moving. A search hit inside hidden columns is still selected, and the status line says it is hidden. Gap-based hiding is not saved in links or view state. Arrow keys skip hidden columns. Statistics and the consensus still use all columns.
 
-To export only what you see, choose **Export > Visible columns · FASTA**, or set **FASTA options > Columns** to **Visible columns only** so that FASTA exports, the consensus export and Ctrl/Cmd+C leave hidden columns out. The default exports always include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
+To export only what you see, choose **Export > Visible columns · FASTA**, or tick **Export options… > Visible columns only**. The checkbox applies to every export (FASTA, CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG, PNG, column statistics TSV, consensus) and to Ctrl/Cmd+C. In SVG and PNG figures the hidden columns collapse and a dashed red line marks each collapsed boundary; hover it in the SVG to see which columns are hidden. With the box cleared, exports include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
 
 ## Find sequences and motifs
 
@@ -267,9 +267,9 @@ Use the **Export** menu:
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
 | Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers, plus `entropy_bits`, `information_bits` and `quality` (`NA` when undefined). |
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
-| FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name) and columns (all, or visible only). Press **Done** or Escape to close it. |
+| Export options… | Opens a panel with **Visible columns only** (all exports) and the FASTA settings: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name). Press **Done** or Escape to close it. |
 
-FASTA options apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. Only FASTA can leave out hidden columns. CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG and PNG exports always include hidden columns. They last until the page is reloaded.
+**Visible columns only** applies to every export except View state · JSON, and to **Ctrl/Cmd+C**. The FASTA settings apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. They last until the page is reloaded.
 
 For selection exports, a selected column range takes precedence over the horizontal viewport. Checked rows take precedence over the vertical viewport. Without checked rows, export uses the pinned reference plus the currently visible scrolling rows. A checked row hidden by a name filter remains part of the export. Clear checked rows when you want a viewport-only export.
 
@@ -282,7 +282,7 @@ Tick **Dots for matches** in the second toolbar row to draw each residue that eq
 
 ## Share a view
 
-In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`) and the motif search (`find=N-{P}-[ST]-{P}`, plus `findmode=regex` or `strands=forward` when they are not the defaults). The search runs again after the alignment loads, so its hits appear a moment later. A link to a file you opened from your computer restores the view only; the recipient must open the same file.
 
 If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
 

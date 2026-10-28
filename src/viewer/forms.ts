@@ -19,7 +19,7 @@ export function bindForms(v:Core,on:On):void {
     if(aria==='FASTA letter case')v.setOptions({fasta:{letterCase:target.value as 'original'|'upper'|'lower'}});
     if(aria==='FASTA line width')v.setOptions({fasta:{lineWidth:Number(target.value)}});
     if(aria==='FASTA header')v.setOptions({fasta:{header:target.value as 'name'|'name-species'|'id-name'}});
-    if(aria==='FASTA columns')v.setOptions({fasta:{columns:target.value as 'all'|'visible'}});
+    if(aria==='Visible columns only')v.setOptions({export:{columns:target.checked?'visible':'all'}});
     if(aria==='Sequence alphabet'&&v.a)v.requestAlphabet(target.value as Alphabet);
     if(aria==='Feature type')v.setAnnotationFilter({...v.annotationFilter,types:target.value?[target.value]:[]});
     if(aria==='Feature consequence')v.setAnnotationFilter({...v.annotationFilter,consequences:target.value?[target.value]:[]});

@@ -1,7 +1,7 @@
 import { type ViewerVisibility, type ViewerOptions, type CustomTrack } from '../types';
 import { getColorScheme, colorSchemes } from '../colors';
 import { $ } from '../controls';
-import { validateFastaOptions } from '../export';
+import { validateFastaOptions, validateExportOptions } from '../export';
 import { validateTracks } from '../tracks';
 import { type Core, bounded } from './core';
 export function setOptions(v:Core, options:ViewerOptions):void {
@@ -13,18 +13,19 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   const maskSig=()=>`${v.options.hideGapColumns}|${v.options.hideAllGapColumns}`,maskBefore=maskSig(),anchor=v.a?v.firstColumn():0;
   const oldScope=v.options.statisticsScope;
   const wasPinned=v.pinned;
-  const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,groupBy,...visual}=options;
+  const {alignment:_,worker:__,workerUrl:___,visibility,fasta,export:exportOptions,tracks,groupBy,...visual}=options;
   if(visual.logoMode!==undefined&&visual.logoMode!=='frequency'&&visual.logoMode!=='bits')throw v.error(new Error('logoMode must be "frequency" or "bits".'));
   let validTracks:CustomTrack[]|undefined;
   if(tracks!==undefined){try{validTracks=validateTracks(tracks);}catch(error){throw v.error(error);}}
   if(validTracks){v.customTracks=validTracks;v.trackErrors.clear();v.checkTracks();v.trackKey='';}
-  const mergedFasta=fasta?validateFastaOptions({...v.options.fasta,...fasta}):v.options.fasta;
+  const {columns:fastaColumns,...mergedFasta}=fasta?validateFastaOptions({...v.options.fasta,...fasta}):v.options.fasta;
+  const mergedExport=validateExportOptions({...v.options.export,...(exportOptions?validateExportOptions(exportOptions):fastaColumns?{columns:fastaColumns}:{})});
   if(options.showToolbar!==undefined){v.visibility.toolbar=options.showToolbar;v.visibility.tools=options.showToolbar;}
   if(options.showInspector!==undefined)v.visibility.inspector=options.showInspector;
   if(options.showLogo!==undefined)v.visibility.logo=options.showLogo;
   for(const key of Object.keys(visibility??{}) as (keyof ViewerVisibility)[])if(typeof visibility![key]==='boolean')v.visibility[key]=visibility![key]!;
   v.menus.close();v.ensureTab();
-  Object.assign(v.options,visual);v.options.fasta=mergedFasta;
+  Object.assign(v.options,visual);v.options.fasta=mergedFasta;v.options.export=mergedExport;
   v.options.showInspector=v.visibility.inspector;v.options.showLogo=v.visibility.logo;
   if(v.a&&!colorSchemes(v.a.alphabet).some(s=>s.id===v.options.colorScheme))v.options.colorScheme=v.a.alphabet==='protein'?'soft':'soft-nucleotide';
   v.options.cellWidth=bounded(v.options.cellWidth,3,32);v.options.rowHeight=bounded(v.options.rowHeight,18,48);v.options.labelWidth=bounded(v.options.labelWidth,100,420);v.options.height=bounded(v.options.height,360,2000);v.options.consensusThreshold=bounded(v.options.consensusThreshold,0,1);{const w=Math.round(bounded(v.options.conservationWindow,1,51));v.options.conservationWindow=w%2?w:w-1;}v.options.treeWidth=bounded(v.options.treeWidth,0,400);
@@ -41,7 +42,7 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   const f=v.options.fasta,width=$<HTMLSelectElement>(v.root,'[aria-label="FASTA line width"]'),lineWidth=String(f.lineWidth??80);
   if(![...width.options].some(o=>o.value===lineWidth))width.add(new Option(lineWidth,lineWidth));
   width.value=lineWidth;$<HTMLSelectElement>(v.root,'[aria-label="FASTA gaps"]').value=f.gaps??'keep';
-  $<HTMLSelectElement>(v.root,'[aria-label="FASTA letter case"]').value=f.letterCase??'original';$<HTMLSelectElement>(v.root,'[aria-label="FASTA header"]').value=f.header??'name';$<HTMLSelectElement>(v.root,'[aria-label="FASTA columns"]').value=f.columns??'all';
+  $<HTMLSelectElement>(v.root,'[aria-label="FASTA letter case"]').value=f.letterCase??'original';$<HTMLSelectElement>(v.root,'[aria-label="FASTA header"]').value=f.header??'name';$<HTMLInputElement>(v.root,'[aria-label="Visible columns only"]').checked=v.options.export.columns==='visible';
   v.labelKey='';v.overviewDirty=true;v.inspectorDirty=true;v.layout();
   if(masked){v.scroll.scrollLeft=v.columns.before[Math.min(anchor,Math.max(0,v.columns.width-1))]*v.options.cellWidth;v.emit('state',v.getState());}
   const focused=v.root.ownerDocument.activeElement as HTMLElement|null;

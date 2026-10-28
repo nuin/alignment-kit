@@ -1,5 +1,5 @@
 import { mergeColumnRanges } from './mask';
-import type { ColorMode, RulerCoordinates, Selection, ViewState } from './types';
+import type { ColorMode, RulerCoordinates, SearchMode, Selection, ViewState } from './types';
 
 /** View fields a shareable link can carry. Annotation filters and visibility stay out of links. */
 export interface ViewLink {
@@ -8,13 +8,19 @@ export interface ViewLink {
   sort?:ViewState['sort']; statisticsScope?:ViewState['statisticsScope']; start?:number; rowOffset?:number; rulerCoordinates?:RulerCoordinates;
   /** Manually hidden columns, from `hide=10-20,30-35`. */
   hiddenColumns?:[number,number][];
+  /** Motif search to rerun after the link applies, from `find=N-{P}-[ST]-{P}`; `findmode` and `strands` refine it. */
+  find?:string; findMode?:SearchMode; strands?:'both'|'forward';
   /** Parameter names present in the link but malformed. */
   ignored?:string[];
 }
 const modes:ColorMode[]=['all','reference-differences','reference-matches','consensus-differences','consensus-matches'];
 const sorts:ViewState['sort'][]=['input','name','identity','tree'];
 const scopes:ViewState['statisticsScope'][]=['all','filtered'];
-const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide'];
+const findModes:SearchMode[]=['literal','iupac','regex','prosite'];
+const strandChoices=['both','forward'] as const;
+/** Longest `find` pattern a link carries; longer ones are ignored. */
+const maxFind=500;
+const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide','find'];
 /** True when a fragment or query holds at least one link parameter; plain anchors such as `#viewer` do not. */
 export const isViewLink=(input:string):boolean=>{const p=new URLSearchParams(input.replace(/^[#?]/,''));return keys.some(key=>key==='ruler'?!!p.get(key):p.has(key));};
 
@@ -34,6 +40,11 @@ export function encodeViewLink(state:ViewState,source?:string):string {
   if(state.statisticsScope!=='all')p.set('scope',state.statisticsScope);
   if(state.rulerCoordinates==='reference')p.set('ruler','ref');
   if(state.hiddenColumns?.length)p.set('hide',state.hiddenColumns.map(([s,e])=>s===e?String(s):`${s}-${e}`).join(','));
+  if(state.find){
+    p.set('find',state.find);
+    if(state.findMode&&state.findMode!=='auto')p.set('findmode',state.findMode);
+    if(state.strands&&state.strands!=='both')p.set('strands',state.strands);
+  }
   if(state.start>1)p.set('x',String(state.start));
   if(state.rowOffset>0)p.set('y',String(state.rowOffset));
   return p.toString();
@@ -58,6 +69,14 @@ export function decodeViewLink(input:string):ViewLink {
     const parts=hide.split(',').map(part=>part.match(/^(\d+)(?:-(\d+))?$/)),ranges=parts.map(m=>m&&[Number(m[1]),Number(m[2]??m[1])] as [number,number]);
     if(ranges.length&&ranges.every(r=>r&&r[0]>=1&&r[1]>=r[0]))link.hiddenColumns=mergeColumnRanges(ranges as [number,number][]);else ignored.push('hide');
   }
+  const find=p.get('find');
+  if(find!==null){
+    if(find&&find.length<=maxFind){
+      link.find=find;
+      const mode=p.get('findmode');if(mode!==null){if(findModes.includes(mode as SearchMode))link.findMode=mode as SearchMode;else ignored.push('findmode');}
+      const strands=p.get('strands');if(strands!==null){if((strandChoices as readonly string[]).includes(strands))link.strands=strands as 'both'|'forward';else ignored.push('strands');}
+    }else ignored.push('find');
+  }else for(const key of ['findmode','strands'])if(p.has(key))ignored.push(key);
   link.cellWidth=int('zoom',1);link.start=int('x',1);link.rowOffset=int('y',0);
   for(const key of Object.keys(link) as (keyof ViewLink)[])if(link[key]===undefined)delete link[key];
   if(ignored.length)link.ignored=ignored;
