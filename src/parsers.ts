@@ -18,7 +18,7 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
         current.sequence+=line.replace(/\s/g,'');
       }
     });
-  } else if(format==='phylip') rows.push(...parsePhylip(clean,warnings));
+  } else if(format==='phylip') rows.push(...parsePhylip(clean));
   else if(format==='pir') rows.push(...parsePir(clean,lines));
   else if(format==='msf') {const msf=parseMsf(clean);rows.push(...msf.rows);options={...options,alphabet:options.alphabet??msf.alphabet};}
   else if(format==='nexus') {const nexus=parseNexus(clean);rows.push(...nexus.rows);options={...options,alphabet:options.alphabet??nexus.alphabet};}
@@ -58,12 +58,12 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
         continue;
       }
       if(format==='clustal' && /^\s+[*:.\s]+$/.test(line)) continue;
-      const m=line.trim().match(/^(\S+)\s+([A-Za-z.*-]+)(?:\s+\d+)?\s*$/);
+      const m=line.trim().match(/^(\S+)\s+(\S+)(?:\s+\d+)?\s*$/);
       if(!m) throw new Error(`Malformed ${format} sequence at line ${i+1}.`);
       const [,name,sequence]=m;
       if(block.has(name))throw new Error(`Duplicate sequence “${name}” in alignment block at line ${i+1}. Separate interleaved blocks with a blank line.`);
       block.set(name,sequence.length);
-      if(!byName.has(name)) {const row={name,sequence:''};byName.set(name,row);rows.push(row);}
+      if(!byName.has(name)) {const row={name,sequence:''};byName.set(name,row);rows.push(row);lines.push(i+1);}
       byName.get(name)!.sequence+=sequence;
     }
     finishBlock();
@@ -127,12 +127,11 @@ const checkRows=(rows:SequenceInput[],n:number|undefined,m:number|undefined,labe
   if((n!==undefined&&rows.length!==n)||rows.some(r=>!r.name||(m!==undefined&&r.sequence.length!==m)))throw new Error(`${label} does not contain ${n??'the expected number of'} sequences of ${m??'equal'} columns.`);
   return rows;
 };
-function parsePhylip(text:string,warnings:ParseWarning[]):SequenceInput[] {
+function parsePhylip(text:string):SequenceInput[] {
   const [head,...body]=text.split(/\r?\n/).filter(l=>l.trim()),h=head.trim().split(/\s+/),n=Number(h[0]),m=Number(h[1]);
   if(!(n>0&&m>0))throw new Error('Malformed PHYLIP header. Expected the sequence count and the column count.');
-  const marked=new Set<number>();
-  const attempt=(strict:boolean,interleaved:boolean)=>{
-    marked.clear();const rows:SequenceInput[]=[],named=(line:string)=>{if(strict&&line.length>10&&!/\s/.test(line.slice(0,10)))marked.add(rows.length);const [name,rest]=strict?[line.slice(0,10).trim(),line.slice(10)]:line.trim().match(/^(\S+)\s*(.*)$/)!.slice(1);return {name,sequence:strip(rest)};};
+    const attempt=(strict:boolean,interleaved:boolean)=>{
+    const rows:SequenceInput[]=[],named=(line:string)=>{const [name,rest]=strict?[line.slice(0,10).trim(),line.slice(10)]:line.trim().match(/^(\S+)\s*(.*)$/)!.slice(1);return {name,sequence:strip(rest)};};
     for(const [i,line] of body.entries()) {
       if(interleaved){if(i<n)rows.push(named(line));else rows[(i-n)%n].sequence+=strip(line);}
       else if(rows.length&&rows[rows.length-1].sequence.length<m)rows[rows.length-1].sequence+=strip(line);
@@ -141,9 +140,7 @@ function parsePhylip(text:string,warnings:ParseWarning[]):SequenceInput[] {
     return checkRows(rows,n,m,'PHYLIP data');
   };
   for(const [strict,interleaved] of [[false,false],[false,true],[true,false],[true,true]])try{
-    const rows=attempt(strict,interleaved);
-    if(strict)for(const i of marked)warnings.push({code:'name-truncated',message:`The 10-character name field of “${rows[i].name}” is full; a longer name may have been cut at 10 characters.`,rowId:`seq-${i+1}`});
-    return rows;
+    return attempt(strict,interleaved);
   }catch{}
   throw new Error(`Malformed PHYLIP alignment. Expected ${n} sequences of ${m} columns, with relaxed or 10-character names, sequential or interleaved.`);
 }

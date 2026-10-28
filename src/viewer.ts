@@ -131,7 +131,7 @@ export class AlignmentViewer {
   private loadInput(input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {return modLoad.loadInput(this.core, input, options, source);}
   loadUrl(url:string,options:ParseOptions={}):Promise<void> {return modLoad.loadUrl(this.core, url, options);}
   async setAlignment(alignment:Alignment):Promise<void> {return this.replace(alignment);}
-  private replace(alignment:Alignment,carry?:Carry):Promise<void> {return modLoad.replace(this.core, alignment, carry);}
+  private replace(alignment:Alignment,carry?:Carry,quiet?:boolean):Promise<void> {return modLoad.replace(this.core, alignment, carry, quiet);}
   setOptions(options:ViewerOptions):void {modOptions.setOptions(this.core, options);}
   private updateStats():Promise<void> {return modStats.updateStats(this.core);}
   private orderAll():number[] {return modRows.orderAll(this.core);}

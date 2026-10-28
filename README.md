@@ -337,12 +337,11 @@ Recoverable problems no longer fail a load. The parser repairs them and lists th
 | Code | Case | Repair |
 |---|---|---|
 | `duplicate-id` | FASTA, PHYLIP or PIR rows with the same name | Later rows get `_2`, `_3` and so on (next free number) |
-| `invalid-residue` | FASTA, PHYLIP, PIR, MSF or NEXUS characters other than letters, `*`, `-` and `.` | Replaced by `N` for nucleotide input, `X` otherwise (the `alphabet` option decides when given); one warning per row |
+| `invalid-residue` | FASTA, Stockholm, CLUSTAL, PHYLIP, PIR, MSF or NEXUS characters other than letters, `*`, `-` and `.` | Replaced by `N` for nucleotide input, `X` otherwise (the `alphabet` option decides when given); one warning per row |
 | `unequal-length` | Rows of different length, only with the `padShort` parse option (FASTA, PIR, MSF) | Short rows padded with trailing gaps; without `padShort` the load still fails |
-| `name-truncated` | PHYLIP read with 10-character name fields whose field is full | Name kept as read; the warning says it may have been cut |
 | `unknown-stockholm-tag` | A `#=GF`, `#=GS`, `#=GR` or `#=GC` tag outside the Stockholm standard set, or a `#=` line of another kind | Kept in `metadata.stockholm` (or `metadata.headers`); one warning per tag |
 
-The viewer shows a warnings badge in the status bar (`visibility.warnings`). Clicking it lists the warnings in the message area, so `visibility.messages` must be on. The `warnings` event fires after each load with the same list, and `getWarnings()` returns it. Stockholm export writes back comments and every `#=GF`, `#=GS`, `#=GR` and `#=GC` line, cut to the exported rows and columns.
+The viewer shows a warnings badge in the status bar (`visibility.warnings`). Clicking it lists the warnings in the message area, also when `visibility.messages` is off. The `warnings` event fires after each load (not after `removeRows` or an alphabet switch) with the same list, and `getWarnings()` returns the current list. `removeRows` drops the warnings of the removed rows. A strict PHYLIP name that fills all 10 characters is read as is with no warning, because a longer name would have shifted the sequence columns and failed the load. Stockholm export writes back comments and every `#=GF`, `#=GS`, `#=GR` and `#=GC` line, cut to the exported rows and columns.
 
 ## Hide columns
 

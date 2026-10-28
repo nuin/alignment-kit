@@ -45,12 +45,11 @@ Remote URL loading is available through the JavaScript API, not a separate URL f
 A file with fixable problems still opens. A **N warnings** button appears at the right of the status bar. Click it to list each warning in the message area with its code, the row and the line number; **Close** dismisses the list.
 
 - `duplicate-id`: two FASTA, PHYLIP or PIR rows had the same name. The later ones were renamed with `_2`, `_3`.
-- `invalid-residue`: a character such as `?` or a digit was replaced by `N` (nucleotides) or `X` (protein).
+- `invalid-residue`: in any format, a character such as `?` or a digit was replaced by `N` (nucleotides) or `X` (protein).
 - `unequal-length`: rows were padded with gaps. This happens only when the page that embeds the viewer asks for it.
-- `name-truncated`: a 10-character PHYLIP name may have been cut.
 - `unknown-stockholm-tag`: a `#=GF`, `#=GS`, `#=GR` or `#=GC` tag this viewer does not know was kept. Stockholm export writes it back.
 
-The badge is hidden when there are no warnings. Embedding applications can turn it off with `visibility.warnings`.
+The list shows even when the embedding page hides the message area. The badge is hidden when there are no warnings, and removing a row drops its warnings. Embedding applications can turn it off with `visibility.warnings`.
 
 ## Choose Protein, DNA or RNA
 

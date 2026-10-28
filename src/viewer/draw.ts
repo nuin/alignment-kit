@@ -26,7 +26,7 @@ export function layout(v:Core):void {
   const key=extra.map((t,i)=>`${t.id}|${t.label}|${tracks.custom[i]?.offset}`).join('\n');
   if(key!==v.trackKey){v.trackKey=key;for(const old of strip.querySelectorAll('.ak-custom-label'))old.remove();
     extra.forEach((t,i)=>{const slot=tracks.custom[i];if(!slot)return;const node=document.createElement('span');node.className='ak-custom-label';node.textContent=t.label;node.title=t.label;node.style.top=(slot.offset+Math.max(0,(slot.height-20)/2))+'px';strip.append(node);});}
-  const message=$(v.root,'.ak-message');message.hidden=(!v.visibility.messages&&!v.pendingAlphabet)||!message.textContent;
+  const message=$(v.root,'.ak-message');message.hidden=(!v.visibility.messages&&!v.pendingAlphabet&&message.dataset.list!=='true')||!message.textContent;
   const spacer=$(v.root,'.ak-spacer');spacer.style.width=(gutter+v.columns.count*v.options.cellWidth)+'px';spacer.style.height=Math.max(1,v.rows.length*rh)+'px';
   $(v.root,'.ak-empty').hidden=!v.visibility.emptyState||(!!v.a&&v.rows.length>0);
   if(v.a&&!v.rows.length)$(v.root,'.ak-empty').textContent=v.hidden.size&&!v.filteredRows.length&&!v.query?'No sequences are visible. Use Show hidden to restore them.':v.pinned?(v.filteredRows.length?'The reference is pinned above.':'No sequences match this filter. The reference remains pinned.'):'No sequences match this filter.';

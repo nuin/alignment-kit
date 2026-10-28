@@ -41,11 +41,16 @@ it('rejects unequal lengths unless padShort is set, then pads and warns per row'
   expect(parseAlignment('>a\nAC\n>b\nACGT',{padShort:true}).rows.map(r=>r.sequence)).toEqual(['AC--','ACGT']);
   expect(codes('>a\nACGT\n>b\nACGA',{padShort:true})).toEqual([]);
 });
-it('warns when a strict PHYLIP name field is full',()=>{
-  const a=parseAlignment('2 4\nabcdefghijACGT\nklmnopqrstACGA',{format:'phylip'});
-  expect(a.metadata.warnings!.map(w=>w.code)).toEqual(['name-truncated','name-truncated']);
-  expect(a.metadata.warnings![1].rowId).toBe('seq-2');
+it('reads strict PHYLIP names that fill all 10 characters without a warning',()=>{
+  const a=parseAlignment('2 12\nabcdefghijACGTACGTACGT\nklmnopqrstACGTACGTACGT');
+  expect(a.rows.map(r=>r.name)).toEqual(['abcdefghij','klmnopqrst']);expect(a.metadata.warnings).toBeUndefined();
   expect(codes('2 4\none ACGT\ntwo ACGA')).toEqual([]);
+});
+it('repairs invalid residues in Stockholm and CLUSTAL with a warning and line number',()=>{
+  const s=parseAlignment('# STOCKHOLM 1.0\na ACG1\nb ACGT\n//');
+  expect(s.rows.map(r=>r.sequence)).toEqual(['ACGN','ACGT']);expect(s.metadata.warnings).toEqual([expect.objectContaining({code:'invalid-residue',rowId:'seq-1',line:2})]);
+  const c=parseAlignment('CLUSTAL W\n\na ACG?T 5\nb ACGTT 5\n         ***:*');
+  expect(c.rows.map(r=>r.sequence)).toEqual(['ACGNT','ACGTT']);expect(c.metadata.warnings).toEqual([expect.objectContaining({code:'invalid-residue',rowId:'seq-1',line:3})]);
 });
 it('leaves clean input without a warnings entry',()=>{
   expect(parseAlignment('>a\nACGT\n>b\nACGA').metadata.warnings).toBeUndefined();
@@ -171,4 +176,24 @@ it('getVisibleColumns reports the original columns at the viewport edges',async(
   viewer.scrollToColumn(3);expect(viewer.getVisibleColumns()).toEqual({start:3,end:4});
   viewer.hideColumns(2,3);x.scroll.scrollLeft=x.options.cellWidth;
   expect(viewer.getVisibleColumns()).toEqual({start:4,end:4});
+});
+
+it('keeps stale warnings out of row removal and alphabet switches',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false}),seen:unknown[][]=[];disposers.push(()=>viewer.destroy());
+  viewer.on('warnings',w=>seen.push(w));
+  await viewer.load('>a\nACGT\n>a\nACGA\n>b\nAC?T');
+  expect(seen).toHaveLength(1);expect(viewer.getWarnings().map(w=>w.rowId)).toEqual(['seq-3','seq-2']);
+  await viewer.removeRows(['seq-2']);
+  expect(viewer.getWarnings().map(w=>w.rowId)).toEqual(['seq-3']);expect(seen).toHaveLength(1);
+  expect(el.querySelector('.ak-warnings')!.textContent).toBe('1 warning');
+  (viewer as any).applyAlphabet('rna');await new Promise(r=>setTimeout(r,0));
+  expect(seen).toHaveLength(1);expect(viewer.getWarnings()).toHaveLength(1);
+  await viewer.removeRows(['seq-3']);expect(viewer.getWarnings()).toEqual([]);expect(el.querySelector<HTMLElement>('.ak-warnings')!.hidden).toBe(true);
+});
+it('lists warnings from the badge even when visibility.messages is off',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false,visibility:{messages:false}});disposers.push(()=>viewer.destroy());
+  await viewer.load('>a\nAC?T\n>b\nACGT');
+  const badge=el.querySelector<HTMLButtonElement>('.ak-warnings')!,message=el.querySelector<HTMLElement>('.ak-message')!;
+  expect(badge.hidden).toBe(false);badge.click();(viewer as any).layout();
+  expect(message.hidden).toBe(false);expect(message.querySelectorAll('li')).toHaveLength(1);
 });

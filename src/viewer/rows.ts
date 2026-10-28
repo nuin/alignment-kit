@@ -1,4 +1,4 @@
-import { type ViewState } from '../types';
+import { type AlignmentMetadata, type ViewState } from '../types';
 import { createAlignment } from '../model';
 import { $ } from '../controls';
 import { type Core, bounded } from './core';
@@ -62,12 +62,13 @@ export function moveRow(v:Core, id:string,index:number):void {
   v.rowIndexes([id]);const order=v.getRowOrder().filter(x=>x!==id);order.splice(bounded(index,0,order.length),0,id);
   v.manualOrder=order;v.sort='manual';$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value='manual';v.rebuildRows();v.emit('state',v.getState());
 }
+const dropWarnings=(m:AlignmentMetadata,drop:Set<string>):AlignmentMetadata=>{const kept=m.warnings?.filter(w=>!w.rowId||!drop.has(w.rowId));return kept?.length===m.warnings?.length?m:{...m,warnings:kept?.length?kept:undefined};};
 export async function removeRows(v:Core, ids:string[]):Promise<void> {
   v.assertAlive();const a=v.a;v.rowIndexes(ids);const drop=new Set(ids);
   if(!drop.size)return;if(drop.size>=a!.rows.length)throw new Error('At least one sequence must remain.');
-  const next=createAlignment(a!.rows.filter(r=>!drop.has(r.id)),{name:a!.name,alphabet:a!.alphabet,metadata:a!.metadata,annotations:a!.annotations.filter(x=>!x.rowId||!drop.has(x.rowId))});
+  const next=createAlignment(a!.rows.filter(r=>!drop.has(r.id)),{name:a!.name,alphabet:a!.alphabet,metadata:dropWarnings(a!.metadata,drop),annotations:a!.annotations.filter(x=>!x.rowId||!drop.has(x.rowId))});
   const filter=v.annotationFilter,selected=v.selection?.rowId;
-  await v.replace(next,{reference:a!.rows[v.reference].id,selection:selected&&drop.has(selected)?null:v.selection,selectedRows:[...v.selectedRows],query:v.query,sort:v.sort==='identity'?'input':v.sort,hidden:[...v.hidden],manualOrder:v.manualOrder,collapsed:[...v.collapsed],groupMap:v.groupMap,tree:v.tree?.layout,annotationFilter:{...filter,hiddenRowIds:filter.hiddenRowIds?.filter(id=>!drop.has(id))},hiddenColumns:v.manualHidden});
+  await v.replace(next,{reference:a!.rows[v.reference].id,selection:selected&&drop.has(selected)?null:v.selection,selectedRows:[...v.selectedRows],query:v.query,sort:v.sort==='identity'?'input':v.sort,hidden:[...v.hidden],manualOrder:v.manualOrder,collapsed:[...v.collapsed],groupMap:v.groupMap,tree:v.tree?.layout,annotationFilter:{...filter,hiddenRowIds:filter.hiddenRowIds?.filter(id=>!drop.has(id))},hiddenColumns:v.manualHidden},true);
   if(v.a===next&&v.tree?.note)v.message(v.tree.note);
 }
 export function setGroups(v:Core, groups:Record<string,string>|null):void {

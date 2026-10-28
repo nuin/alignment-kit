@@ -8,8 +8,8 @@ export interface Annotation {
   color?: string; mapping: 'mapped' | 'unmapped'; metadata?: Record<string, unknown>;
 }
 export interface Provenance { url?: string; retrieved?: string; sha256?: string; description?: string }
-/** `duplicate-id` (name renamed with a numeric suffix), `name-truncated` (strict PHYLIP name field), `invalid-residue` (character replaced by N or X), `unequal-length` (row padded with gaps, only with `padShort`), `unknown-stockholm-tag` (tag kept in metadata). `line` is one-based; `rowId` is the ID the row has in the alignment. */
-export type ParseWarningCode = 'duplicate-id'|'name-truncated'|'invalid-residue'|'unequal-length'|'unknown-stockholm-tag';
+/** `duplicate-id` (name renamed with a numeric suffix), `invalid-residue` (character replaced by N or X), `unequal-length` (row padded with gaps, only with `padShort`), `unknown-stockholm-tag` (tag kept in metadata). `line` is one-based; `rowId` is the ID the row has in the alignment. */
+export type ParseWarningCode = 'duplicate-id'|'invalid-residue'|'unequal-length'|'unknown-stockholm-tag';
 export interface ParseWarning { code:ParseWarningCode; message:string; line?:number; rowId?:string }
 export interface AlignmentMetadata {
   format?: string; warnings?: ParseWarning[]; source?: Provenance; headers?: string[];

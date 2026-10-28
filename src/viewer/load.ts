@@ -28,7 +28,8 @@ export async function loadUrl(v:Core, url:string,options:ParseOptions={}):Promis
     await v.loadInput(bytes,{...options,source:options.source??{url:parsed.href,retrieved:new Date().toISOString()}},parsed.href);
   }catch(error){if((error as Error).name==='AbortError')return;const err=new Error(`Could not load this URL: ${(error as Error).message}. The server must allow browser CORS requests. Download the file and use Open alignment instead.`);if(token===v.loadRevision)v.error(err);throw err;}
 }
-export async function replace(v:Core, alignment:Alignment,carry?:Carry):Promise<void> {
+/** `quiet` skips the `warnings` event for edits of an already loaded alignment (row removal, alphabet switch). */
+export async function replace(v:Core, alignment:Alignment,carry?:Carry,quiet=false):Promise<void> {
   v.assertAlive();++v.loadRevision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();const revision=++v.revision;
   if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw v.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
   v.sourceUrl=v.nextSource;v.nextSource=undefined;v.loading=true;
@@ -46,7 +47,7 @@ export async function replace(v:Core, alignment:Alignment,carry?:Carry):Promise<
   v.message('Calculating exact column statistics…');
   try{await v.updateStats();}catch(error){if(v.revision===revision)v.loading=false;throw error;}
   if(!v.disposed&&v.revision===revision&&v.a===alignment){
-    v.message('');syncWarnings(v);v.emit('ready',alignment);
+    v.message('');syncWarnings(v,!quiet);v.emit('ready',alignment);
     v.loading=false;const link=v.pendingLink;v.pendingLink=undefined;if(link)await v.applyViewLink(link).catch(()=>[]);
   }
 }
@@ -59,7 +60,7 @@ export function requestAlphabet(v:Core, next:Alphabet):void {
   const target=$(v.root,'.ak-message'),button=(action:string,text:string)=>{const b=document.createElement('button');b.type='button';b.dataset.action=action;b.textContent=text;return b;};
   target.append(' ',button('alphabet-switch','Switch'),' ',button('alphabet-cancel','Cancel'));target.hidden=false;v.pendingAlphabet=next;$<HTMLSelectElement>(v.root,'[aria-label="Sequence alphabet"]').value=next;v.menus.sync();
 }
-export function applyAlphabet(v:Core, next:Alphabet):void {const old=v.a!;void v.setAlignment(createAlignment(old.rows,{name:old.name,alphabet:next,annotations:old.annotations,metadata:old.metadata})).catch(()=>{});}
+export function applyAlphabet(v:Core, next:Alphabet):void {const old=v.a!;void v.replace(createAlignment(old.rows,{name:old.name,alphabet:next,annotations:old.annotations,metadata:old.metadata}),undefined,true).catch(()=>{});}
 export async function openFile(v:Core, file:File):Promise<void> {
   if(v.a&&/\.(?:gff3?|bed|gb|gbk|genbank|embl)(?:\.gz)?$/i.test(file.name)){
     try{v.importAnnotations(await readAlignmentInput(file));}catch(error){v.error(error);}
