@@ -7,9 +7,10 @@ const DELAY=300;
 const el=(tag:string,text?:string,cls?:string):HTMLElement=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 /** Hover and pinned cards for residues and annotation marks. All text goes through textContent; links need an http(s) template from the annotationLinks option. */
 export function bindTooltip(v:Core,on:On):void {
-  let card:HTMLElement|undefined,timer:ReturnType<typeof setTimeout>|undefined,key='',pinned=false;
+  let card:HTMLElement|undefined,timer:ReturnType<typeof setTimeout>|undefined,key='',pinned=false,last:PointerEvent|null=null;
   const enabled=()=>v.options.tooltips&&v.visibility.tooltip;
-  const hide=()=>{clearTimeout(timer);timer=undefined;card?.remove();card=undefined;pinned=false;};
+  const hideCard=()=>{clearTimeout(timer);timer=undefined;card?.remove();card=undefined;pinned=false;};
+  const hide=()=>{hideCard();if(key){key='';v.emit('hover',null);}};
   const cell=(s:Selection):CellInfo=>{const a=v.a!,row=a.rows.findIndex(r=>r.id===s.rowId),column=s.start;return {rowId:s.rowId!,column,residue:String.fromCharCode(a.codes[row*a.width+column-1]),position:columnToResidue(a,row,column)};};
   const annotations=(info:CellInfo):Annotation[]=>v.visibility.annotationMarks?[...v.annotationIndex.query(info.rowId,info.column,info.column),...v.annotationIndex.query('*',info.column,info.column)]:[];
   const line=(parent:HTMLElement,label:string,value:string)=>{const p=el('div',undefined,'ak-tip-line');p.append(el('span',label+' ','ak-tip-key'),el('span',value));parent.append(p);};
@@ -41,7 +42,7 @@ export function bindTooltip(v:Core,on:On):void {
     c.style.left=left+'px';c.style.top=top+'px';
   };
   const show=(info:CellInfo,x:number,y:number,pin:boolean)=>{const found=annotations(info);if(pin&&!found.length)return;card?.remove();card=build(info,found,pin);pinned=pin;place(card,x,y);};
-  const leave=()=>{if(key){key='';v.emit('hover',null);}if(!pinned)hide();};
+  const leave=()=>{if(key){key='';v.emit('hover',null);}if(!pinned)hideCard();};
   v.tip={
     hide,
     click(s,event){
@@ -49,19 +50,24 @@ export function bindTooltip(v:Core,on:On):void {
       if(enabled()&&annotations(info).length){clearTimeout(timer);show(info,event.clientX,event.clientY,true);}
     },
   };
-  on(v.scroll,'pointermove',(event:PointerEvent)=>{
+  const track=(event:PointerEvent,prev='')=>{
     if(!v.a)return;
     const s=event.pointerType==='touch'||v.root.dataset.panning==='true'?null:v.eventAt(event);
     if(!s?.rowId){leave();return;}
-    const info=cell(s),k=`${info.rowId}:${info.column}`;if(k===key)return;key=k;v.emit('hover',info);
-    if(pinned)return;hide();
+    const info=cell(s),k=`${info.rowId}:${info.column}`;if(k===key)return;key=k;if(k!==prev)v.emit('hover',info);
+    if(pinned)return;hideCard();
     if(enabled()){const {clientX,clientY}=event;timer=setTimeout(()=>{timer=undefined;if(v.a&&key===k)show(info,clientX,clientY,false);},DELAY);}
+  };
+  on(v.scroll,'pointermove',(event:PointerEvent)=>{last=event;track(event);});
+  on(v.scroll,'pointerdown',()=>{if(!pinned)hideCard();});
+  on(v.scroll,'pointerleave',()=>{last=null;leave();});
+  on(v.scroll,'scroll',()=>{
+    if(pinned)return;const prev=key;hideCard();key='';
+    if(last)track(last,prev);if(!key&&prev)v.emit('hover',null);
   });
-  on(v.scroll,'pointerdown',()=>{if(!pinned)hide();});
-  on(v.scroll,'pointerleave',leave);on(v.scroll,'scroll',()=>{if(!pinned)hide();});
   v.root.addEventListener('keydown',event=>{
     if(pinned&&event.key==='Escape'){event.stopPropagation();hide();return;}
     if(!pinned)hide();
   },{capture:true,signal:v.controller.signal});
-  v.controller.signal.addEventListener('abort',hide);
+  v.controller.signal.addEventListener('abort',hideCard);
 }

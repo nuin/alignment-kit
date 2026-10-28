@@ -75,3 +75,21 @@ it('forwards hover and cellclick through the integration',async()=>{
   await m.viewer.setAlignment(createAlignment(rows,{alphabet:'dna'}));vi.useFakeTimers();const v=m.viewer as any;move(v,1,0);click(v,1,0);
   expect(hover).toHaveBeenCalledWith({rowId:'b',column:1,residue:'A',position:10});expect(click_).toHaveBeenCalledWith(expect.objectContaining({rowId:'b',column:1,shiftKey:false}));
 });
+it('shows the card again in the same cell after a key press, scroll or reload and emits hover null',async()=>{
+  const v=await make(),hover:any[]=[];v.on('hover',(e:any)=>hover.push(e));
+  move(v,2,0);vi.advanceTimersByTime(300);expect(card(v)).not.toBeNull();
+  v.scroll.dispatchEvent(new KeyboardEvent('keydown',{key:'a',bubbles:true}));expect(card(v)).toBeNull();expect(hover.at(-1)).toBeNull();
+  move(v,2,0);vi.advanceTimersByTime(300);expect(card(v)).not.toBeNull();
+  v.scroll.dispatchEvent(new Event('scroll'));expect(card(v)).toBeNull();vi.advanceTimersByTime(300);expect(card(v)).not.toBeNull();
+  const a=createAlignment(rows,{alphabet:'dna'});a.annotations=[note];vi.useRealTimers();await v.setAlignment(a);vi.useFakeTimers();
+  expect(card(v)).toBeNull();expect(hover.at(-1)).toBeNull();move(v,2,0);vi.advanceTimersByTime(300);expect(card(v)).not.toBeNull();
+});
+it('refreshes hover when a scroll moves another cell under a stationary pointer',async()=>{
+  const v=await make(),hover:any[]=[];v.on('hover',(e:any)=>hover.push(e));
+  move(v,2,0);expect(hover).toHaveLength(1);v.scroll.scrollLeft=v.options.cellWidth;v.scroll.dispatchEvent(new Event('scroll'));
+  expect(hover.length).toBe(2);expect(hover[1]).toMatchObject({rowId:'b',column:3});
+});
+it('shows cards for the original column when columns are hidden',async()=>{
+  const v=await make();v.hideColumns(1,1);move(v,1,0);vi.advanceTimersByTime(300);const t=card(v)!.textContent!;
+  expect(t).toContain('Column 2');expect(t).toContain('<b>V1</b>');
+});
