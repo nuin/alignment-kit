@@ -27,7 +27,7 @@ test('individual hidden controls and inspector tabs stay hidden after rerenders'
   await page.evaluate(()=>{const v=(window as any).alignmentDemo.viewer;v.setOptions({visibility:{positionTab:false,featureType:false,featurePagination:false,rowSelection:false,rowPinning:false,alphabet:false,export:false}});v.setFilter('Q');v.setSelection({start:1,end:1});});
   await expect(page.locator('[data-tab=annotations]')).toHaveAttribute('aria-pressed','true');
   for(const selector of ['.ak-feature-pagination','[data-select-row]','[data-pin]','[role=combobox][aria-label="Sequence alphabet"]','[role=combobox][aria-label="Export alignment"]','[role=combobox][aria-label="Feature type"]'])await expect(page.locator(selector).first()).toBeHidden();
-  await page.evaluate(()=>(window as any).alignmentDemo.viewer.setOptions({visibility:{positionTab:false,featuresTab:false,compareTab:false,colorsTab:false,hitsTab:false}}));
+  await page.evaluate(()=>(window as any).alignmentDemo.viewer.setOptions({visibility:{positionTab:false,featuresTab:false,compareTab:false,colorsTab:false,hitsTab:false,summaryTab:false}}));
   await expect(page.locator('.ak-inspector')).toBeHidden();
   await page.evaluate(()=>(window as any).alignmentDemo.viewer.setOptions({visibility:{colorsTab:true}}));
   await expect(page.locator('.ak-inspector')).toBeVisible();await expect(page.locator('[data-tab=legend]')).toHaveAttribute('aria-pressed','true');
