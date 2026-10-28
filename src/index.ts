@@ -9,6 +9,7 @@ export { parseGff3, parseBed, parseGenBank, parseEmbl, parseUniProtJson, importA
 export type * from './types';
 export type { ColorScheme } from './colors';
 export { defaultVisibility } from './visibility';
+export { validateTrack } from './tracks';
 export { parseViewerConfig } from './config';
 export type { ViewerConfig } from './config';
 export { encodeViewLink, decodeViewLink, isViewLink } from './link';

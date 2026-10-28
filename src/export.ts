@@ -89,8 +89,8 @@ export function exportNexus(a:Alignment,region:ExportRegion={}):string {
   return `#NEXUS\nBEGIN DATA;\n  DIMENSIONS NTAX=${rows.length} NCHAR=${width};\n  FORMAT DATATYPE=${a.alphabet.toUpperCase()} GAP=- MISSING=?;\n  MATRIX\n${rows.map((r,i)=>`    ${names[i].padEnd(pad)}${r.sequence.replace(/\./g,'-')}\n`).join('')}  ;\nEND;\n`;
 }
 export function exportStatistics(s:AlignmentStats):string {
-  const lines=['column\trows\tgap_count\tgap_fraction\tconsensus\tmodal_frequency_non_gap\tconsensus_support_all_rows'];
-  for(let c=1;c<=s.width;c++){const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA'].join('\t'));}
+  const lines=['column\trows\tgap_count\tgap_fraction\tconsensus\tmodal_frequency_non_gap\tconsensus_support_all_rows\tentropy_bits\tinformation_bits\tquality'];
+  for(let c=1;c<=s.width;c++){const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA',d.entropy??'NA',d.information??'NA',d.quality??'NA'].join('\t'));}
   return lines.join('\n')+'\n';
 }
 export interface FigureOptions { colorMode?:ColorMode; referenceId?:string; matchDisplay?:'letter'|'dot' }

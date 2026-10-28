@@ -1,16 +1,19 @@
 import { defaultVisibility, trackLayout } from './visibility';
 import type { ViewerVisibility, RulerCoordinates } from './types';
 import { isGap, rowOffset } from './model';
-import type { Alignment, AlignmentStats, ColorMode, Selection, Hit } from './types';
+import type { Alignment, AlignmentStats, ColorMode, CustomTrack, Selection, Hit } from './types';
+import { trackHeight, trackNumber, trackText, isTrackBlank } from './tracks';
 import { getColorScheme, residueColor, textColor } from './colors';
 import { AnnotationIndex } from './annotations';
-import { STRIDE, SYMBOLS, consensusSymbol } from './analysis';
+import { STRIDE, SYMBOLS, consensusSymbol, movingAverage } from './analysis';
 export interface RenderView {
   a:Alignment; stats?:AlignmentStats; rows:number[]; reference:number; x:number; y:number;
   cw:number; rh:number; gutter:number; scheme:string; mode:ColorMode; dark:boolean;
   selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; matchDots?:boolean; ruler?:RulerCoordinates;
   /** Search hits by alignment row index, sorted by start column. */
   hits?:Map<number,Hit[]>; activeHit?:Hit;
+  /** Tracks drawn after the built-ins, already validated against the alignment width. */
+  tracks?:CustomTrack[]; logoMode?:'frequency'|'bits'; window?:number; trackError?:(id:string,error:Error)=>void;
 }
 export function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
   const dpr=Math.min(window.devicePixelRatio||1,3);
@@ -78,7 +81,8 @@ export class Renderer {
     ctx.restore();ctx.fillStyle=v.dark?'#172333':'#f9fbfc';ctx.fillRect(0,0,v.gutter,height);ctx.strokeStyle=v.dark?'#354356':'#d7e0e7';ctx.beginPath();ctx.moveTo(v.gutter-.5,0);ctx.lineTo(v.gutter-.5,height);ctx.stroke();
   }
   tracks(canvas:HTMLCanvasElement,v:RenderView,width:number) {
-    const tracks=trackLayout(v.visibility??{...defaultVisibility,logo:v.logo},v.rh),offset=tracks.offsets;
+    const extra=v.tracks??[],tracks=trackLayout(v.visibility??{...defaultVisibility,logo:v.logo},v.rh,extra.map(t=>({height:trackHeight(t)})),v.a.alphabet),offset=tracks.offsets;
+    const bitsMax=Math.log2(v.a.alphabet==='protein'?20:4),window=v.window??1;
     const height=tracks.height,ctx=prepareCanvas(canvas,width,height),ink=v.dark?'#b7c8d9':'#607489',line=v.dark?'#354356':'#e6ebf0';
     ctx.fillStyle=v.dark?'#172333':'#ffffff';ctx.fillRect(0,0,width,height);ctx.save();ctx.beginPath();ctx.rect(v.gutter,0,width-v.gutter,height);ctx.clip();
     const start=Math.max(0,Math.floor(v.x/v.cw)),end=Math.min(v.a.width,Math.ceil((v.x+width-v.gutter)/v.cw));
@@ -93,6 +97,8 @@ export class Renderer {
       if(!v.stats)continue;
       if(offset.modalFrequency!==null){ctx.fillStyle='#3a7da4';ctx.fillRect(x,offset.modalFrequency+22-(v.stats.frequency[c]||0)*20,Math.max(1,v.cw-1),(v.stats.frequency[c]||0)*20);}
       if(offset.gapFraction!==null){ctx.fillStyle='#c5a278';const gap=v.stats.total?v.stats.gaps[c]/v.stats.total:0;ctx.fillRect(x,offset.gapFraction+22-gap*18,Math.max(1,v.cw-1),gap*18);}
+      if(offset.entropy!==null){const h=Math.min(1,Math.max(0,movingAverage(v.stats.entropy,window,c)/bitsMax))||0;ctx.fillStyle='#8a6bb0';ctx.fillRect(x,offset.entropy+22-h*20,Math.max(1,v.cw-1),h*20);}
+      if(offset.quality!==null){const h=Math.min(1,Math.max(0,movingAverage(v.stats.quality,window,c)))||0;ctx.fillStyle='#4f9a6b';ctx.fillRect(x,offset.quality+22-h*20,Math.max(1,v.cw-1),h*20);}
       if(offset.consensus!==null){
         const symbol=consensusSymbol(v.stats,v.a.alphabet,c,v.threshold??0),color=residueColor(symbol,getColorScheme(v.scheme),v.stats.support[c]);
         ctx.fillStyle=color;ctx.fillRect(x,offset.consensus+4,v.cw,27);
@@ -101,13 +107,32 @@ export class Renderer {
       if(offset.logo!==null&&v.cw>=6) {
         const counts=[];const n=v.stats.total-v.stats.gaps[c];
         for(let k=0;k<27;k++){const count=v.stats.counts[c*STRIDE+k];if(count)counts.push({r:SYMBOLS[k],n:count});}
-        counts.sort((a,b)=>a.n-b.n);let bottom=offset.logo+37;
-        for(const d of counts){const h=d.n/n*39;if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(d.r,getColorScheme(v.scheme),1);ctx.fillText(d.r,8,17);ctx.restore();bottom-=h;}
+        counts.sort((a,b)=>a.n-b.n);let bottom=offset.logo+37;const scale=v.logoMode==='bits'?(v.stats.information[c]||0)/bitsMax:1;
+        for(const d of counts){const h=d.n/n*39*scale;if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(d.r,getColorScheme(v.scheme),1);ctx.fillText(d.r,8,17);ctx.restore();bottom-=h;}
       }
     }
     if(offset.reference!==null&&v.reference>=0)this.row(ctx,v,v.reference,offset.reference,width);
+    extra.forEach((t,i)=>tracks.custom[i]&&this.customTrack(ctx,v,t,tracks.custom[i],start,end,width,ink,line));
     if(v.selection&&v.visibility?.selectionOverlay!==false){ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(v.gutter+(v.selection.start-1)*v.cw-v.x+.75,.75,(v.selection.end-v.selection.start+1)*v.cw-1.5,height-1.5);}
     ctx.restore();return height;
+  }
+  private customTrack(ctx:CanvasRenderingContext2D,v:RenderView,t:CustomTrack,slot:{offset:number;height:number},start:number,end:number,width:number,ink:string,line:string) {
+    const top=slot.offset,height=slot.height,[d0,d1]=t.domain??[0,1],color=t.color??'#3a7da4';
+    ctx.fillStyle=line;ctx.fillRect(v.gutter,top,width-v.gutter,1);
+    if(t.type==='custom'){
+      ctx.save();ctx.beginPath();ctx.rect(v.gutter,top,width-v.gutter,height);ctx.clip();
+      try{t.render!(ctx,{start:start+1,end,cellWidth:v.cw,offsetX:v.gutter+start*v.cw-v.x,top,height,alignment:v.a});}catch(error){v.trackError?.(t.id,error instanceof Error?error:new Error(String(error)));}
+      ctx.restore();ctx.globalAlpha=1;return;
+    }
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`500 ${Math.min(12,Math.max(9,v.cw-3))}px "Alignment Mono", monospace`;
+    for(let c=start;c<end;c++){
+      const x=v.gutter+c*v.cw-v.x;
+      if(t.type==='text'){const ch=trackText(t,c);if(v.cw>=9){ctx.fillStyle=ink;ctx.fillText(ch,x+v.cw/2,top+height/2+1);}else if(!isTrackBlank(ch)){ctx.globalAlpha=0.45;ctx.fillStyle=color;ctx.fillRect(x,top+3,Math.max(1,v.cw-1),height-6);ctx.globalAlpha=1;}continue;}
+      const n=trackNumber(t,c);if(n===null)continue;
+      const f=Math.min(1,Math.max(0,(n-d0)/(d1-d0)));ctx.fillStyle=color;
+      if(t.type==='bar')ctx.fillRect(x,top+height-2-f*(height-4),Math.max(1,v.cw-1),f*(height-4));
+      else{ctx.globalAlpha=f;ctx.fillRect(x,top+1,v.cw,height-2);ctx.globalAlpha=1;}
+    }
   }
   overview(canvas:HTMLCanvasElement,v:RenderView,width:number) {
     const ctx=prepareCanvas(canvas,width,44),scheme=getColorScheme(v.scheme);ctx.fillStyle=v.dark?'#243244':'#e9eff4';ctx.fillRect(0,4,width,32);

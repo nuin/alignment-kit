@@ -253,6 +253,15 @@
         },
         "emptyState": {
           "type": "boolean"
+        },
+        "entropy": {
+          "type": "boolean"
+        },
+        "quality": {
+          "type": "boolean"
+        },
+        "stockholmTracks": {
+          "type": "boolean"
         }
       }
     },
@@ -270,10 +279,39 @@
       "description": "FASTA settings for exports and Ctrl/Cmd+C.",
       "additionalProperties": false,
       "properties": {
-        "gaps": { "enum": ["keep", "remove"] },
-        "letterCase": { "enum": ["original", "upper", "lower"] },
-        "lineWidth": { "type": "integer", "description": "0 for unwrapped, otherwise 10 to 1000.", "anyOf": [{ "const": 0 }, { "minimum": 10, "maximum": 1000 }] },
-        "header": { "enum": ["name", "name-species", "id-name"] }
+        "gaps": {
+          "enum": [
+            "keep",
+            "remove"
+          ]
+        },
+        "letterCase": {
+          "enum": [
+            "original",
+            "upper",
+            "lower"
+          ]
+        },
+        "lineWidth": {
+          "type": "integer",
+          "description": "0 for unwrapped, otherwise 10 to 1000.",
+          "anyOf": [
+            {
+              "const": 0
+            },
+            {
+              "minimum": 10,
+              "maximum": 1000
+            }
+          ]
+        },
+        "header": {
+          "enum": [
+            "name",
+            "name-species",
+            "id-name"
+          ]
+        }
       }
     },
     "urlSync": {
@@ -288,6 +326,81 @@
     },
     "showToolbar": {
       "type": "boolean"
+    },
+    "logoMode": {
+      "enum": [
+        "frequency",
+        "bits"
+      ]
+    },
+    "conservationWindow": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 51,
+      "description": "Odd integer: centered moving average for the entropy and quality bars."
+    },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[\\w.:-]{1,64}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "height": {
+            "type": "number",
+            "minimum": 12,
+            "maximum": 120
+          },
+          "type": {
+            "enum": [
+              "bar",
+              "heatmap",
+              "text"
+            ]
+          },
+          "values": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            ]
+          },
+          "domain": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "color": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   }
 }

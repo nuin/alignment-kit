@@ -23,7 +23,7 @@ const groups:Record<string,(keyof ViewerVisibility)[]>={
   'Layout':['toolbar','tools','overview','overviewTitle','tracks','alignment','inspector','inspectorTabs','status','statusSummary','statusDetails','messages','emptyState'],
   'Main controls':['open','search','colorScheme','zoom','fit','theme','inspectorToggle','fullscreen','export'],
   'Navigation and analysis':['goTo','motif','order','colorMode','logoToggle','statisticsScope','alphabet'],
-  'Tracks and residues':['ruler','modalFrequency','gapFraction','consensus','logo','reference','residueLetters','annotationMarks','selectionOverlay'],
+  'Tracks and residues':['ruler','modalFrequency','gapFraction','consensus','logo','entropy','quality','stockholmTracks','reference','residueLetters','annotationMarks','selectionOverlay'],
   'Sequence labels':['labels','rowNames','rowSpecies','rowSelection','rowPinning','labelResize'],
   'Inspector':['positionTab','featuresTab','compareTab','colorsTab','hitsTab','pinReference','rowFeaturesToggle','featureType','featureConsequence','diseaseFilter','phenotypeFilter','featurePagination','calculateIdentity','clearRows'],
 };

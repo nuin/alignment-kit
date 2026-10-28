@@ -173,13 +173,24 @@ Statistics default to **All sequences**. Scrolling, sorting, pinning and filteri
 | Consensus support | Most frequent non-gap symbol count divided by all rows in scope. |
 | Consensus | Unique most frequent non-gap symbol; ties are shown explicitly. |
 | Consensus track | Colored cells for the consensus sequence: ties shown as IUPAC codes (DNA/RNA) or X, columns below the consensus threshold as X or N. |
-| Frequency logo | Literal symbol frequencies among non-gap rows; not information content. |
+| Frequency logo | Literal symbol frequencies among non-gap rows. With `logoMode: 'bits'` each stack is scaled by information content. |
+| Entropy | Shannon entropy in bits of the non-gap residues. 0 means one residue; the maximum is 2 bits for DNA/RNA and about 4.32 for protein. |
+| Information | Maximum bits (2 for DNA/RNA, 4.32 for protein) minus entropy minus a small-sample correction `(s - 1) / (2 ln2 n)`, never below 0. Few rows give a large correction, so a column of 4 identical DNA rows scores 1.46 bits, not 2. |
+| Quality | Protein only. Mean BLOSUM62 score over all pairs of rows with a standard amino acid in the column, scaled so the lowest entry (-4) is 0 and the highest (11) is 1. Unavailable for DNA/RNA and for columns with fewer than two scored residues. |
 
 For a column `A, A, C, -`, modal frequency is 2/3 (66.7%), support is 2/4 (50%), and gap fraction is 1/4 (25%). The consensus is A. A high modal frequency with many gaps is not the same as broad support.
 
 An all-gap column has no modal residue and an unavailable modal frequency; its support is zero if the scope contains rows. An empty statistics scope has unavailable fractions. Tied top counts produce a tied consensus rather than an arbitrary winner; the consensus track and consensus exports write a tie as an IUPAC ambiguity code for DNA/RNA (A+G = R) or X for protein. Applications can set a consensus threshold: columns whose modal frequency is below it become X or N. Each row gets one vote: no sampling, deduplication, sequence weighting or phylogenetic correction is implicit.
 
+Enable **Entropy** or **Quality** under **Customize viewer → Tracks and residues** to add conservation bars. Applications can smooth them with `conservationWindow` (odd, 1 to 51 columns). The Position tab lists entropy, information and quality for the selected column, and the Column statistics TSV has `entropy_bits`, `information_bits` and `quality` columns.
+
 Enable **Frequency logo** to add a frequency track. Ambiguity symbols keep their own counts. Interpret the logo together with gap fraction, because its denominator excludes gaps.
+
+### Stockholm tracks and custom tracks
+
+A Stockholm file with `#=GC` lines shows one track per line below the built-in tracks: secondary structure (`SS_cons`), reference annotation (`RF`), `seq_cons` and others as text, and `PP_cons` as grey shading from 0 (light) to 9 (dark). `#=GR` lines (per-sequence annotation) appear for the sequence you select, or for the pinned reference when nothing is selected, named like `SS Sequence name`. Turn them off with **Stockholm tracks** under **Customize viewer**. Click a track column to select that alignment column.
+
+Developers can add their own tracks (bars, heatmaps, text or drawn by a callback) with `addTrack`, `removeTrack` and the `tracks` option. See the Tracks section of the README. When registered tracks are taller than 45% of the viewer, the track area scrolls. #=GR tracks follow the selected row, or the pinned reference when it is shown.
 
 ## Compare selected sequences
 
@@ -194,7 +205,7 @@ The matrix is limited to **200 explicitly selected rows**. It is not automatical
 
 ## Inspect supplied annotations
 
-The **Features** tab displays annotations supplied by the embedding application or the synthetic annotated demo. A FASTA file alone does not fetch variants, domains or disease evidence. Stockholm metadata is retained, but the viewer does not automatically convert all metadata into plotted feature tracks.
+The **Features** tab displays annotations supplied by the embedding application or the synthetic annotated demo. A FASTA file alone does not fetch variants, domains or disease evidence. Stockholm `#=GC` and `#=GR` lines are drawn as tracks (see Stockholm tracks below); other Stockholm metadata is retained but not plotted.
 
 Filter features by type or consequence. Disease and phenotype checkboxes select explicitly supplied evidence; missing evidence remains **unknown**, not false. The list reports shown, excluded and unknown counts, with 30 features per page.
 
@@ -226,7 +237,7 @@ Use the **Export** menu:
 | Selection · SVG | Vector figure with palette, coordinate scope, legend, supplied provenance and visible annotations. |
 | Selection · PNG | Raster version of the selected figure. |
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
-| Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers. |
+| Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers, plus `entropy_bits`, `information_bits` and `quality` (`NA` when undefined). |
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
 | FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name). Press **Done** or Escape to close it. |
 
