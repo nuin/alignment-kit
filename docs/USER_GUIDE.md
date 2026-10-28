@@ -189,6 +189,9 @@ Use the **Export** menu:
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
 | Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers. |
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
+| FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name). Press **Done** or Escape to close it. |
+
+FASTA options apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. They last until the page is reloaded.
 
 For selection exports, a selected column range takes precedence over the horizontal viewport. Checked rows take precedence over the vertical viewport. Without checked rows, export uses the pinned reference plus the currently visible scrolling rows. A checked row hidden by a name filter remains part of the export. Clear checked rows when you want a viewport-only export.
 

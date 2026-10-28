@@ -1,5 +1,6 @@
 import type { ViewerOptions, ViewerVisibility } from './types';
 import { defaultVisibility } from './visibility';
+import { validateFastaOptions } from './export';
 
 /** JSON-safe viewer configuration; alignment data is supplied separately. */
 export type ViewerConfig = Omit<ViewerOptions, 'alignment'|'workerUrl'> & {workerUrl?:string};
@@ -24,6 +25,7 @@ export function parseViewerConfig(input:string|unknown):ViewerConfig {
       }
       result.visibility=visibility;continue;
     }
+    if(key==='fasta'){result.fasta=validateFastaOptions(item);continue;}
     if(key==='$schema'){if(typeof item!=='string')throw new Error('$schema must be a string.');continue;}
     if(Object.hasOwn(ranges,key)){const [min,max]=ranges[key];if(typeof item!=='number'||!Number.isFinite(item)||item<min||item>max)throw new Error(`${key} must be a number between ${min} and ${max}.`);}
     else if(Object.hasOwn(enums,key)){if(typeof item!=='string'||!enums[key].includes(item))throw new Error(`Invalid ${key}.`);}

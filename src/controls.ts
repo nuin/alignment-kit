@@ -14,7 +14,7 @@ export function buildShell(root:HTMLElement) {
     <button type="button" data-action="theme" aria-label="Toggle theme" title="Toggle light and dark theme">◐</button>
     <button type="button" data-action="inspect" aria-label="Toggle inspector" title="Show or hide inspector">Inspect</button>
     <button type="button" data-action="fullscreen" aria-label="Full screen">⛶</button>
-    <select aria-label="Export alignment"><option value="">Export…</option><option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="consensus">Consensus · FASTA</option><option value="tsv">Column statistics · TSV</option><option value="state">View state · JSON</option></select>
+    <select aria-label="Export alignment"><option value="">Export…</option><option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="consensus">Consensus · FASTA</option><option value="tsv">Column statistics · TSV</option><option value="state">View state · JSON</option><option value="fasta-options">FASTA options…</option></select>
   </div>
   <div class="ak-tools">
     <label>Go to <input type="number" min="1" value="1" aria-label="Go to alignment column"></label>
@@ -25,6 +25,12 @@ export function buildShell(root:HTMLElement) {
     <label>Stats <select aria-label="Statistics scope"><option value="all">All sequences</option><option value="filtered">Filtered sequences</option></select></label>
     <label>Type <select aria-label="Sequence alphabet"><option value="protein">Protein</option><option value="dna">DNA</option><option value="rna">RNA</option></select></label>
   </div>
+  <div class="ak-fasta-options" role="group" aria-label="FASTA options" hidden><strong>FASTA options</strong>
+    <label>Gaps <select aria-label="FASTA gaps"><option value="keep">Keep gaps</option><option value="remove">Remove gaps</option></select></label>
+    <label>Case <select aria-label="FASTA letter case"><option value="original">Original case</option><option value="upper">Upper case</option><option value="lower">Lower case</option></select></label>
+    <label>Line width <select aria-label="FASTA line width"><option value="80">80</option><option value="60">60</option><option value="0">Unwrapped</option></select></label>
+    <label>Header <select aria-label="FASTA header"><option value="name">Name</option><option value="name-species">Name and species</option><option value="id-name">ID and name</option></select></label>
+    <button type="button" data-action="close-fasta-options">Done</button></div>
   <div class="ak-message" role="status" hidden></div>
   <div class="ak-overview-wrap"><span class="ak-overview-title">Alignment overview<small>Drag to explore</small></span><div class="ak-overview" role="slider" tabindex="0" aria-label="Alignment overview position" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"><canvas aria-hidden="true"></canvas><div class="ak-overview-window"></div></div></div>
   <div class="ak-workspace">

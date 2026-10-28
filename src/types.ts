@@ -92,6 +92,8 @@ export interface ViewerOptions {
   statisticsScope?:'all'|'filtered'; workerUrl?:string|URL; worker?:boolean;
   /** 0 to 1. Consensus columns whose modal frequency (non-gap rows) is below this become X (protein) or N (DNA/RNA). Default 0. */
   consensusThreshold?:number;
+  /** FASTA settings for exports and Ctrl/Cmd+C; updates merge with the current settings. */
+  fasta?:FastaOptions;
   /** Keep location.hash in sync with the view and apply a link found there on the next load. */
   urlSync?:boolean;
 }
@@ -105,4 +107,6 @@ export interface Viewport { start:number; end:number; firstRow:number; lastRow:n
 export interface ViewerEvents { selection:Selection|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }
 export type ViewerEvent = keyof ViewerEvents;
 export type EventHandler<K extends ViewerEvent> = (event:ViewerEvents[K])=>void;
+/** FASTA output settings shared by export and copy. Defaults: keep gaps, original case, 80 columns, name header. */
+export interface FastaOptions { gaps?:'keep'|'remove'; letterCase?:'original'|'upper'|'lower'; /** 0 writes each sequence on one line; otherwise 10 to 1000. */ lineWidth?:number; header?:'name'|'name-species'|'id-name' }
 export interface ExportRegion { rowIds?:string[]; start?:number; end?:number }
