@@ -97,6 +97,9 @@ export interface ViewerVisibility {
   clearRows?:boolean;
   messages?:boolean;
   emptyState?:boolean;
+  rowHiding?:boolean;
+  rowReordering?:boolean;
+  tree?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
 export interface TrackRenderInfo { start:number; end:number; cellWidth:number; offsetX:number; top:number; height:number; alignment:Alignment }
@@ -124,14 +127,19 @@ export interface ViewerOptions {
   logoMode?:'frequency'|'bits';
   /** Odd integer 1 to 51 (default 1): centered moving average for the entropy and quality bars. */
   conservationWindow?:number;
+  /** A row.metadata key, or 'species', to group rows by. Rows without a value fall in "Ungrouped". An empty string turns grouping off. */
+  groupBy?:string;
+  /** Pixel width of the tree column, 0 to 400. 0 hides it. Default 120. */
+  treeWidth?:number;
 }
 export interface ViewState {
   visibility?:ViewerVisibility;
-  version:1; alignmentId:string; referenceId:string|null; query:string; sort:'input'|'name'|'identity';
+  version:1; alignmentId:string; referenceId:string|null; query:string; sort:'input'|'name'|'identity'|'manual'|'tree';
   start:number; rowOffset:number; cellWidth:number; selection:Selection|null;
   colorScheme:string; colorMode:ColorMode; matchDisplay?:'letter'|'dot'; statisticsScope:'all'|'filtered'; annotationFilter:AnnotationFilter;
   /** Ruler numbering; omitted in older states, which mean 'alignment'. */
   rulerCoordinates?:RulerCoordinates;
+  hiddenRowIds?:string[]; manualOrder?:string[]|null; collapsedGroups?:string[];
 }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
 export interface ViewerEvents { selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }

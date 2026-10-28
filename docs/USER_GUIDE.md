@@ -126,9 +126,23 @@ An invalid pattern shows a message that names the problem, such as an unbalanced
 
 Click the diamond beside a sequence to pin it as the reference. You can also click a residue and choose **Pin reference** in the Position inspector. The reference is displayed once above the scrolling rows; pinning does not give it an extra statistical vote.
 
-**Order** offers input order, name order and identity to reference. Identity ordering runs an exact comparison against the pinned sequence. After choosing it, selecting a row shows matched and compared-position counts in the inspector. Changing the reference while using identity order recomputes those comparisons.
+**Order** offers input order, name order, identity to reference, manual order and tree order (the last once a tree is loaded). Identity ordering runs an exact comparison against the pinned sequence. After choosing it, selecting a row shows matched and compared-position counts in the inspector. Changing the reference while using identity order recomputes those comparisons.
 
-Row IDs keep annotations attached to their original sequence when you reorder or filter. The viewer does not infer a phylogenetic tree or cluster sequences by evolutionary distance.
+Row IDs keep annotations attached to their original sequence when you reorder or filter. The viewer does not infer a phylogenetic tree or cluster sequences by evolutionary distance; it draws a Newick tree you supply (see **Hide, reorder and group rows, and show a tree**).
+
+## Hide, reorder and group rows, and show a tree
+
+**Hide a row.** Click the × at the right of a sequence label. **Show hidden (n)** appears in the second toolbar row; click it to restore every hidden row. Hidden rows disappear from the grid and from statistics when **Stats** is set to filtered sequences. The status bar shows how many are hidden. Exports of the visible rows leave them out, and Export > All rows keeps them.
+
+**Reorder rows.** Drag a label onto another row, or focus a name and press Alt+Up or Alt+Down. Order switches to **Manual**. Choosing **Manual** yourself starts from the order you were using. Dragging does not scroll the grid, so far moves take several drags.
+
+**Remove rows.** Removal is an API call, `removeRows(ids)`, because it changes the data. It works on a copy, keeps your filter, order and groups, and recomputes statistics. The alignment ID changes, so older links and saved view states no longer match.
+
+**Group rows.** The embedding application sets `groupBy` (the species, or a metadata key) or calls `setGroups`. Each group gets a header band with its name and count, and a color bar beside its labels. Click a header to collapse or expand the group. Rows keep your chosen order inside each group. Sequences without a value go to **Ungrouped**, listed last.
+
+**Show a tree.** The application calls `setTree` with a Newick string. The tree appears left of the labels and the order switches to **Tree**. Each leaf lines up with its row as you scroll or filter. The pinned reference has no leaf in the column and a branch click does not check it; unpin it to see its leaf. Click a branch point to check the sequences below it. Leaves match sequences by ID, then by name. A message above the alignment lists leaves with no sequence and sequences with no leaf. With any other order the branches cross, because rows no longer follow the tree. Hide the tree with the `tree` visibility key or set `treeWidth` to 0.
+
+Links keep the order only for `sort=tree`; a manual order is not in the link, so it opens in input order. Links also omit hidden rows, a manual sequence list or a tree. **Export > View state · JSON** keeps hidden rows, the manual order and collapsed groups; load a tree again with `setTree`.
 
 ## Choose DNA and RNA colors
 

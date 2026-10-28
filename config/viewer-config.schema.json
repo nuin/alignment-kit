@@ -262,6 +262,15 @@
         },
         "stockholmTracks": {
           "type": "boolean"
+        },
+        "rowHiding": {
+          "type": "boolean"
+        },
+        "rowReordering": {
+          "type": "boolean"
+        },
+        "tree": {
+          "type": "boolean"
         }
       }
     },
@@ -313,6 +322,17 @@
           ]
         }
       }
+    },
+    "groupBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A row.metadata key, or species, to group rows by."
+    },
+    "treeWidth": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 400,
+      "description": "Pixel width of the tree column. 0 hides it."
     },
     "urlSync": {
       "type": "boolean",

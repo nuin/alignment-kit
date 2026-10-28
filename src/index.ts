@@ -10,6 +10,8 @@ export type * from './types';
 export type { ColorScheme } from './colors';
 export { defaultVisibility } from './visibility';
 export { validateTrack } from './tracks';
+export { parseNewick, leafOrder } from './tree';
+export type { TreeNode } from './tree';
 export { parseViewerConfig } from './config';
 export type { ViewerConfig } from './config';
 export { encodeViewLink, decodeViewLink, isViewLink } from './link';

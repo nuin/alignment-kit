@@ -24,7 +24,7 @@ const groups:Record<string,(keyof ViewerVisibility)[]>={
   'Main controls':['open','search','colorScheme','zoom','fit','theme','inspectorToggle','fullscreen','export'],
   'Navigation and analysis':['goTo','motif','order','colorMode','logoToggle','statisticsScope','alphabet'],
   'Tracks and residues':['ruler','modalFrequency','gapFraction','consensus','logo','entropy','quality','stockholmTracks','reference','residueLetters','annotationMarks','selectionOverlay'],
-  'Sequence labels':['labels','rowNames','rowSpecies','rowSelection','rowPinning','labelResize'],
+  'Sequence labels':['labels','rowNames','rowSpecies','rowSelection','rowPinning','rowHiding','rowReordering','tree','labelResize'],
   'Inspector':['positionTab','featuresTab','compareTab','colorsTab','hitsTab','pinReference','rowFeaturesToggle','featureType','featureConsequence','diseaseFilter','phenotypeFilter','featurePagination','calculateIdentity','clearRows'],
 };
 for(const [title,keys] of Object.entries(groups)){

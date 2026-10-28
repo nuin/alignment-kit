@@ -186,8 +186,8 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 | Main toolbar | `open`, `search`, `colorScheme`, `zoom`, `fit`, `theme`, `inspectorToggle`, `fullscreen`, `export` |
 | Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `rulerCoordinates`, `alphabet` |
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`, `stockholmTracks` |
-| Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `labelResize` |
-| Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay` |
+| Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize` |
+| Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
 | Feedback | `statusSummary`, `statusDetails`, `messages`, `emptyState` |
@@ -391,7 +391,12 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `setOptions(options)` | Update visual/analysis options |
 | `setReference(rowId)` | Pin a stable row as reference |
 | `setFilter(query)` | Filter names and species |
-| `setSort('input' \| 'name' \| 'identity')` | Stable ordering; identity calculation is asynchronous |
+| `setSort('input' \| 'name' \| 'identity' \| 'manual' \| 'tree')` | Stable ordering; identity calculation is asynchronous; `tree` needs `setTree` first |
+| `hideRows(ids)` / `showRows(ids?)` | Hide rows from the grid / restore some or all hidden rows |
+| `moveRow(id, index)` / `getRowOrder()` | Move a row to a zero-based position and switch to manual order / read all row IDs in the current order |
+| `removeRows(ids)` | Delete rows from a copy of the alignment and recompute statistics |
+| `setGroups(map \| null)` / `toggleGroup(name, collapsed?)` | Group rows by an ID-to-name map / collapse or expand a group |
+| `setTree(newick \| null)` | Show a Newick tree and order rows by it / remove it |
 | `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range |
 | `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif; highlight hits; return `{ hits, truncated }` |
 | `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
@@ -411,7 +416,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 
 Events: `ready`, `selection`, `search` (`{ hits, truncated }`, or `null` after `clearSearch()` or a new alignment), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
-Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
 
@@ -422,6 +427,31 @@ Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, H
 ```ts
 viewer.setOptions({ matchDisplay: 'dot', colorMode: 'consensus-differences' });
 exportSvg(alignment, stats, {}, 'soft', { referenceId: 'seq-1', matchDisplay: 'dot' });
+```
+
+
+## Hide, reorder and group rows, and show a tree
+
+Each row label has a hide button (×). **Show hidden (n)** in the secondary toolbar restores them. Hidden rows leave the grid and the `filtered` statistics scope; the alignment is unchanged. Dragging a row label onto another row, or Alt+Up and Alt+Down on a focused label, moves it and switches the order to `manual`. Dragging does not auto-scroll, so move a row far away in steps or with `moveRow`.
+
+```ts
+viewer.hideRows(['seq-3', 'seq-9']);
+viewer.showRows();                      // or showRows(['seq-3'])
+viewer.moveRow('seq-5', 0);             // zero-based index into getRowOrder()
+viewer.getRowOrder();                   // all row IDs in the current order, including hidden rows
+await viewer.removeRows(['seq-2']);     // new alignment copy, new alignment ID, statistics recomputed
+```
+
+`ViewState` carries `hiddenRowIds`, `manualOrder` (null until a manual order exists) and `collapsedGroups`. Links carry `sort` (`tree` included, `manual` omitted because a link holds no row list) but not hidden rows. `removeRows` keeps the filter, order, hidden rows, groups and tree, drops annotations of removed rows, and throws if no row would remain.
+
+Groups: `groupBy` takes `'species'` or a `row.metadata` key. `setGroups({ rowId: 'name' })` overrides it, and `setGroups(null)` returns to `groupBy`. Rows order by group (alphabetical, `Ungrouped` last), then by the current order inside each group. Each group has a header row with its name and visible row count, and a color bar on its labels. Click a header, in the label gutter or on the grid, to collapse or expand it; `toggleGroup(name)` does the same. The pinned reference stays above the groups.
+
+Tree: `setTree(newick)` parses one Newick tree, orders rows by it (`sort: 'tree'`) and draws it in a column left of the labels, `treeWidth` pixels wide (0 hides it, the `tree` visibility key hides it too). Leaves match rows by ID, then by name; a message lists unmatched leaves and rows. Newick names, branch lengths, quoted labels, `[comments]` and numeric internal labels (kept as support values) are read. Underscores stay literal. The pinned reference has no leaf in the column and is not checked by a branch click. Support values are parsed but not drawn. Click a branch point to check the visible rows under it. With a sort other than `tree`, branches cross. `parseNewick` and `leafOrder` are exported for use without a viewer.
+
+```ts
+viewer.setOptions({ groupBy: 'species', treeWidth: 160 });
+viewer.setTree('((human_1:0.1,chimp_1:0.1)0.98:0.3,mouse_1:0.5);');
+viewer.setTree(null);
 ```
 
 ## Colors and themes

@@ -74,3 +74,17 @@
 .ak-fasta-options{background:var(--ak-panel);border-bottom:1px solid var(--ak-line);display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:7px 14px;font-size:12px;flex-shrink:0}.ak-fasta-options[hidden]{display:none}.ak-fasta-options label{display:flex;align-items:center;gap:6px;color:var(--ak-muted)}.ak-fasta-options button[data-action]{font-size:11px;padding:3px 9px}
 .ak-feature[aria-current=true]{border-left-color:#e08a00;box-shadow:0 0 0 1px #e08a00}
 .ak-tools .ak-motif{gap:4px}
+
+/* Tree column sits left of the labels; --ak-tree is its width and --ak-gutter covers both. */
+.ak-labels{left:var(--ak-tree,0px);width:calc(var(--ak-gutter) - var(--ak-tree,0px))}
+.ak-tree-canvas{position:absolute;left:0;top:0;cursor:pointer}
+.ak-track-labels>span{left:calc(16px + var(--ak-tree,0px))}
+.ak-viewer .ak-reference-label{left:var(--ak-tree,0px);width:calc(100% - var(--ak-tree,0px))}
+.ak-row-label[draggable=true]{cursor:grab}
+.ak-row-label[data-grouped=true],.ak-group-label{box-shadow:inset 4px 0 0 var(--ak-group)}
+.ak-group-label{font-weight:600}
+.ak-viewer .ak-group-label button{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.ak-group-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ak-group-count{color:var(--ak-muted);font-weight:400;font-size:11px}
+.ak-viewer .ak-row-label .ak-hide{flex:0 0 22px;padding:0;text-align:center;font-size:15px;color:var(--ak-muted);opacity:.5}
+.ak-row-label:hover .ak-hide,.ak-viewer .ak-row-label .ak-hide:focus-visible{opacity:1}

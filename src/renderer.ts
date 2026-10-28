@@ -6,10 +6,14 @@ import { trackHeight, trackNumber, trackText, isTrackBlank } from './tracks';
 import { getColorScheme, residueColor, textColor } from './colors';
 import { AnnotationIndex } from './annotations';
 import { STRIDE, SYMBOLS, consensusSymbol, movingAverage } from './analysis';
+import { treeSpans, type TreeLayout } from './tree';
+export interface GroupInfo { name:string; count:number; color:string; collapsed:boolean }
+export interface TreeHit { node:number; x:number; y:number }
+/** `rows` holds row indexes; a negative entry -n is the header of groups[n-1]. */
 export interface RenderView {
   a:Alignment; stats?:AlignmentStats; rows:number[]; reference:number; x:number; y:number;
   cw:number; rh:number; gutter:number; scheme:string; mode:ColorMode; dark:boolean;
-  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; matchDots?:boolean; ruler?:RulerCoordinates;
+  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; matchDots?:boolean; ruler?:RulerCoordinates; groups?:GroupInfo[];
   /** Search hits by alignment row index, sorted by start column. */
   hits?:Map<number,Hit[]>; activeHit?:Hit;
   /** Tracks drawn after the built-ins, already validated against the alignment width. */
@@ -72,11 +76,36 @@ export class Renderer {
       else{ctx.strokeStyle=item.color&&/^#[0-9a-f]{6}$/i.test(item.color)?item.color:'#a63d59';ctx.lineWidth=1.7;ctx.strokeRect(x+1,y+1,Math.max(1,(right-left)*v.cw-2),v.rh-3);}
     }
   }
+  private header(ctx:CanvasRenderingContext2D,v:RenderView,group:GroupInfo|undefined,y:number,width:number) {
+    if(!group)return;
+    ctx.fillStyle=v.dark?'#1f3147':'#eef3f8';ctx.fillRect(v.gutter,y,width-v.gutter,v.rh-1);ctx.fillStyle=group.color;ctx.fillRect(v.gutter,y,4,v.rh-1);
+    ctx.fillStyle=v.dark?'#e3ecf5':'#243447';ctx.font='600 12px "Alignment Sans", system-ui, sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(`${group.collapsed?'▸':'▾'} ${group.name} (${group.count.toLocaleString()})`,v.gutter+12,y+v.rh/2);
+  }
+  /** Draw the tree column. Leaves sit at the display position of their row, so scrolling and filtering keep it aligned. Returns the internal nodes drawn, for hit testing. */
+  tree(canvas:HTMLCanvasElement,v:RenderView,layout:TreeLayout,leafRow:Int32Array,rowPos:Int32Array,width:number,height:number):TreeHit[] {
+    const ctx=prepareCanvas(canvas,width,height),hits:TreeHit[]=[];
+    ctx.fillStyle=v.dark?'#172333':'#f9fbfc';ctx.fillRect(0,0,width,height);
+    const leafY=new Float64Array(layout.nodes.length).fill(NaN);
+    for(let k=0;k<leafY.length;k++){const r=leafRow[k];if(r>=0&&rowPos[r]>=0)leafY[k]=rowPos[r]*v.rh-v.y+v.rh/2;}
+    const {y,lo,hi}=treeSpans(layout,leafY),span=Math.max(1,width-14),px=(k:number)=>4+layout.x[k]*span;
+    ctx.strokeStyle=v.dark?'#8ea4ba':'#6b7f93';ctx.fillStyle=v.dark?'#b7c8d9':'#3f5870';ctx.lineWidth=1;ctx.beginPath();
+    for(let k=0;k<y.length;k++) {
+      if(Number.isNaN(y[k]))continue;
+      const internal=layout.kids[k].length>0,top=internal?lo[k]:y[k],bottom=internal?hi[k]:y[k];
+      if(bottom<-2||top>height+2)continue;
+      if(k>0){const yy=Math.round(y[k])+.5;ctx.moveTo(px(layout.parent[k]),yy);ctx.lineTo(px(k),yy);}
+      if(internal){const xx=Math.round(px(k))+.5;ctx.moveTo(xx,top);ctx.lineTo(xx,bottom);if(y[k]>=0&&y[k]<=height)hits.push({node:k,x:px(k),y:y[k]});}
+    }
+    ctx.stroke();
+    for(const hit of hits)ctx.fillRect(hit.x-2,hit.y-2,4,4);
+    return hits;
+  }
   body(canvas:HTMLCanvasElement,v:RenderView,width:number,height:number) {
     const ctx=prepareCanvas(canvas,width,height);ctx.fillStyle=v.dark?'#172333':'#ffffff';ctx.fillRect(0,0,width,height);
     ctx.save();ctx.beginPath();ctx.rect(v.gutter,0,width-v.gutter,height);ctx.clip();
     const first=Math.max(0,Math.floor(v.y/v.rh)),last=Math.min(v.rows.length,Math.ceil((v.y+height)/v.rh));
-    for(let i=first;i<last;i++)this.row(ctx,v,v.rows[i],i*v.rh-v.y,width);
+    for(let i=first;i<last;i++)v.rows[i]<0?this.header(ctx,v,v.groups?.[-v.rows[i]-1],i*v.rh-v.y,width):this.row(ctx,v,v.rows[i],i*v.rh-v.y,width);
     if(v.selection&&v.visibility?.selectionOverlay!==false){const x=v.gutter+(v.selection.start-1)*v.cw-v.x,w=(v.selection.end-v.selection.start+1)*v.cw;ctx.fillStyle='rgba(36,99,166,0.09)';ctx.fillRect(x,0,w,height);ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(x+.75,.75,w-1.5,height-1.5);}
     ctx.restore();ctx.fillStyle=v.dark?'#172333':'#f9fbfc';ctx.fillRect(0,0,v.gutter,height);ctx.strokeStyle=v.dark?'#354356':'#d7e0e7';ctx.beginPath();ctx.moveTo(v.gutter-.5,0);ctx.lineTo(v.gutter-.5,height);ctx.stroke();
   }

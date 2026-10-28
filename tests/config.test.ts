@@ -13,6 +13,11 @@ it('rejects invalid JSON, unknown fields and invalid option values with helpful 
   expect(()=>parseViewerConfig('{"alignment":{}}')).toThrow(/alignment/);
   expect(()=>parseViewerConfig('null')).toThrow(/object/);
 });
+it('validates grouping, tree width and the new visibility keys',()=>{
+  expect(parseViewerConfig({groupBy:'species',treeWidth:0,visibility:{tree:false,rowHiding:false,rowReordering:true}})).toEqual({groupBy:'species',treeWidth:0,visibility:{tree:false,rowHiding:false,rowReordering:true}});
+  expect(()=>parseViewerConfig({treeWidth:401})).toThrow(/treeWidth/);expect(()=>parseViewerConfig({treeWidth:-1})).toThrow(/treeWidth/);
+  expect(()=>parseViewerConfig({groupBy:''})).toThrow(/groupBy/);expect(()=>parseViewerConfig({groupBy:3})).toThrow(/groupBy/);
+});
 it('validates FASTA options in viewer configuration',()=>{
   expect(parseViewerConfig({fasta:{gaps:'remove',lineWidth:0}})).toEqual({fasta:{gaps:'remove',lineWidth:0}});
   expect(()=>parseViewerConfig({fasta:{lineWidth:2}})).toThrow('line width');expect(()=>parseViewerConfig({fasta:{bold:true}})).toThrow('bold');
