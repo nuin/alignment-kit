@@ -257,7 +257,7 @@ export class AlignmentViewer {
     return {layout,leafRow:match.leafRow,treePos,note};
   }
   private selectClade(node:number,add=false) {
-    const tree=this.tree;if(!tree||!this.a)return;const visible=new Set(this.filteredRows);if(!add)this.selectedRows.clear();
+    const tree=this.tree;if(!tree||!this.a)return;const visible=new Set(this.filteredRows);if(this.pinned)visible.delete(this.reference);if(!add)this.selectedRows.clear();
     for(const leaf of leavesUnder(tree.layout,node)){const row=tree.leafRow[leaf];if(row>=0&&visible.has(row))this.selectedRows.add(this.a.rows[row].id);}
     this.labelKey='';this.inspectorDirty=true;this.schedule();$(this.root,'.ak-live').textContent=`${this.selectedRows.size} sequences selected from the tree`;
   }

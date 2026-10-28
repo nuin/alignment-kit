@@ -114,9 +114,9 @@ Row IDs keep annotations attached to their original sequence when you reorder or
 
 **Group rows.** The embedding application sets `groupBy` (the species, or a metadata key) or calls `setGroups`. Each group gets a header band with its name and count, and a color bar beside its labels. Click a header to collapse or expand the group. Rows keep your chosen order inside each group. Sequences without a value go to **Ungrouped**, listed last.
 
-**Show a tree.** The application calls `setTree` with a Newick string. The tree appears left of the labels and the order switches to **Tree**. Each leaf lines up with its row as you scroll or filter. Click a branch point to check the sequences below it. Leaves match sequences by ID, then by name. A message above the alignment lists leaves with no sequence and sequences with no leaf. With any other order the branches cross, because rows no longer follow the tree. Hide the tree with the `tree` visibility key or set `treeWidth` to 0.
+**Show a tree.** The application calls `setTree` with a Newick string. The tree appears left of the labels and the order switches to **Tree**. Each leaf lines up with its row as you scroll or filter. The pinned reference has no leaf in the column and a branch click does not check it; unpin it to see its leaf. Click a branch point to check the sequences below it. Leaves match sequences by ID, then by name. A message above the alignment lists leaves with no sequence and sequences with no leaf. With any other order the branches cross, because rows no longer follow the tree. Hide the tree with the `tree` visibility key or set `treeWidth` to 0.
 
-Links keep the order (`sort=manual` or `sort=tree`) but not hidden rows, a manual sequence list or a tree. **Export > View state · JSON** keeps hidden rows, the manual order and collapsed groups; load a tree again with `setTree`.
+Links keep the order only for `sort=tree`; a manual order is not in the link, so it opens in input order. Links also omit hidden rows, a manual sequence list or a tree. **Export > View state · JSON** keeps hidden rows, the manual order and collapsed groups; load a tree again with `setTree`.
 
 ## Choose DNA and RNA colors
 

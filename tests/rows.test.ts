@@ -116,10 +116,15 @@ it('keeps the tree through removeRows and re-matches its leaves',async()=>{
   const viewer=await make();viewer.setTree('((Beta,c),(a,Gamma),b);');await viewer.removeRows(['a']);
   expect(viewer.getState().sort).toBe('tree');expect(shown(viewer)).toBe('d,c,e,b');expect(viewer.element.querySelector('.ak-message')!.textContent).toContain('1 tree leaves match no sequence (a)');
 });
-it('carries manual and tree orders in links and skips tree when none is loaded',async()=>{
-  expect(decodeViewLink('sort=tree')).toEqual({sort:'tree'});expect(decodeViewLink('sort=manual')).toEqual({sort:'manual'});expect(decodeViewLink('sort=bogus').ignored).toEqual(['sort']);
+it('leaves the pinned reference out of clade selection',async()=>{
+  const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());await viewer.setAlignment(data());viewer.setTree('((a,b),(c,d),e);');
+  const layout=(viewer as any).tree.layout,node=layout.nodes.findIndex((n:any,k:number)=>k>0&&n.children.length&&layout.nodes[layout.kids[k][0]].name==='a');
+  (viewer as any).selectClade(node);expect(viewer.getSelectedRowIds()).toEqual(['b']);
+});
+it('omits manual order from links; carries tree order and skips tree when none is loaded orders in links and skips tree when none is loaded',async()=>{
+  expect(decodeViewLink('sort=tree')).toEqual({sort:'tree'});expect(decodeViewLink('sort=manual').ignored).toEqual(['sort']);expect(decodeViewLink('sort=bogus').ignored).toEqual(['sort']);
   const viewer=await make();expect(await viewer.applyViewLink('sort=tree')).toContain('sort');expect(viewer.getState().sort).toBe('input');
-  viewer.setTree('(e,d,c,b,a);');expect(encodeViewLink(viewer.getState())).toContain('sort=tree');expect(await viewer.applyViewLink('sort=tree')).not.toContain('sort');expect(shown(viewer)).toBe('e,d,c,b,a');
+  viewer.moveRow('e',0);expect(encodeViewLink(viewer.getState())).not.toContain('sort');viewer.setTree('(e,d,c,b,a);');expect(encodeViewLink(viewer.getState())).toContain('sort=tree');expect(await viewer.applyViewLink('sort=tree')).not.toContain('sort');expect(shown(viewer)).toBe('e,d,c,b,a');
 });
 it('leaves the pinned reference out of groups and the tree order',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());await viewer.setAlignment(data());

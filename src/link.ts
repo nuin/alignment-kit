@@ -9,7 +9,7 @@ export interface ViewLink {
   ignored?:string[];
 }
 const modes:ColorMode[]=['all','reference-differences','reference-matches','consensus-differences','consensus-matches'];
-const sorts:ViewState['sort'][]=['input','name','identity','manual','tree'];
+const sorts:ViewState['sort'][]=['input','name','identity','tree'];
 const scopes:ViewState['statisticsScope'][]=['all','filtered'];
 const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y'];
 /** True when a fragment or query holds at least one link parameter; plain anchors such as `#viewer` do not. */
@@ -26,7 +26,7 @@ export function encodeViewLink(state:ViewState,source?:string):string {
   if(state.colorMode!=='all')p.set('mode',state.colorMode);
   p.set('zoom',String(state.cellWidth));
   if(state.query)p.set('q',state.query);
-  if(state.sort!=='input')p.set('sort',state.sort);
+  if(state.sort!=='input'&&state.sort!=='manual')p.set('sort',state.sort);
   if(state.statisticsScope!=='all')p.set('scope',state.statisticsScope);
   if(state.start>1)p.set('x',String(state.start));
   if(state.rowOffset>0)p.set('y',String(state.rowOffset));
