@@ -26,20 +26,21 @@ const minDistance=(colors:string[],kind:string)=>{
 };
 const safe=['cvd-protein','cvd-nucleotide','hc-protein','hc-nucleotide'];
 const classColors=(id:string)=>getColorScheme(id).classes!.map(c=>c.color);
+const neutralColor=(id:string)=>residueColor(id.endsWith('nucleotide')?'N':'X',getColorScheme(id));
 
 it('simulation maps a neutral gray to itself and separates red from green under deuteranopia',()=>{
   expect(distance(simulate('#808080','deuteranopia'),simulate('#808080','normal'))).toBeLessThan(1);
   expect(distance(simulate('#d62728','normal'),simulate('#2ca02c','normal'))).toBeGreaterThan(60);
   expect(distance(simulate('#d62728','deuteranopia'),simulate('#2ca02c','deuteranopia'))).toBeLessThan(35);
 });
-it('keeps every pair of class colors at CIELAB distance 25 or more under normal vision, deuteranopia and protanopia',()=>{
-  for(const id of safe)for(const kind of Object.keys(MACHADO))expect(minDistance(classColors(id),kind),`${id} ${kind}`).toBeGreaterThanOrEqual(25);
+it('keeps every pair of class colors and the neutral ambiguity color at CIELAB distance 25 or more under normal vision, deuteranopia and protanopia',()=>{
+  for(const id of safe)for(const kind of Object.keys(MACHADO))expect(minDistance([...classColors(id),neutralColor(id)],kind),`${id} ${kind}`).toBeGreaterThanOrEqual(25);
 });
 it('gives the high-contrast schemes letters with at least 7:1 contrast against every class color',()=>{
-  for(const id of safe.filter(s=>s.startsWith('hc-')))for(const color of classColors(id))expect(contrast(color,textColor(color)),`${id} ${color}`).toBeGreaterThanOrEqual(7);
+  for(const id of safe.filter(s=>s.startsWith('hc-')))for(const color of [...classColors(id),neutralColor(id)])expect(contrast(color,textColor(color)),`${id} ${color}`).toBeGreaterThanOrEqual(7);
 });
-it('keeps letters readable on every colorblind-safe class color',()=>{
-  for(const id of safe)for(const color of classColors(id))expect(contrast(color,textColor(color)),`${id} ${color}`).toBeGreaterThanOrEqual(4.5);
+it('keeps letters readable on every colorblind-safe class color and neutral fill',()=>{
+  for(const id of safe)for(const color of [...classColors(id),neutralColor(id)])expect(contrast(color,textColor(color)),`${id} ${color}`).toBeGreaterThanOrEqual(4.5);
 });
 it('flags the new schemes, restricts them by alphabet and lists every residue class',()=>{
   expect(colorSchemes('protein').map(s=>s.id)).toEqual(expect.arrayContaining(['cvd-protein','hc-protein']));
@@ -48,12 +49,13 @@ it('flags the new schemes, restricts them by alphabet and lists every residue cl
   expect(colorSchemes('dna').map(s=>s.id)).not.toContain('cvd-protein');
   for(const id of safe){const s=getColorScheme(id);expect(s.cvdSafe).toBe(true);expect(s.classes!.length).toBeGreaterThanOrEqual(4);}
   expect(getColorScheme('hc-protein').highContrast).toBe(true);expect(getColorScheme('cvd-protein').highContrast).toBeUndefined();
-  for(const letter of 'ACDEFGHIKLMNPQRSTVWY')expect(residueColor(letter,getColorScheme('cvd-protein'))).not.toBe('#e9edf2');
+  for(const letter of 'ACDEFGHIKLMNPQRSTVWY')expect(residueColor(letter,getColorScheme('cvd-protein'))).not.toBe(neutralColor('cvd-protein'));
+  for(const letter of 'BZXJUO*')expect(residueColor(letter,getColorScheme('hc-protein'))).toBe(neutralColor('hc-protein'));
 });
 it('colors T and U alike and leaves ambiguity symbols neutral in the nucleotide schemes',()=>{
   for(const id of ['cvd-nucleotide','hc-nucleotide']){
     const s=getColorScheme(id);expect(s.colors.T).toBe(s.colors.U);
     expect(new Set(['A','C','G','T'].map(b=>s.colors[b])).size).toBe(4);
-    expect(new Set([...'RYSWKMBDHVN'].map(b=>s.colors[b]))).toEqual(new Set(['#e0e5eb']));
+    expect(new Set([...'RYSWKMBDHVN'].map(b=>s.colors[b]))).toEqual(new Set([neutralColor(id)]));
   }
 });

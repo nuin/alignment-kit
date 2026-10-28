@@ -195,9 +195,9 @@ The new four-base schemes give mixed ambiguity symbols a neutral background. Gro
 | Residue classes · colorblind-safe | Protein | Yes | Seven classes: aliphatic, aromatic, polar, positive, negative, glycine and proline, cysteine. |
 | Nucleotide · colorblind-safe | DNA, RNA | Yes | Okabe-Ito based: A sky blue, C yellow, G dark blue, T/U vermillion. |
 | Residue classes · high contrast | Protein | Yes | Same classes with strong fills; letters keep at least 7:1 contrast. |
-| Nucleotide · high contrast | DNA, RNA | Yes | A mint, C yellow, G navy, T/U brown; letters keep at least 7:1 contrast. |
+| Nucleotide · high contrast | DNA, RNA | Yes | A teal, C yellow, G navy, T/U brown; letters keep at least 7:1 contrast. |
 
-"Colorblind-safe" here means every pair of class colors stays at least 25 apart in CIELAB under simulated deuteranopia and protanopia, checked by an automated test. Classes differ in lightness as well as hue, and the letters never depend on color. The Colors tab shows the classes of the chosen scheme. All other schemes are not checked, and several (Clustal, Zappo, Cinema, the Nightingale nucleotide palette) separate groups mostly by red and green.
+"Colorblind-safe" here means every pair of class colors, and the neutral fill of ambiguity symbols (a light gray, or a dark gray in Nucleotide · high contrast), stays at least 25 apart in CIELAB under simulated deuteranopia and protanopia, checked by an automated test. Classes differ in lightness as well as hue, and the letters never depend on color. The Colors tab shows the classes of the chosen scheme. All other schemes are not checked, and several (Clustal, Zappo, Cinema, the Nightingale nucleotide palette) separate groups mostly by red and green.
 
 For protein alignments, **Residue classes** is the muted default. Fixed schemes include Clustal/Clustal2, Taylor, Zappo, Lesk, Cinema, MAE, hydrophobicity, buried index and secondary-structure propensities. These color residue identities or properties; they do not predict function or structure. Clustal2 is a fixed mapping, not column-dependent ClustalX coloring.
 

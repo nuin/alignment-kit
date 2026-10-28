@@ -114,19 +114,19 @@ export class Renderer {
     ctx.save();ctx.beginPath();ctx.rect(v.gutter,0,width-v.gutter,height);ctx.clip();
     const first=Math.max(0,Math.floor(v.y/v.rh)),last=Math.min(v.rows.length,Math.ceil((v.y+height)/v.rh));
     for(let i=first;i<last;i++)v.rows[i]<0?this.header(ctx,v,v.groups?.[-v.rows[i]-1],i*v.rh-v.y,width):this.row(ctx,v,v.rows[i],i*v.rh-v.y,width);
-    const m=colMap(v);this.edges(ctx,v,m,0,height,false,width);this.marks(ctx,v,m,0,height,false,width);
+    const m=colMap(v);this.edges(ctx,v,m,0,height,false,width);this.marks(ctx,v,m,0,height,null,width);
     if(v.selection&&v.visibility?.selectionOverlay!==false){const x=v.gutter+m.before[v.selection.start-1]*v.cw-v.x,w=Math.max(2,(m.before[v.selection.end]-m.before[v.selection.start-1])*v.cw);ctx.fillStyle='rgba(36,99,166,0.09)';ctx.fillRect(x,0,w,height);ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(x+.75,.75,w-1.5,height-1.5);}
     ctx.restore();ctx.fillStyle=v.dark?'#172333':'#f9fbfc';ctx.fillRect(0,0,v.gutter,height);ctx.strokeStyle=v.dark?'#354356':'#d7e0e7';ctx.beginPath();ctx.moveTo(v.gutter-.5,0);ctx.lineTo(v.gutter-.5,height);ctx.stroke();
   }
-  /** Outline box per mark over the kept columns it covers; `cap` adds the filled ruler marker. A mark whose columns are all hidden has no position and is skipped. */
-  private marks(ctx:CanvasRenderingContext2D,v:RenderView,m:ColumnMap,top:number,bottom:number,cap:boolean,width:number) {
+  /** Outline box per mark over the kept columns it covers; `cap` is the ruler top, or null when there is no ruler, and adds the filled marker. A mark whose columns are all hidden has no position and is skipped. */
+  private marks(ctx:CanvasRenderingContext2D,v:RenderView,m:ColumnMap,top:number,bottom:number,cap:number|null,width:number) {
     if(!v.marks?.length)return;
     ctx.save();ctx.lineWidth=2;
     for(const k of v.marks){
       const left=m.before[k.start-1],right=m.before[k.end];if(right<=left)continue;
       const x=v.gutter+left*v.cw-v.x,w=Math.max(3,(right-left)*v.cw);if(x+w<v.gutter||x>width)continue;
       ctx.strokeStyle=ctx.fillStyle=k.color;ctx.strokeRect(x+1,top+1,w-2,bottom-top-2);
-      if(cap)ctx.fillRect(x,top,w,7);
+      if(cap!==null)ctx.fillRect(x,cap,w,7);
     }
     ctx.restore();
   }
@@ -176,7 +176,7 @@ export class Renderer {
     }
     if(offset.reference!==null&&v.reference>=0)this.row(ctx,v,v.reference,offset.reference,width);
     extra.forEach((t,i)=>tracks.custom[i]&&this.customTrack(ctx,v,m,t,tracks.custom[i],start,end,width,ink,line));
-    this.edges(ctx,v,m,0,height,offset.ruler!==null,width);this.marks(ctx,v,m,0,height,true,width);
+    this.edges(ctx,v,m,0,height,offset.ruler!==null,width);this.marks(ctx,v,m,0,height,offset.ruler,width);
     if(v.selection&&v.visibility?.selectionOverlay!==false){const l=m.before[v.selection.start-1];ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(v.gutter+l*v.cw-v.x+.75,.75,Math.max(2,(m.before[v.selection.end]-l)*v.cw)-1.5,height-1.5);}
     ctx.restore();return height;
   }

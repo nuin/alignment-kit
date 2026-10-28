@@ -135,4 +135,7 @@ it('draws mark outlines at original-column positions after masking and a marker 
   const tracks:Call[]=[];new Renderer().tracks(recorder(tracks),{...base,visibility:{...defaultVisibility,modalFrequency:false,gapFraction:false,consensus:false,reference:false}},400);
   expect(tracks.filter(c=>c.fn==='fillRect'&&c.args[3]===7).map(c=>[c.args[0],c.args[2]])).toEqual([[16,48],[256,16]]);
   expect(tracks.filter(c=>c.fn==='strokeRect')).toHaveLength(2);
+  const hidden:Call[]=[];new Renderer().tracks(recorder(hidden),{...base,visibility:{...defaultVisibility,ruler:false,modalFrequency:false,gapFraction:false,consensus:true,reference:false}},400);
+  expect(hidden.filter(c=>c.fn==='fillRect'&&c.args[3]===7)).toHaveLength(0);
+  expect(hidden.filter(c=>c.fn==='strokeRect')).toHaveLength(2);
 });
