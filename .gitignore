@@ -6,3 +6,4 @@ playwright-report/
 *.tgz
 .preview/
 /demo/public/guide/
+.playwright-mcp/
