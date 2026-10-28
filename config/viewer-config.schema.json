@@ -301,6 +301,9 @@
         },
         "minCoverage": {
           "type": "boolean"
+        },
+        "tooltip": {
+          "type": "boolean"
         }
       }
     },
@@ -504,6 +507,18 @@
     "reverseComplement": {
       "type": "boolean",
       "description": "Show the whole alignment reverse-complemented (DNA and RNA only). Default false."
+    },
+    "tooltips": {
+      "type": "boolean",
+      "description": "Show hover cards for residues and annotation marks and pin annotation cards on click. Default true."
+    },
+    "annotationLinks": {
+      "type": "object",
+      "description": "URL templates keyed by source or id type (pubmed, evidence, or a source name). Each must be an http or https URL containing {id}.",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^https?://.*\\{id\\}"
+      }
     }
   }
 }

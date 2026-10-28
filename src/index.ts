@@ -17,6 +17,8 @@ export type { MarkRange } from './marks';
 export { validateTrack } from './tracks';
 export { parseNewick, leafOrder } from './tree';
 export type { TreeNode } from './tree';
+export { validateAnnotationLinks } from './tooltip';
+export type { AnnotationLinks } from './tooltip';
 export { parseViewerConfig } from './config';
 export type { ViewerConfig } from './config';
 export { encodeViewLink, decodeViewLink, isViewLink } from './link';

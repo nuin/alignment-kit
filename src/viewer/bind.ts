@@ -3,6 +3,7 @@ import { bindPointer } from './pointer';
 import { bindKeys } from './keys';
 import { bindForms } from './forms';
 import { bindLabels } from './labels';
+import { bindTooltip } from './tooltip';
 
 export function bind(v:Core):void {
   const signal=v.controller.signal,on:On=(target,event,handler)=>target.addEventListener(event,handler,{signal});
@@ -24,6 +25,6 @@ export function bind(v:Core):void {
     if(button.dataset.row)v.setSelection({start:v.selection?.start??1,end:v.selection?.end??1,rowId:button.dataset.row},false);
     if(button.dataset.feature){const feature=v.filteredAnnotations.visible[Number(button.dataset.feature)];if(feature){if(feature.mapping==='mapped')v.setSelection({start:feature.start!,end:feature.end!,rowId:feature.rowId});v.emit('annotation',feature);v.message(`${feature.label}: ${feature.mapping==='mapped'?`alignment columns ${feature.start}–${feature.end}`:'no protein mapping'}. ${JSON.stringify(feature.metadata??{})}`);}}
   });
-  bindPointer(v,on);bindLabels(v,on);bindForms(v,on);bindKeys(v,on);
+  bindTooltip(v,on);bindPointer(v,on);bindLabels(v,on);bindForms(v,on);bindKeys(v,on);
   on(v.root,'dragover',(event:DragEvent)=>event.preventDefault());on(v.root,'drop',(event:DragEvent)=>{event.preventDefault();const file=event.dataTransfer?.files[0];if(file)void v.openFile(file);});
 }

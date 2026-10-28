@@ -14,7 +14,7 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
   messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true, reverseComplementToggle:true, rowStrand:true, columnMarks:true,
-  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true,
+  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true, tooltip:true,
 });
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {

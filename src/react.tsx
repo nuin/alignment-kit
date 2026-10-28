@@ -3,12 +3,12 @@ import { useEffect, useRef, createElement, type CSSProperties } from 'react';
 import { mountViewer, type IntegrationProps } from './integration';
 export interface AlignmentViewerProps extends IntegrationProps { className?:string; style?:CSSProperties; id?:string }
 /** SSR-safe host. React StrictMode setup/cleanup is supported. */
-export function AlignmentViewer({alignment,options,onReady,onSelectionChange,onViewportChange,onAnnotationClick,onError,onSearch,onWarnings,className,style,id}:AlignmentViewerProps) {
+export function AlignmentViewer({alignment,options,onReady,onSelectionChange,onViewportChange,onAnnotationClick,onHover,onCellClick,onError,onSearch,onWarnings,className,style,id}:AlignmentViewerProps) {
   const host=useRef<HTMLDivElement>(null),controller=useRef<ReturnType<typeof mountViewer>|null>(null);
   const current=useRef<IntegrationProps>({});
-  useEffect(()=>{current.current={alignment,options,onReady,onSelectionChange,onViewportChange,onAnnotationClick,onError,onSearch,onWarnings};});
+  useEffect(()=>{current.current={alignment,options,onReady,onSelectionChange,onViewportChange,onAnnotationClick,onHover,onCellClick,onError,onSearch,onWarnings};});
   useEffect(()=>{controller.current=mountViewer(host.current!,current.current);return()=>{controller.current?.destroy();controller.current=null;};},[]);
-  useEffect(()=>controller.current?.update(current.current),[alignment,options,onReady,onSelectionChange,onViewportChange,onAnnotationClick,onError,onSearch,onWarnings]);
+  useEffect(()=>controller.current?.update(current.current),[alignment,options,onReady,onSelectionChange,onViewportChange,onAnnotationClick,onHover,onCellClick,onError,onSearch,onWarnings]);
   return createElement('div',{ref:host,className,style,id});
 }
 export type { IntegrationProps } from './integration';

@@ -43,7 +43,7 @@ export class AlignmentViewer {
   private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;private menus:ThemedSelects;
   private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private searcher:WorkerTask;private summaryTask:()=>WorkerTask;private summaryCache=new Map<string,SummaryEntry>();private summaryPage=0;private searchRun=0;private searchBusy=false;private request?:AbortController;
   private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
-  private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
+  private tip?:Core['tip'];private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
   private visibility:Required<ViewerVisibility>={...defaultVisibility};
   private get grouped(){return !!(this.groupMap||this.groupBy);}
@@ -99,7 +99,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,colorThreshold:0,minIdentity:0,minCoverage:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,reverseComplement:false,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,colorThreshold:0,minIdentity:0,minCoverage:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,reverseComplement:false,tooltips:true,...options,annotationLinks:{},fasta:{}};
     this.summaryTask=()=>new WorkerTask(options.workerUrl,options.worker!==false);this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);

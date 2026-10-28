@@ -117,6 +117,7 @@ export interface ViewerVisibility {
   colorThreshold?:boolean;
   minIdentity?:boolean;
   minCoverage?:boolean;
+  tooltip?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
 /** `reversed` is true in the reverse-complement view: columns then run right to left, column `end` is drawn at `offsetX` and each lower column one `cellWidth` further right. */
@@ -147,6 +148,10 @@ export interface ViewerOptions {
   urlSync?:boolean;
   /** Pan by dragging the residue grid. A press that moves under 4 px is a click. Default true. */
   dragToPan?:boolean;
+  /** Show a card after 300 ms of hovering a residue or annotation mark, and pin the annotation card on click. Default true. The `hover` and `cellclick` events fire regardless. */
+  tooltips?:boolean;
+  /** URL templates with an `{id}` placeholder, keyed by source or id type (`pubmed`, `evidence`, or a source name). Only http and https templates are accepted. No default links. */
+  annotationLinks?:Record<string,string>;
   /** Registered tracks; replaces the current set. */
   tracks?:CustomTrack[];
   /** 'bits' scales each logo stack by information content. Default 'frequency'. */
@@ -186,7 +191,10 @@ export interface ViewState {
 /** A user mark on alignment columns `start` to `end` (one-based, inclusive, original coordinates) drawn in `color`. */
 export interface ColumnMark { start:number; end:number; color:string }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
-export interface ViewerEvents { selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState; warnings:ParseWarning[] }
+/** The cell under the pointer or clicked. `residue` is the stored letter ('-' for a gap); `position` is the residue number in its row (honors `metadata.start`), null in a gap. */
+export interface CellInfo { rowId:string; column:number; residue:string; position:number|null }
+export interface CellClick extends CellInfo { shiftKey:boolean }
+export interface ViewerEvents { hover:CellInfo|null; cellclick:CellClick; selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState; warnings:ParseWarning[] }
 export type ViewerEvent = keyof ViewerEvents;
 export type EventHandler<K extends ViewerEvent> = (event:ViewerEvents[K])=>void;
 /** FASTA output settings shared by export and copy. Defaults: keep gaps, original case, 80 columns, name header. */

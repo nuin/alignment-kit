@@ -4,6 +4,7 @@ import { $ } from '../controls';
 import { validateFastaOptions } from '../export';
 import { columnPos } from '../mask';
 import { validateTracks } from '../tracks';
+import { validateAnnotationLinks } from '../tooltip';
 import { type Core, bounded } from './core';
 export const protein='Reverse complement needs a DNA or RNA alignment. This one is protein.';
 export function setOptions(v:Core, options:ViewerOptions):void {
@@ -16,7 +17,8 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   const maskSig=()=>`${v.options.hideGapColumns}|${v.options.hideAllGapColumns}|${v.reversed}`,maskBefore=maskSig(),anchor=v.a?v.firstColumn():0;
   const oldScope=v.options.statisticsScope,filterSig=()=>`${v.options.minIdentity}|${v.options.minCoverage}`,filterBefore=filterSig();
   const wasPinned=v.pinned;
-  const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,groupBy,...visual}=options;
+  const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,groupBy,annotationLinks,...visual}=options;
+  if(annotationLinks!==undefined){try{v.options.annotationLinks=validateAnnotationLinks(annotationLinks);}catch(error){throw v.error(error);}}
   if(visual.logoMode!==undefined&&visual.logoMode!=='frequency'&&visual.logoMode!=='bits')throw v.error(new Error('logoMode must be "frequency" or "bits".'));
   if(visual.reverseComplement&&v.a?.alphabet==='protein'){visual.reverseComplement=false;v.message(protein);}
   let validTracks:CustomTrack[]|undefined;
@@ -34,6 +36,7 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   v.options.cellWidth=bounded(v.options.cellWidth,3,32);v.options.rowHeight=bounded(v.options.rowHeight,18,48);v.options.labelWidth=bounded(v.options.labelWidth,100,420);v.options.height=bounded(v.options.height,360,2000);v.options.consensusThreshold=bounded(v.options.consensusThreshold,0,1);v.options.colorThreshold=bounded(v.options.colorThreshold,0,1);v.options.minIdentity=bounded(v.options.minIdentity,0,100);v.options.minCoverage=bounded(v.options.minCoverage,0,100);{const w=Math.round(bounded(v.options.conservationWindow,1,51));v.options.conservationWindow=w%2?w:w-1;}v.options.treeWidth=bounded(v.options.treeWidth,0,400);
   const masked=maskSig()!==maskBefore;if(masked)v.colMap=undefined;
   const regroup=groupBy!==undefined&&groupBy!==v.groupBy;if(regroup)v.groupBy=groupBy!;
+  if(!v.options.tooltips||!v.visibility.tooltip)v.tip?.hide();
   v.root.style.height=v.options.height+'px';v.root.dataset.theme=v.options.theme;v.root.dataset.inspector=String(v.options.showInspector);v.root.dataset.dragPan=String(v.options.dragToPan);
   const refiltered=filterSig()!==filterBefore;
   if(wasPinned!==v.pinned||regroup||refiltered)v.rebuildRows();
