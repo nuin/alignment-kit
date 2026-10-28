@@ -193,3 +193,22 @@ it('draws entropy, quality, bit-scaled logo and registered tracks on the track c
   expect(rec.calls.filter(([k,a])=>k==='fillText'&&['a','b','c','d'].includes(a[0] as string)).length).toBeGreaterThanOrEqual(4);
   expect(errors).toEqual(['Track bad: render failed: boom']);vi.restoreAllMocks();
 });
+it('keeps the render of a class-based track and ignores later changes to the input',()=>{
+  let seen=0;class T{id='cls';label='C';type='custom';render(){seen++;}}
+  const copy=validateTrack(new T());(copy.render as any)({});
+  expect(typeof copy.render).toBe('function');expect(seen).toBe(1);
+  const plain:any={id:'p',label:'P',type:'bar'},c=validateTrack(plain);plain.label='X';expect(c.label).toBe('P');expect(Object.keys(c)).toEqual(['id','label','type']);
+});
+it('leaves tracks unchanged when setOptions fails on logoMode',async()=>{
+  const {viewer}=await make('>a\nAC',undefined,{tracks:[{id:'a',label:'A',type:'bar'}]});
+  expect(()=>viewer.setOptions({tracks:[],logoMode:'x' as any})).toThrow(/logoMode/);expect(viewer.getTracks().map(t=>t.id)).toEqual(['a']);
+});
+it('shows GR tracks only for a selected row or a pinned reference',async()=>{
+  const {viewer}=await make(stockholm,'rna'),labels=()=>((viewer as any).drawnTracks() as CustomTrack[]).map(t=>t.label);
+  viewer.setOptions({visibility:{reference:false}});expect(labels()).toEqual(['SS_cons','PP_cons','RF']);
+  viewer.setOptions({visibility:{reference:true,tracks:false}});expect(labels()).toEqual(['SS_cons','PP_cons','RF']);
+});
+it('caps the track area at 45% of the viewer height and scrolls the rest',()=>{
+  const css=readFileSync('src/style.css','utf8'),rule=css.match(/\.ak-tracks\{[^}]*\}/)![0];
+  expect(rule).toContain('max-height:45%');expect(rule).toContain('overflow-y:auto');
+});

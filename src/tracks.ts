@@ -25,7 +25,9 @@ export function validateTrack(input:unknown,json=false):CustomTrack {
     if(typeof t.render!=='function')fail(id,'render must be a function.');
     if(t.type!=='custom')fail(id,'render is only used by custom tracks.');
   } else if(t.type==='custom')fail(id,'custom tracks require a render function.');
-  return Object.assign({id,label:t.label as string,type:t.type as TrackType},t);
+  const copy:Record<string,unknown>={id,label:t.label,type:t.type,height:t.height,values:t.values,domain:t.domain,color:t.color,render:typeof t.render==='function'&&!Object.hasOwn(t,'render')?t.render.bind(t):t.render};
+  for(const key of Object.keys(copy))if(copy[key]===undefined)delete copy[key];
+  return copy as unknown as CustomTrack;
 }
 /** Validate a list of definitions, rejecting duplicate ids. */
 export function validateTracks(input:unknown,json=false):CustomTrack[] {

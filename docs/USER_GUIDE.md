@@ -164,7 +164,7 @@ Enable **Frequency logo** to add a frequency track. Ambiguity symbols keep their
 
 A Stockholm file with `#=GC` lines shows one track per line below the built-in tracks: secondary structure (`SS_cons`), reference annotation (`RF`), `seq_cons` and others as text, and `PP_cons` as grey shading from 0 (light) to 9 (dark). `#=GR` lines (per-sequence annotation) appear for the sequence you select, or for the pinned reference when nothing is selected, named like `SS Sequence name`. Turn them off with **Stockholm tracks** under **Customize viewer**. Click a track column to select that alignment column.
 
-Developers can add their own tracks (bars, heatmaps, text or drawn by a callback) with `addTrack`, `removeTrack` and the `tracks` option. See the Tracks section of the README.
+Developers can add their own tracks (bars, heatmaps, text or drawn by a callback) with `addTrack`, `removeTrack` and the `tracks` option. See the Tracks section of the README. When registered tracks are taller than 45% of the viewer, the track area scrolls. #=GR tracks follow the selected row, or the pinned reference when it is shown.
 
 ## Compare selected sequences
 

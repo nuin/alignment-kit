@@ -34,7 +34,7 @@ export class AlignmentViewer {
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
   private customTracks:CustomTrack[]=[];private drawn?:{a:Alignment;row:number;flag:boolean;user:CustomTrack[];list:CustomTrack[]};private trackKey='';private trackErrors=new Set<string>();
-  private selectionRow(){return this.selection?.rowId&&this.a?this.a.rows.findIndex(r=>r.id===this.selection!.rowId):this.reference;}
+  private selectionRow(){return this.selection?.rowId&&this.a?this.a.rows.findIndex(r=>r.id===this.selection!.rowId):this.pinned?this.reference:-1;}
   /** Tracks drawn after the built-ins: Stockholm lines first, then registered tracks whose values fit the alignment. Same array until an input changes. */
   private drawnTracks():CustomTrack[] {
     const a=this.a;if(!a)return [];
@@ -133,8 +133,10 @@ export class AlignmentViewer {
     const oldScope=this.options.statisticsScope;
     const wasPinned=this.pinned;
     const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,...visual}=options;
-    if(tracks!==undefined){try{this.customTracks=validateTracks(tracks);}catch(error){throw this.error(error);}this.trackErrors.clear();this.checkTracks();this.trackKey='';}
     if(visual.logoMode!==undefined&&visual.logoMode!=='frequency'&&visual.logoMode!=='bits')throw this.error(new Error('logoMode must be "frequency" or "bits".'));
+    let validTracks:CustomTrack[]|undefined;
+    if(tracks!==undefined){try{validTracks=validateTracks(tracks);}catch(error){throw this.error(error);}}
+    if(validTracks){this.customTracks=validTracks;this.trackErrors.clear();this.checkTracks();this.trackKey='';}
     const mergedFasta=fasta?validateFastaOptions({...this.options.fasta,...fasta}):this.options.fasta;
     if(options.showToolbar!==undefined){this.visibility.toolbar=options.showToolbar;this.visibility.tools=options.showToolbar;}
     if(options.showInspector!==undefined)this.visibility.inspector=options.showInspector;
