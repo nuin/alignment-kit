@@ -274,6 +274,18 @@
         },
         "columnMasking": {
           "type": "boolean"
+        },
+        "consensusThreshold": {
+          "type": "boolean"
+        },
+        "colorThreshold": {
+          "type": "boolean"
+        },
+        "minIdentity": {
+          "type": "boolean"
+        },
+        "minCoverage": {
+          "type": "boolean"
         }
       }
     },
@@ -285,6 +297,24 @@
       "minimum": 0,
       "maximum": 1,
       "description": "Consensus columns whose modal frequency among non-gap rows is below this become X (protein) or N (DNA/RNA)."
+    },
+    "colorThreshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "For the conservation and percent-identity schemes, residues whose column value is below this are left uncoloured."
+    },
+    "minIdentity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Show only rows whose identity to the reference is at least this percentage."
+    },
+    "minCoverage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Show only rows whose non-gap fraction is at least this percentage."
     },
     "fasta": {
       "type": "object",

@@ -1,4 +1,4 @@
-import type { Alphabet, ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, Annotation, AnnotationImportOptions, AnnotationImportResult, SearchOptions, SearchResult, Hit, CustomTrack, Identity } from '../types';
+import type { SortKey, Alphabet, ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, Annotation, AnnotationImportOptions, AnnotationImportResult, SearchOptions, SearchResult, Hit, CustomTrack, Identity } from '../types';
 import type { AnnotationIndex, filterAnnotations } from '../annotations';
 import type { ThemedSelects } from '../selects';
 import type { Renderer, RenderView, GroupInfo, TreeHit } from '../renderer';
@@ -10,10 +10,10 @@ import type { TreeLayout } from '../tree';
 
 export interface BoundTree { layout:TreeLayout; leafRow:Int32Array; treePos:Int32Array; note:string }
 /** View state that survives removeRows. */
-export interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:ViewState['sort']; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter; hiddenColumns:ColumnRange[] }
+export interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:SortKey; sortColumn?:number; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter; hiddenColumns:ColumnRange[] }
 export type On=(target:EventTarget,event:string,handler:(event:any)=>void)=>void;
 export interface SearchState { pattern:string; options:SearchOptions; result:SearchResult; byRow:Map<number,Hit[]>; cursor:number; full?:SearchResult }
-export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'>>;
+export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'colorThreshold'|'minIdentity'|'minCoverage'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'>>;
 export const bounded=(n:number,min:number,max:number):number=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 
 /** The state and methods of AlignmentViewer that the modules in this folder act on. The class implements it with private members, so it is cast once in AlignmentViewer.core. */
@@ -21,7 +21,7 @@ export interface Core {
   root:HTMLElement; scroll:HTMLElement; labels:HTMLElement; inspector:HTMLElement;
   options:ViewerSettings;
   a?:Alignment; stats?:AlignmentStats; fullStats?:AlignmentStats;
-  reference:number; filteredRows:number[]; rows:number[]; query:string; sort:ViewState['sort']; identities?:number[]; identityDetails?:Identity[];
+  reference:number; filteredRows:number[]; rows:number[]; query:string; sort:SortKey; sortColumn?:number; identityJob?:{a:Alignment;ref:number;promise:Promise<Identity[]>}; identities?:number[]; identityDetails?:Identity[];
   selection:Selection|null; selectedRows:Set<string>; annotationFilter:AnnotationFilter;
   filteredAnnotations:ReturnType<typeof filterAnnotations>; annotationIndex:AnnotationIndex;
   renderer:Renderer; controller:AbortController; menus:ThemedSelects;
@@ -106,7 +106,9 @@ export interface Core {
   setOptions(options:ViewerOptions):void;
   setReference(id:string):void;
   setSelection(selection:Selection|null,scrollIntoView?:boolean,keepTab?:boolean):void;
-  setSort(sort:ViewState['sort']):Promise<void>;
+  setSort(sort:SortKey,column?:number):Promise<void>;
+  setRowOrderFromNames(names:string[]):string[];
+  loadIdentities():Promise<boolean>;
   showColumns(start?:number,end?:number):void;
   showRows(ids?:string[]):void;
   stepColumn(column:number,step:1|-1):number;

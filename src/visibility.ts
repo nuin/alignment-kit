@@ -14,6 +14,7 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
   messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true,
+  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true,
 });
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
@@ -27,7 +28,7 @@ const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
   positionTab:'[data-tab="position"]',featuresTab:'[data-tab="annotations"]',compareTab:'[data-tab="compare"]',colorsTab:'[data-tab="legend"]',hitsTab:'[data-tab="hits"]',
   pinReference:'[data-action="pin-selected"]',rowFeaturesToggle:'[data-action="toggle-row-features"]',featureType:'select[aria-label="Feature type"]',
   featureConsequence:'select[aria-label="Feature consequence"]',diseaseFilter:'[aria-label="Features with disease evidence"]',phenotypeFilter:'[aria-label="Features with phenotype evidence"]',
-  featurePagination:'.ak-feature-pagination',rowHiding:'[data-hide],[data-action="show-hidden"]',tree:'.ak-tree-canvas',columnMasking:'[data-action="hide-columns"],[data-action="show-columns"]',calculateIdentity:'[data-action="compare"]',clearRows:'[data-action="clear-rows"]',
+  featurePagination:'.ak-feature-pagination',rowHiding:'[data-hide],[data-action="show-hidden"]',tree:'.ak-tree-canvas',columnMasking:'[data-action="hide-columns"],[data-action="show-columns"]',consensusThreshold:'[aria-label="Consensus threshold"]',colorThreshold:'[aria-label="Color threshold"]',minIdentity:'[aria-label="Minimum identity to reference"]',minCoverage:'[aria-label="Minimum coverage"]',calculateIdentity:'[data-action="compare"]',clearRows:'[data-action="clear-rows"]',
 };
 export const inspectorTabs = {position:'positionTab',annotations:'featuresTab',compare:'compareTab',legend:'colorsTab',hits:'hitsTab'} as const;
 export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {

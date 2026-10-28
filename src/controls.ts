@@ -19,13 +19,17 @@ export function buildShell(root:HTMLElement) {
   <div class="ak-tools">
     <label>Go to <input type="text" value="1" aria-label="Go to alignment column" title="A column, a reference residue number in reference ruler mode, or row:residue" placeholder="123 or row:45"></label>
     <label class="ak-motif"><input type="search" placeholder="Find a motif…" aria-label="Find motif" title="Letters with IUPAC codes, /regex/, or PROSITE such as N-{P}-[ST]-{P}"><button type="button" data-action="motif-prev" aria-label="Find previous motif">Previous</button><button type="button" data-action="motif" aria-label="Find next motif">Find next</button></label>
-    <label>Order <select aria-label="Sequence order"><option value="input">As loaded</option><option value="name">Name</option><option value="identity">Identity to reference</option><option value="manual">Manual</option><option value="tree">Tree</option></select></label>
+    <label>Order <select aria-label="Sequence order"><option value="input">As loaded</option><option value="name">Name</option><option value="identity">Identity to reference</option><option value="gaps">Fewest gaps</option><option value="length">Longest sequence</option><option value="residue">Residue at selected column</option><option value="annotations">Most annotations</option><option value="manual">Manual</option><option value="tree">Tree</option></select></label>
     <button type="button" data-action="show-hidden" data-empty="true" hidden>Show hidden (0)</button>
     <button type="button" data-action="hide-columns" title="Hide the selected columns without changing the alignment">Hide selected columns</button>
     <button type="button" data-action="show-columns" data-empty="true" hidden>Show all columns</button>
     <select aria-label="Residues to color"><option value="all">All residues</option><option value="reference-differences">Differences to reference</option><option value="reference-matches">Matches to reference</option><option value="consensus-differences">Differences to consensus</option><option value="consensus-matches">Matches to consensus</option></select>
     <label><input type="checkbox" aria-label="Show frequency logo"> Frequency logo</label>
     <label><input type="checkbox" aria-label="Dots for matches"> Dots for matches</label>
+    <label class="ak-range">Consensus <input type="range" min="0" max="100" step="5" value="0" aria-label="Consensus threshold" title="Consensus columns whose modal frequency is below this become X or N"><output>0%</output></label>
+    <label class="ak-range">Color cutoff <input type="range" min="0" max="100" step="5" value="0" aria-label="Color threshold" title="Conservation and percent identity: leave residues below this uncolored" disabled><output>0%</output></label>
+    <label class="ak-number">Min identity <input type="number" min="0" max="100" step="1" placeholder="0" aria-label="Minimum identity to reference" title="Show rows with at least this identity (%) to the reference"></label>
+    <label class="ak-number">Min coverage <input type="number" min="0" max="100" step="1" placeholder="0" aria-label="Minimum coverage" title="Show rows with at least this non-gap fraction (%)"></label>
     <label>Stats <select aria-label="Statistics scope"><option value="all">All sequences</option><option value="filtered">Filtered sequences</option></select></label>
     <label>Ruler <select aria-label="Ruler coordinates"><option value="alignment">Alignment columns</option><option value="reference">Reference residues</option></select></label>
     <label>Type <select aria-label="Sequence alphabet"><option value="protein">Protein</option><option value="dna">DNA</option><option value="rna">RNA</option></select></label>

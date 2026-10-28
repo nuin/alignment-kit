@@ -5,7 +5,7 @@ import { type Core } from './core';
 export async function applyViewLink(v:Core, input:ViewLink|string):Promise<string[]> {
   v.assertAlive();if(!v.a)throw new Error('Load an alignment before applying a view link.');
   const link=typeof input==='string'?decodeViewLink(input):input,a=v.a,skipped=[...(link.ignored??[])];
-  const options:ViewerOptions={colorMode:link.colorMode??'all',matchDisplay:link.matchDisplay??'letter',statisticsScope:link.statisticsScope??'all',rulerCoordinates:link.rulerCoordinates??'alignment'};
+  const options:ViewerOptions={colorMode:link.colorMode??'all',matchDisplay:link.matchDisplay??'letter',statisticsScope:link.statisticsScope??'all',rulerCoordinates:link.rulerCoordinates??'alignment',minIdentity:link.minIdentity??0,minCoverage:link.minCoverage??0};
   if(link.cellWidth!==undefined)options.cellWidth=link.cellWidth;
   if(link.colorScheme){if(colorSchemes(a.alphabet).some(s=>s.id===link.colorScheme))options.colorScheme=link.colorScheme;else skipped.push('scheme');}
   v.setOptions(options);v.setFilter(link.query??'');
@@ -13,8 +13,8 @@ export async function applyViewLink(v:Core, input:ViewLink|string):Promise<strin
   if(hide.some(([,e])=>e>a.width)||hide.length===1&&hide[0][0]===1&&hide[0][1]===a.width){skipped.push('hide');v.manualHidden=[];}else v.manualHidden=hide;
   v.colMap=undefined;v.overviewDirty=true;v.layout();
   if(link.referenceId){if(a.rows.some(r=>r.id===link.referenceId))v.setReference(link.referenceId);else skipped.push('ref');}
-  let sort=link.sort??'input';if(sort==='tree'&&!v.tree){skipped.push('sort');sort='input';}
-  await v.setSort(sort);
+  let sort=link.sort??'input';if(sort==='tree'&&!v.tree||sort==='residue'&&(!link.sortColumn||link.sortColumn>a.width)){skipped.push('sort');sort='input';}
+  await v.setSort(sort,link.sortColumn);
   if(v.disposed||v.a!==a)return skipped;
   const s=link.selection;
   if(s&&(s.end>a.width||(s.rowId&&!a.rows.some(r=>r.id===s.rowId)))){skipped.push('sel');v.setSelection(null,false);}

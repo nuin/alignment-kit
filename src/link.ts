@@ -1,20 +1,20 @@
 import { mergeColumnRanges } from './mask';
-import type { ColorMode, RulerCoordinates, Selection, ViewState } from './types';
+import type { ColorMode, RulerCoordinates, Selection, SortKey, ViewState } from './types';
 
 /** View fields a shareable link can carry. Annotation filters and visibility stay out of links. */
 export interface ViewLink {
   source?:string; alignmentId?:string; selection?:Selection|null; referenceId?:string;
   colorScheme?:string; colorMode?:ColorMode; matchDisplay?:'letter'|'dot'; cellWidth?:number; query?:string;
-  sort?:ViewState['sort']; statisticsScope?:ViewState['statisticsScope']; start?:number; rowOffset?:number; rulerCoordinates?:RulerCoordinates;
+  sort?:SortKey; sortColumn?:number; minIdentity?:number; minCoverage?:number; statisticsScope?:ViewState['statisticsScope']; start?:number; rowOffset?:number; rulerCoordinates?:RulerCoordinates;
   /** Manually hidden columns, from `hide=10-20,30-35`. */
   hiddenColumns?:[number,number][];
   /** Parameter names present in the link but malformed. */
   ignored?:string[];
 }
 const modes:ColorMode[]=['all','reference-differences','reference-matches','consensus-differences','consensus-matches'];
-const sorts:ViewState['sort'][]=['input','name','identity','tree'];
+const sorts:SortKey[]=['input','name','identity','gaps','length','residue','annotations','tree'];
 const scopes:ViewState['statisticsScope'][]=['all','filtered'];
-const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide'];
+const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide','scol','minid','mincov'];
 /** True when a fragment or query holds at least one link parameter; plain anchors such as `#viewer` do not. */
 export const isViewLink=(input:string):boolean=>{const p=new URLSearchParams(input.replace(/^[#?]/,''));return keys.some(key=>key==='ruler'?!!p.get(key):p.has(key));};
 
@@ -31,6 +31,9 @@ export function encodeViewLink(state:ViewState,source?:string):string {
   p.set('zoom',String(state.cellWidth));
   if(state.query)p.set('q',state.query);
   if(state.sort!=='input'&&state.sort!=='manual')p.set('sort',state.sort);
+  if(state.sort==='residue'&&state.sortColumn)p.set('scol',String(state.sortColumn));
+  if(state.minIdentity)p.set('minid',String(state.minIdentity));
+  if(state.minCoverage)p.set('mincov',String(state.minCoverage));
   if(state.statisticsScope!=='all')p.set('scope',state.statisticsScope);
   if(state.rulerCoordinates==='reference')p.set('ruler','ref');
   if(state.hiddenColumns?.length)p.set('hide',state.hiddenColumns.map(([s,e])=>s===e?String(s):`${s}-${e}`).join(','));
@@ -58,6 +61,8 @@ export function decodeViewLink(input:string):ViewLink {
     const parts=hide.split(',').map(part=>part.match(/^(\d+)(?:-(\d+))?$/)),ranges=parts.map(m=>m&&[Number(m[1]),Number(m[2]??m[1])] as [number,number]);
     if(ranges.length&&ranges.every(r=>r&&r[0]>=1&&r[1]>=r[0]))link.hiddenColumns=mergeColumnRanges(ranges as [number,number][]);else ignored.push('hide');
   }
+  link.sortColumn=int('scol',1);
+  for(const [key,field] of [['minid','minIdentity'],['mincov','minCoverage']] as const){const value=p.get(key);if(value===null)continue;const n=Number(value);if(value!==''&&Number.isFinite(n)&&n>=0&&n<=100)link[field]=n;else ignored.push(key);}
   link.cellWidth=int('zoom',1);link.start=int('x',1);link.rowOffset=int('y',0);
   for(const key of Object.keys(link) as (keyof ViewLink)[])if(link[key]===undefined)delete link[key];
   if(ignored.length)link.ignored=ignored;

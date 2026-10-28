@@ -3,7 +3,7 @@ import type { ViewerVisibility, RulerCoordinates } from './types';
 import { isGap, rowOffset } from './model';
 import type { Alignment, AlignmentStats, ColorMode, CustomTrack, Selection, Hit } from './types';
 import { trackHeight, trackNumber, trackText, isTrackBlank } from './tracks';
-import { getColorScheme, residueColor, textColor } from './colors';
+import { getColorScheme, residueColor, textColor, dynamicColor, dynamicSchemes } from './colors';
 import { AnnotationIndex } from './annotations';
 import { STRIDE, SYMBOLS, consensusSymbol, movingAverage } from './analysis';
 import { treeSpans, type TreeLayout } from './tree';
@@ -14,7 +14,7 @@ export interface TreeHit { node:number; x:number; y:number }
 export interface RenderView {
   a:Alignment; stats?:AlignmentStats; rows:number[]; reference:number; x:number; y:number;
   cw:number; rh:number; gutter:number; scheme:string; mode:ColorMode; dark:boolean;
-  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; matchDots?:boolean; ruler?:RulerCoordinates; groups?:GroupInfo[];
+  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; colorThreshold?:number; matchDots?:boolean; ruler?:RulerCoordinates; groups?:GroupInfo[];
   /** Search hits by alignment row index, sorted by start column. */
   hits?:Map<number,Hit[]>; activeHit?:Hit;
   /** Tracks drawn after the built-ins, already validated against the alignment width. */
@@ -57,8 +57,8 @@ export class Renderer {
       const same=compare===code&&compare!==45&&compare!==63;
       const dot=!!v.matchDots&&same&&row!==v.reference&&!isGap(code);
       const faded=v.mode!=='all'&&compare!==undefined&&(v.mode.endsWith('differences')?same:!same);
-      if(v.scheme==='conservation') {
-        const color=residueColor(String.fromCharCode(code),scheme,v.stats?.support[c]);ctx.fillStyle=color;ctx.globalAlpha=faded?0.22:1;ctx.fillRect(x,y,v.cw,v.rh-1);
+      if(dynamicSchemes.has(v.scheme)) {
+        const color=dynamicColor(scheme,String.fromCharCode(code),v.stats,c,v.colorThreshold??0,v.threshold??0);ctx.fillStyle=color;ctx.globalAlpha=faded?0.22:1;ctx.fillRect(x,y,v.cw,v.rh-1);
         if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dot?'.':code===45?'·':String.fromCharCode(code),x+v.cw/2,y+v.rh/2);}
       } else {ctx.globalAlpha=faded?0.22:1;ctx.drawImage(atlas,code*v.cw*ratio,dot?v.rh*ratio:0,v.cw*ratio,v.rh*ratio,x,y,v.cw,v.rh);}
       ctx.globalAlpha=1;
