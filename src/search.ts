@@ -2,6 +2,8 @@ import type { Alignment, Alphabet, Hit, SearchMode, SearchOptions, SearchResult 
 
 export const MAX_HITS=10000;
 const MAX_PATTERN=500;
+export const MAX_SEARCH_MS=2000;
+const nested=/\((?:[^()\\]|\\.)*(?:[+*]|\{\d+,\d*\})(?:[^()\\]|\\.)*\)(?:[+*]|\{\d+,)/;
 const nucleotide:Record<string,string>={R:'AG',Y:'CTU',S:'CG',W:'ATU',K:'GTU',M:'AC',B:'CGTU',D:'AGTU',H:'ACTU',V:'ACG',T:'TU',U:'TU'};
 const protein:Record<string,string>={B:'DN',Z:'EQ',J:'IL'};
 const complement:Record<string,string>={A:'T',C:'G',G:'C',T:'A',U:'A',R:'Y',Y:'R',K:'M',M:'K',B:'V',V:'B',D:'H',H:'D'};
@@ -55,7 +57,7 @@ export function hitCount(result:SearchResult):string {
 export function detectMode(pattern:string):Exclude<SearchMode,'auto'> {
   const text=pattern.trim();
   if(/^\/.+\/i?$/.test(text))return 'regex';
-  if(/[-{}<>[\]()]|x/.test(text))return 'prosite';
+  if(/[-{}<>[\]()]|(^|-)x(\(|-|$)/i.test(text))return 'prosite';
   return 'iupac';
 }
 
@@ -66,8 +68,9 @@ export function compilePattern(pattern:string,options:{alphabet:Alphabet;mode?:S
   if(text.length>MAX_PATTERN)throw new Error(`Patterns are limited to ${MAX_PATTERN} characters.`);
   let source:string;
   if(mode==='regex'){
-    const m=/^\/(.+)\/i?$/.exec(text);
-    try{return new RegExp(m?m[1]:text,'gi');}catch(error){throw new Error(`Invalid regular expression: ${(error as Error).message}`);}
+    const m=/^\/(.+)\/i?$/.exec(text),body=m?m[1]:text;
+    if(nested.test(body))throw new Error('Nested repetition such as (A+)+ can freeze the page. Rewrite the pattern without a repeated group that contains a repeat.');
+    try{return new RegExp(body,'gi');}catch(error){throw new Error(`Invalid regular expression: ${(error as Error).message}`);}
   }
   if(mode==='literal')source=escape(text.toUpperCase());
   else if(mode==='prosite')source=prosite(text);
@@ -82,26 +85,36 @@ function reverseComplement(sequence:string,alphabet:Alphabet):string {
   return out;
 }
 
-/** Search ungapped rows and report every match, overlapping included, with alignment columns (one-based, inclusive). Stops at 10,000 hits. */
+/** Search ungapped rows and report every match, overlapping included, with alignment columns (one-based, inclusive). Stops at 10,000 hits or after 2 s, then `truncated` is true. A site that reads the same on both strands is reported once, as `+`. Past the cap, each strand contributes its first matches in scan order. */
 export function findHits(alignment:Alignment,pattern:string,options:SearchOptions={}):SearchResult {
   const re=compilePattern(pattern,{alphabet:alignment.alphabet,mode:options.mode});
-  const limit=Math.max(1,Math.min(MAX_HITS,Math.floor(options.limit??MAX_HITS))),both=isNucleotide(alignment.alphabet)&&options.strands!=='forward';
-  const hits:Hit[]=[],width=alignment.width;
-  for(const row of options.rows??alignment.rows.map((_,i)=>i)){
+  const limit=Number.isFinite(options.limit)?Math.max(1,Math.min(MAX_HITS,Math.floor(options.limit!))):MAX_HITS,both=isNucleotide(alignment.alphabet)&&options.strands!=='forward';
+  let truncated=false;const hits:Hit[]=[],width=alignment.width,deadline=Date.now()+MAX_SEARCH_MS;
+  const rows=options.rows??alignment.rows.map((_,i)=>i),bad=rows.find(r=>!Number.isInteger(r)||r<0||r>=alignment.rows.length);
+  if(bad!==undefined)throw new Error(`Row index ${String(bad)} is outside 0 to ${alignment.rows.length-1}.`);
+  for(const row of rows){
+    if(Date.now()>deadline)return {hits,truncated:true};
     const offset=row*width,columns:number[]=[];let sequence='';
     for(let c=0;c<width;c++){const code=alignment.codes[offset+c];if(code!==45){columns.push(c+1);sequence+=String.fromCharCode(code);}}
     const found:Hit[]=[],id=alignment.rows[row].id;
     for(const strand of both?(['+','-'] as const):(['+'] as const)){
       const text=strand==='+'?sequence:reverseComplement(sequence,alignment.alphabet),n=text.length;
-      re.lastIndex=0;
+      re.lastIndex=0;let strandHits=0;
       for(let m=re.exec(text);m;m=re.exec(text)){
         re.lastIndex=m.index+1;if(!m[0].length)continue;
+        if(strandHits++>=limit-hits.length||(strandHits%256===0&&Date.now()>deadline)){truncated=true;break;}
         const from=strand==='+'?m.index:n-m.index-m[0].length,to=from+m[0].length-1;
         found.push({rowId:id,row,start:columns[from],end:columns[to],seqStart:from+1,seqEnd:to+1,strand,match:m[0]});
       }
     }
     found.sort((x,y)=>x.start-y.start||x.end-y.end);
-    for(const hit of found){if(hits.length>=limit)return {hits,truncated:true};hits.push(hit);}
+    const forward=new Set(found.filter(h=>h.strand==='+').map(h=>`${h.start}-${h.end}`));
+    for(const hit of found){
+      if(hit.strand==='-'&&forward.has(`${hit.start}-${hit.end}`))continue;
+      if(hits.length>=limit)return {hits,truncated:true};
+      hits.push(hit);
+    }
+    if(truncated)return {hits,truncated};
   }
   return {hits,truncated:false};
 }

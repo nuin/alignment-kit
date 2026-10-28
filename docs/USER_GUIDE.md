@@ -99,16 +99,16 @@ The viewer picks the syntax from what you type:
 | You type | Syntax | Example |
 |---|---|---|
 | Text between slashes | Regular expression, case-insensitive | `/C..C/` |
-| `-` between elements, `x`, `{...}`, `[...]`, `(n)`, `<` or `>` | PROSITE | `N-{P}-[ST]-{P}` |
+| `-` between elements, a whole `x` element, `{...}`, `[...]`, `(n)`, `<` or `>` | PROSITE | `N-{P}-[ST]-{P}` |
 | Anything else | Letters with IUPAC codes | `ACGNACGG` |
 
-**IUPAC codes.** DNA and RNA: R (A/G), Y (C/T), S (C/G), W (A/T), K (G/T), M (A/C), B, D, H, V, N (any). U and T are the same. Protein: X is any residue, B is D or N, Z is E or Q, J is I or L.
+**IUPAC codes.** DNA and RNA: R (A/G), Y (C/T), S (C/G), W (A/T), K (G/T), M (A/C), B, D, H, V, N (any). U and T are the same. An ambiguity letter you type also matches itself in the data. Lowercase text like `acx` stays IUPAC. Protein: X is any residue, B is D or N, Z is E or Q, J is I or L.
 
 **PROSITE.** `x` is any residue, `[ST]` is S or T, `{P}` is anything except P, `x(2,4)` repeats two to four times, `<` anchors the N-terminus and `>` the C-terminus. The N-glycosylation site is `N-{P}-[ST]-{P}`.
 
-**Example: a primer.** In a DNA alignment, `ACGNACGG` finds the primer with any base at position 4. DNA and RNA alignments are also searched on the reverse complement; those hits have a dashed outline and the strand `-` in the Hits tab. Hit columns are always forward alignment columns.
+**Example: a primer.** In a DNA alignment, `ACGNACGG` finds the primer with any base at position 4. DNA and RNA alignments are also searched on the reverse complement; those hits have a dashed outline and the strand `-` in the Hits tab. Hit columns are always forward alignment columns. A site that reads the same on both strands, such as `ACGT`, is listed once, as `+`.
 
-Every hit is outlined in the grid, and the status bar shows the count, such as `12 hits`. The **Hits** inspector tab lists the first 200 hits with row name, columns, strand and match. Click one to jump to it. Overlapping hits are all listed. The search stops at 10,000 hits and the count then reads `10,000+ hits`. Clearing the box removes the highlights. Changing the sequence filter or order re-runs the search over the new rows.
+Every hit is outlined in the grid, and the status bar shows the count, such as `12 hits`. The **Hits** inspector tab lists the first 200 hits with row name, columns, strand and match. Click one to jump to it. Overlapping hits are all listed. The search stops at 10,000 hits or after 2 seconds and the count then reads `10,000+ hits`. Regular expressions with a repeated group that contains a repeat, such as `(A+)+B`, are rejected with a message because they can freeze the page. Clearing the box removes the highlights. Changing the sequence filter or order updates the hits without a new scan. Loading another alignment clears the search and the box. An invalid pattern shows an error and leaves the current hits and tab as they were.
 
 An invalid pattern shows a message that names the problem, such as an unbalanced bracket.
 

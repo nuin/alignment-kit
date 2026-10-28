@@ -194,3 +194,46 @@ it('adds the hitsTab visibility key, on by default and accepted in configuration
   expect((viewer as any).root.querySelector('[data-tab="hits"]').hidden).toBe(true);
   viewer.setOptions({visibility:{hitsTab:true}});expect((viewer as any).root.querySelector('[data-tab="hits"]').hidden).toBe(false);
 });
+it('rejects nested repetition that backtracks catastrophically',()=>{
+  expect(()=>compilePattern('/(A+)+B/',{alphabet:'dna'})).toThrow(/Nested repetition/);
+  expect(()=>compilePattern('/(?:A*B)*/',{alphabet:'dna'})).toThrow(/Nested repetition/);
+  expect(()=>compilePattern('/(AC){2,}/',{alphabet:'dna'})).not.toThrow();
+  expect(()=>compilePattern('/(AC)+G/',{alphabet:'dna'})).not.toThrow();
+});
+it('stops scanning a row at the hit cap and reports a palindromic site once',()=>{
+  const a=dna('A'.repeat(300000));
+  const start=Date.now(),result=findHits(a,'A',{strands:'forward',limit:5});
+  expect(result.hits).toHaveLength(5);expect(result.truncated).toBe(true);expect(Date.now()-start).toBeLessThan(500);
+  expect(spans(dna('TTACGTTT'),'ACGT')).toEqual(['0:3-6+']);
+});
+it('ignores a non-finite limit and rejects bad row indices',()=>{
+  expect(findHits(dna('A'.repeat(10050)),'A',{strands:'forward',limit:NaN}).hits).toHaveLength(10000);
+  expect(()=>findHits(dna('ACGT','ACGT'),'A',{rows:[5]})).toThrow(/Row index 5/);
+  expect(()=>findHits(dna('ACGT'),'A',{rows:[0.5]})).toThrow(/Row index/);
+  expect(()=>findHits(dna('ACGT'),'A',{rows:[-1]})).toThrow(/Row index/);
+});
+it('reads lowercase text containing x as IUPAC unless it has PROSITE syntax',()=>{
+  expect(detectMode('acx')).toBe('iupac');expect(detectMode('x')).toBe('prosite');expect(detectMode('A-x-G')).toBe('prosite');
+  expect(detectMode('x-A')).toBe('prosite');
+  expect(spans(protein('MACXG'),'acx')).toEqual(['0:2-4+']);
+});
+it('keeps the Hits tab closed after a failed search and emits only on a changed hit set',async()=>{
+  const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(parseAlignment('>alpha\nACGT\n>beta\nACGT\n>gamma\nACGT',{alphabet:'dna'}));
+  expect(viewer.findMotif('ACG')).toBe(true);expect(viewer.findMotif('ACG')).toBe(false);
+  expect(viewer.findMotif('A-x(5,2)-C')).toBe(false);expect(viewer.getSearchHits().length).toBeGreaterThan(0);
+  const handler=vi.fn();viewer.on('search',handler);
+  viewer.setFilter('a');expect(handler).toHaveBeenCalledTimes(0);
+  viewer.setFilter('alp');expect(handler).toHaveBeenCalledTimes(1);
+  viewer.setFilter('alph');expect(handler).toHaveBeenCalledTimes(1);
+  expect(viewer.getSearchHits().every(h=>h.rowId==='seq-1')).toBe(true);
+  viewer.setFilter('');expect(handler).toHaveBeenCalledTimes(2);
+});
+it('clears the search and the motif box when a new alignment loads',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(dna('ACGT'));const input=el.querySelector<HTMLInputElement>('[aria-label="Find motif"]')!;
+  input.value='ACG';viewer.findMotif('ACG');
+  const handler=vi.fn();viewer.on('search',handler);
+  await viewer.setAlignment(dna('ACGT'));expect(handler).toHaveBeenCalledWith(null);expect(input.value).toBe('');
+  input.value='ACG';viewer.findMotif('ACG');viewer.clear();expect(handler).toHaveBeenLastCalledWith(null);expect(handler).toHaveBeenCalledTimes(3);expect(input.value).toBe('');
+});

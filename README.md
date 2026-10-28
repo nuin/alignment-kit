@@ -296,15 +296,16 @@ The motif box and `search()` accept three syntaxes. Auto mode picks one from the
 | Text | Mode | Example |
 |---|---|---|
 | `/.../` | Regular expression | `/N[^P][ST]/` |
-| `-` between elements, `x`, `{...}`, `[...]`, `(n)`, `<` or `>` | PROSITE | `N-{P}-[ST]-{P}` |
+| `-` between elements, a whole `x` element, `{...}`, `[...]`, `(n)`, `<` or `>` | PROSITE | `N-{P}-[ST]-{P}` |
 | Anything else | IUPAC letters | `ACGNACGG` |
 
-- IUPAC for DNA/RNA: `R Y S W K M B D H V N`; `U` equals `T`. For protein: `X` is any residue, `B` is D or N, `Z` is E or Q, `J` is I or L.
+- IUPAC for DNA/RNA: `R Y S W K M B D H V N`; `U` equals `T`. An ambiguity letter in the pattern also matches itself in the data, so `R` matches `A`, `G` and a literal `R`. A lowercase string such as `acx` is IUPAC; `x` is PROSITE only as an element (`x`, `x(2)`, `A-x-G`). For protein: `X` is any residue, `B` is D or N, `Z` is E or Q, `J` is I or L.
 - PROSITE: `x` any residue, `[ST]` one of, `{P}` any except, `x(2,4)` repeat, `<` N-terminus, `>` C-terminus, `[G>]` G or C-terminus. A trailing `.` is ignored.
 - Regular expressions are case-insensitive and run on each ungapped sequence. Gaps never break a match.
-- DNA/RNA searches also scan the reverse complement unless `strands: 'forward'` is set. A palindromic site is reported once per strand.
-- Overlapping matches are all reported. The list stops at 10,000 hits (`truncated: true`).
-- Only the filtered rows are searched; changing the filter or order re-runs the search.
+- DNA/RNA searches also scan the reverse complement unless `strands: 'forward'` is set. A site that reads the same on both strands (`ACGT`) is reported once, as `+`.
+- Overlapping matches are all reported. The list stops at 10,000 hits or after 2 seconds (`truncated: true`); past the cap each row's scan also stops early.
+- Searches run on the main thread, including with `worker: true`. Regexes with a repeated group that contains a repeat, such as `(A+)+B`, are rejected because they can freeze the page. Other pathological patterns are bounded only by the 2 second budget between rows.
+- Only the filtered rows are searched; changing the filter or order re-derives the hits from one scan of all rows and emits `search` only when the hit list changes. Loading another alignment or calling `clear()` removes the search, empties the motif box and emits `search` with `null`.
 
 ```ts
 viewer.search('N-{P}-[ST]-{P}');              // N-glycosylation sequon
@@ -313,7 +314,7 @@ const { hits, truncated } = viewer.search('/C..C/', { mode: 'regex' });
 hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match }
 ```
 
-`start` and `end` are alignment columns (1-based, inclusive). `seqStart` and `seqEnd` count residues of the forward sequence. `row` is the zero-based row index. For a `'-'` hit, `match` is the text found on the reverse complement. Every hit is outlined in the grid (dashed on the reverse strand), the status bar shows the count, and the **Hits** inspector tab lists the first 200. The `hitsTab` visibility key hides the tab. `findHits(alignment, pattern, options)` and `compilePattern(pattern, { alphabet, mode })` run the same engine without a viewer.
+`start` and `end` are alignment columns (1-based, inclusive). `seqStart` and `seqEnd` count residues of the forward sequence. `row` is the zero-based row index into the alignment. `findHits` throws on a `rows` entry outside the alignment and ignores a non-finite `limit`. For a `'-'` hit, `match` is the text found on the reverse complement. Every hit is outlined in the grid (dashed on the reverse strand), the status bar shows the count, and the **Hits** inspector tab lists the first 200. The `hitsTab` visibility key hides the tab. `findHits(alignment, pattern, options)` and `compilePattern(pattern, { alphabet, mode })` run the same engine without a viewer.
 
 ## API and controls
 
@@ -330,7 +331,7 @@ hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match
 | `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range |
 | `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif; highlight hits; return `{ hits, truncated }` |
 | `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
-| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around |
+| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; returns `true` when it started a new search |
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
 | `getState()` / `setState(state)` | Serialize/restore view state for the same dataset |
 | `getAlignment()` / `getStatistics()` | Read model / current exact statistics (may be pending) |
@@ -340,7 +341,7 @@ hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
-Events: `ready`, `selection`, `search` (`{ hits, truncated }`, or `null` after `clearSearch()`), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
+Events: `ready`, `selection`, `search` (`{ hits, truncated }`, or `null` after `clearSearch()` or a new alignment), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
 Options: `height`, `theme`, `colorScheme`, `colorMode`, `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 

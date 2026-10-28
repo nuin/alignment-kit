@@ -33,7 +33,7 @@ export class AlignmentViewer {
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
-  private searchState?:{pattern:string;options:SearchOptions;result:SearchResult;byRow:Map<number,Hit[]>;cursor:number};
+  private searchState?:{pattern:string;options:SearchOptions;result:SearchResult;byRow:Map<number,Hit[]>;cursor:number;full?:SearchResult};
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
@@ -91,7 +91,7 @@ export class AlignmentViewer {
     this.menus.close();const schemes=colorSchemes(alignment.alphabet);
     if(!schemes.some(s=>s.id===this.options.colorScheme))this.options.colorScheme=alignment.alphabet==='protein'?'soft':'soft-nucleotide';
     const palette=$<HTMLSelectElement>(this.root,'select[aria-label="Color scheme"]');palette.replaceChildren(...schemes.map(s=>new Option(s.label,s.id)));palette.value=this.options.colorScheme;
-    this.searchState=undefined;this.scroll.scrollLeft=0;this.scroll.scrollTop=0;
+    this.dropSearch();this.scroll.scrollLeft=0;this.scroll.scrollTop=0;
     $<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value='';
     $<HTMLSelectElement>(this.root,'[aria-label="Sequence alphabet"]').value=alignment.alphabet;
     $<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';
@@ -151,7 +151,7 @@ export class AlignmentViewer {
     if(this.sort==='name')this.filteredRows.sort((x,y)=>this.a!.rows[x].name.localeCompare(this.a!.rows[y].name)||x-y);
     if(this.sort==='identity'&&this.identities)this.filteredRows.sort((x,y)=>this.identities![y]-this.identities![x]||x-y);
     this.rows=this.filteredRows.filter(i=>!this.pinned||i!==this.reference);this.labelKey='';this.layout();
-    if(this.searchState)this.runSearch(this.searchState.pattern,this.searchState.options);
+    if(this.searchState)this.runSearch(this.searchState.pattern,this.searchState.options,true);
   }
   setFilter(query:string) {this.assertAlive();this.query=query;this.scroll.scrollTop=0;this.rebuildRows();$<HTMLInputElement>(this.root,'[aria-label="Filter sequences"]').value=query;if(this.options.statisticsScope==='filtered')void this.updateStats().catch(()=>{});this.emit('state',this.getState());}
   async setSort(sort:ViewState['sort']) {
@@ -258,9 +258,8 @@ export class AlignmentViewer {
       if(action==='clear-rows'){this.selectedRows.clear();this.labelKey='';this.inspectorDirty=true;this.schedule();}
       if(action==='compare'&&this.a){const ids=new Map(this.a.rows.map((r,i)=>[r.id,i])),rows=[...this.selectedRows].map(id=>ids.get(id)!);const a=this.a,revision=this.revision,selectionKey=[...this.selectedRows].join(',');this.message('Calculating pairwise identity…');const matrix=await this.comparison.pairwise(a,rows);if(this.disposed||this.revision!==revision)return;this.message('');if(this.tab!=='compare'||selectionKey!==[...this.selectedRows].join(','))return;const target=$(this.inspector,'.ak-identity-result');target.innerHTML=`<div class="ak-matrix-scroll"><table><caption>Identity over canonical comparable positions</caption><thead><tr><th>Sequence</th>${rows.map(i=>`<th>${e(this.a!.rows[i].name)}</th>`).join('')}</tr></thead><tbody>${rows.map((row,i)=>`<tr><th>${e(this.a!.rows[row].name)}</th>${matrix[i].map(cell=>`<td title="${cell.matches} matches / ${cell.compared} compared">${cell.identity===null?'NA':(cell.identity*100).toFixed(1)+'%'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
       if(action==='motif'||action==='motif-prev'){
-        const text=$<HTMLInputElement>(this.root,'[aria-label="Find motif"]').value,fresh=this.searchState?.pattern!==text.trim();
-        this.findMotif(text,action==='motif'?1:-1);
-        if(fresh&&this.searchState&&this.visibility.hitsTab){this.tab='hits';this.inspectorDirty=true;this.schedule();}
+        const started=this.findMotif($<HTMLInputElement>(this.root,'[aria-label="Find motif"]').value,action==='motif'?1:-1);
+        if(started&&this.visibility.hitsTab){this.tab='hits';this.inspectorDirty=true;this.schedule();}
       }
     }catch(error){this.error(error);}
   }
@@ -304,13 +303,26 @@ export class AlignmentViewer {
   getSearchHits():Hit[] {return [...(this.searchState?.result.hits??[])];}
   clearSearch() {
     this.assertAlive();if(!this.searchState)return;
-    this.searchState=undefined;this.inspectorDirty=true;this.schedule();this.emit('search',null);
+    this.dropSearch();this.inspectorDirty=true;this.schedule();
   }
-  private runSearch(pattern:string,options:SearchOptions) {
-    const result=findHits(this.a!,pattern,{...options,rows:this.filteredRows}),byRow=new Map<number,Hit[]>(),previous=this.searchState?.pattern===pattern?this.searchState.result.hits[this.searchState.cursor]:undefined;
+  private dropSearch() {
+    $<HTMLInputElement>(this.root,'[aria-label="Find motif"]').value='';
+    if(!this.searchState)return;
+    this.searchState=undefined;this.emit('search',null);
+  }
+  private runSearch(pattern:string,options:SearchOptions,refilter=false) {
+    const old=this.searchState,same=old?.pattern===pattern;let full=same?old!.full:undefined,result:SearchResult;
+    if(!same){full=findHits(this.a!,pattern,options);if(full.truncated)full=undefined;}
+    if(full){
+      const hits=new Map<number,Hit[]>();for(const hit of full.hits){const list=hits.get(hit.row);if(list)list.push(hit);else hits.set(hit.row,[hit]);}
+      result={hits:this.filteredRows.flatMap(r=>hits.get(r)??[]),truncated:false};
+    }else result=findHits(this.a!,pattern,{...options,rows:this.filteredRows});
+    const byRow=new Map<number,Hit[]>(),previous=same?old!.result.hits[old!.cursor]:undefined;
     for(const hit of result.hits){const list=byRow.get(hit.row);if(list)list.push(hit);else byRow.set(hit.row,[hit]);}
     const cursor=previous?result.hits.findIndex(h=>h.rowId===previous.rowId&&h.start===previous.start&&h.end===previous.end&&h.strand===previous.strand):-1;
-    this.searchState={pattern,options,result,byRow,cursor};this.inspectorDirty=true;this.schedule();this.emit('search',result);
+    this.searchState={pattern,options,result,byRow,cursor,full};this.inspectorDirty=true;this.schedule();
+    const key=(h:Hit)=>`${h.row}:${h.start}:${h.end}:${h.strand}`;
+    if(!refilter||!old||old.result.truncated!==result.truncated||old.result.hits.length!==result.hits.length||result.hits.some((h,i)=>key(h)!==key(old.result.hits[i])))this.emit('search',result);
     return this.searchState;
   }
   private goToHit(index:number) {
@@ -318,17 +330,19 @@ export class AlignmentViewer {
     state.cursor=index;this.setSelection({start:hit.start,end:hit.end,rowId:hit.rowId},true,this.tab==='hits');
     this.message(`Hit ${index+1} of ${state.result.hits.length.toLocaleString()} in ${this.a.rows[hit.row].name}, sequence positions ${hit.seqStart}–${hit.seqEnd}, ${hit.strand==='+'?'forward':'reverse'} strand.`);
   }
-  /** Search for `motif` if it is not the active search, then select the next (1) or previous (-1) hit, wrapping around. */
-  findMotif(motif:string,direction:1|-1=1) {
-    this.assertAlive();if(!this.a)return;
+  /** Search for `motif` if it is not the active search, then select the next (1) or previous (-1) hit, wrapping around. Returns true when it started a new search. */
+  findMotif(motif:string,direction:1|-1=1):boolean {
+    this.assertAlive();if(!this.a)return false;
     try {
       const text=motif.trim();
-      if(!text){this.clearSearch();return;}
-      if(this.searchState?.pattern!==text)this.runSearch(text,{});
+      if(!text){this.clearSearch();return false;}
+      const started=this.searchState?.pattern!==text;
+      if(started)this.runSearch(text,{});
       const state=this.searchState!,n=state.result.hits.length;
-      if(!n){this.message(`No match for ${text}${this.filteredRows.length<this.a.rows.length?' in the filtered sequences':''}.`);return;}
+      if(!n){this.message(`No match for ${text}${this.filteredRows.length<this.a.rows.length?' in the filtered sequences':''}.`);return started;}
       this.goToHit(state.cursor<0?(direction>0?0:n-1):(state.cursor+direction+n)%n);
-    }catch(error){this.error(error);}
+      return started;
+    }catch(error){this.error(error);return false;}
   }
   private exportRegion(a:Alignment):ExportRegion {
     const start=this.selection?.start??Math.min(a.width,Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1);
@@ -452,7 +466,7 @@ export class AlignmentViewer {
   clear() {
     this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();
     this.loading=false;this.pendingLink=undefined;
-    this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.searchState=undefined;this.selectedRows.clear();this.annotationFilter={};this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
+    this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.dropSearch();this.selectedRows.clear();this.annotationFilter={};this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
     $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an aligned FASTA, Stockholm or CLUSTAL file.';this.message('');this.layout();this.emit('selection',null);
   }
