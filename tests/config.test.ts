@@ -13,3 +13,7 @@ it('rejects invalid JSON, unknown fields and invalid option values with helpful 
   expect(()=>parseViewerConfig('{"alignment":{}}')).toThrow(/alignment/);
   expect(()=>parseViewerConfig('null')).toThrow(/object/);
 });
+it('validates FASTA options in viewer configuration',()=>{
+  expect(parseViewerConfig({fasta:{gaps:'remove',lineWidth:0}})).toEqual({fasta:{gaps:'remove',lineWidth:0}});
+  expect(()=>parseViewerConfig({fasta:{lineWidth:2}})).toThrow('line width');expect(()=>parseViewerConfig({fasta:{bold:true}})).toThrow('bold');
+});

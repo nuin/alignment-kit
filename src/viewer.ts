@@ -8,7 +8,7 @@ import { ThemedSelects } from './selects';
 import { Renderer, type RenderView } from './renderer';
 import { buildShell, $, download } from './controls';
 import { renderInspector } from './inspector';
-import { exportFasta, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
+import { exportFasta, formatFastaRecord, validateFastaOptions, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
 import { WorkerTask } from './worker-client';
 import { consensusSequence } from './analysis';
 import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './link';
@@ -17,7 +17,7 @@ const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number
 export class AlignmentViewer {
   readonly element:HTMLElement;
   private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
-  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'>>;
+  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'>>;
   private a?:Alignment; private stats?:AlignmentStats;private fullStats?:AlignmentStats;
   private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
@@ -36,7 +36,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,...options};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,...options,fasta:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -106,13 +106,14 @@ export class AlignmentViewer {
     this.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
     const oldScope=this.options.statisticsScope;
     const wasPinned=this.pinned;
-    const {alignment:_,worker:__,workerUrl:___,visibility,...visual}=options;
+    const {alignment:_,worker:__,workerUrl:___,visibility,fasta,...visual}=options;
+    const mergedFasta=fasta?validateFastaOptions({...this.options.fasta,...fasta}):this.options.fasta;
     if(options.showToolbar!==undefined){this.visibility.toolbar=options.showToolbar;this.visibility.tools=options.showToolbar;}
     if(options.showInspector!==undefined)this.visibility.inspector=options.showInspector;
     if(options.showLogo!==undefined)this.visibility.logo=options.showLogo;
     for(const key of Object.keys(visibility??{}) as (keyof ViewerVisibility)[])if(typeof visibility![key]==='boolean')this.visibility[key]=visibility![key]!;
     this.menus.close();this.ensureTab();
-    Object.assign(this.options,visual);
+    Object.assign(this.options,visual);this.options.fasta=mergedFasta;
     this.options.showInspector=this.visibility.inspector;this.options.showLogo=this.visibility.logo;
     if(this.a&&!colorSchemes(this.a.alphabet).some(s=>s.id===this.options.colorScheme))this.options.colorScheme=this.a.alphabet==='protein'?'soft':'soft-nucleotide';
     this.options.cellWidth=bounded(this.options.cellWidth,3,32);this.options.rowHeight=bounded(this.options.rowHeight,18,48);this.options.labelWidth=bounded(this.options.labelWidth,100,420);this.options.height=bounded(this.options.height,360,2000);this.options.consensusThreshold=bounded(this.options.consensusThreshold,0,1);
@@ -122,6 +123,10 @@ export class AlignmentViewer {
     $<HTMLSelectElement>(this.root,'[aria-label="Residues to color"]').value=this.options.colorMode;
     $<HTMLSelectElement>(this.root,'[aria-label="Statistics scope"]').value=this.options.statisticsScope;
     $<HTMLInputElement>(this.root,'[aria-label="Show frequency logo"]').checked=this.options.showLogo;
+    const f=this.options.fasta,width=$<HTMLSelectElement>(this.root,'[aria-label="FASTA line width"]'),lineWidth=String(f.lineWidth??80);
+    if(![...width.options].some(o=>o.value===lineWidth))width.add(new Option(lineWidth,lineWidth));
+    width.value=lineWidth;$<HTMLSelectElement>(this.root,'[aria-label="FASTA gaps"]').value=f.gaps??'keep';
+    $<HTMLSelectElement>(this.root,'[aria-label="FASTA letter case"]').value=f.letterCase??'original';$<HTMLSelectElement>(this.root,'[aria-label="FASTA header"]').value=f.header??'name';
     this.labelKey='';this.overviewDirty=true;this.inspectorDirty=true;this.layout();
     const focused=this.root.ownerDocument.activeElement as HTMLElement|null;
     if(focused&&this.root.contains(focused)&&focused.closest('[hidden]')){const target=this.visibility.alignment?this.scroll:this.root;if(target===this.root)target.tabIndex=-1;target.focus();}
@@ -235,6 +240,7 @@ export class AlignmentViewer {
   }
   private async action(action:string) {
     try {
+      if(action==='close-fasta-options'){this.fastaPanel(false);return;}
       if(action==='open'){$<HTMLInputElement>(this.root,'.ak-file').click();return;}
       if(action==='zoom-in')this.zoom(this.options.cellWidth+2);
       if(action==='zoom-out')this.zoom(this.options.cellWidth-2);
@@ -312,7 +318,7 @@ export class AlignmentViewer {
     this.assertAlive();if(!this.a)throw new Error('No alignment is loaded.');
     const region=this.copyRegion(this.a);if(!region.rowIds?.length)throw new Error('No sequences to copy.');
     const resolved=resolveRegion(this.a,region);
-    return {text:(this.stats?this.consensusFasta(resolved.start,resolved.end):'')+exportFasta(this.a,region),region:resolved};
+    return {text:(this.stats?this.consensusFasta(resolved.start,resolved.end):'')+exportFasta(this.a,region,this.options.fasta),region:resolved};
   }
   /** Consensus over all columns from the current statistics scope; `threshold` defaults to the consensusThreshold option. */
   getConsensus(options:{threshold?:number}={}):string {
@@ -321,7 +327,7 @@ export class AlignmentViewer {
   }
   private consensusFasta(start:number,end:number) {
     const s=this.stats!,t=this.options.consensusThreshold,sequence=consensusSequence(s,this.a!.alphabet,t,start,end);
-    return `>consensus columns ${start}-${end}; ${this.options.statisticsScope} rows (${s.total}); threshold ${t}\n${sequence.match(/.{1,80}/g)!.join('\n')}\n`;
+    return formatFastaRecord(`consensus columns ${start}-${end}; ${this.options.statisticsScope} rows (${s.total}); threshold ${t}`,sequence,this.options.fasta);
   }
   /** Gapped FASTA for the rows and columns that Ctrl/Cmd+C copies, led by the consensus once statistics are ready. */
   getSelectionText():string {return this.copyPayload().text;}
@@ -335,12 +341,16 @@ export class AlignmentViewer {
       this.message(summary);$(this.root,'.ak-live').textContent=summary;
     }catch(error){throw this.error(error);}
   }
+  private fastaPanel(open:boolean) {
+    const panel=$(this.root,'.ak-fasta-options');panel.hidden=!open;this.menus.sync();
+    (open?panel.querySelector<HTMLElement>('.ak-select-trigger'):this.root.querySelector<HTMLElement>('.ak-select-trigger[aria-label="Export alignment"]'))?.focus();
+  }
   private async export(kind:string) {
     if(!this.a)return;
     try{
       const region=this.exportRegion(this.a);
-      if(kind==='fasta-all')download(exportFasta(this.a),'alignment.fasta');
-      if(kind==='fasta')download(exportFasta(this.a,region),'selection.fasta');
+      if(kind==='fasta-all')download(exportFasta(this.a,{},this.options.fasta),'alignment.fasta');
+      if(kind==='fasta')download(exportFasta(this.a,region,this.options.fasta),'selection.fasta');
       if(kind==='state')download(JSON.stringify(this.getState(),null,2),'alignment-view.json','application/json');
       if(['svg','png','tsv','consensus'].includes(kind)&&!this.stats)throw new Error('Wait for column statistics to finish before exporting.');
       if(kind==='consensus')download(this.consensusFasta(region.start!,region.end!),'consensus.fasta');
@@ -370,7 +380,11 @@ export class AlignmentViewer {
       if(aria==='Statistics scope')this.setOptions({statisticsScope:target.value as 'all'|'filtered'});
       if(aria==='Show frequency logo')this.setOptions({showLogo:target.checked});
       if(aria==='Sequence order')void this.setSort(target.value as ViewState['sort']);
-      if(aria==='Export alignment'){void this.export(target.value);target.value='';}
+      if(aria==='Export alignment'){if(target.value==='fasta-options')this.fastaPanel(true);else void this.export(target.value);target.value='';}
+      if(aria==='FASTA gaps')this.setOptions({fasta:{gaps:target.value as 'keep'|'remove'}});
+      if(aria==='FASTA letter case')this.setOptions({fasta:{letterCase:target.value as 'original'|'upper'|'lower'}});
+      if(aria==='FASTA line width')this.setOptions({fasta:{lineWidth:Number(target.value)}});
+      if(aria==='FASTA header')this.setOptions({fasta:{header:target.value as 'name'|'name-species'|'id-name'}});
       if(aria==='Sequence alphabet'&&this.a){const old=this.a;void this.setAlignment(createAlignment(old.rows,{name:old.name,alphabet:target.value as Alignment['alphabet'],annotations:old.annotations,metadata:old.metadata})).catch(()=>{});}
       if(aria==='Feature type')this.setAnnotationFilter({...this.annotationFilter,types:target.value?[target.value]:[]});
       if(aria==='Feature consequence')this.setAnnotationFilter({...this.annotationFilter,consequences:target.value?[target.value]:[]});
@@ -399,6 +413,7 @@ export class AlignmentViewer {
     const separator=$(this.root,'.ak-gutter-resize');let resizing=false,origin=0,gutter=0;
     on(separator,'pointerdown',(event:PointerEvent)=>{resizing=true;origin=event.clientX;gutter=this.options.labelWidth;separator.setPointerCapture(event.pointerId);});on(separator,'pointermove',(event:PointerEvent)=>{if(resizing)this.setOptions({labelWidth:gutter+event.clientX-origin});});on(separator,'pointerup',()=>{resizing=false;});
     on(separator,'keydown',(event:KeyboardEvent)=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();this.setOptions({labelWidth:this.options.labelWidth+(event.key==='ArrowRight'?10:-10)});}});
+    on($(this.root,'.ak-fasta-options'),'keydown',(event:KeyboardEvent)=>{if(event.key==='Escape'&&!event.defaultPrevented){event.preventDefault();this.fastaPanel(false);}});
     on(this.root,'dragover',(event:DragEvent)=>event.preventDefault());on(this.root,'drop',(event:DragEvent)=>{event.preventDefault();const file=event.dataTransfer?.files[0];if(file)void this.load(file,{name:file.name}).catch(()=>{});});
   }
   clear() {
