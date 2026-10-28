@@ -1,4 +1,4 @@
-import type { VariableColumnResult, Alignment, AlignmentStats, ExportRegion, ColorMode, FastaOptions, Sequence } from './types';
+import type { VariableColumnResult, Alignment, AlignmentStats, ExportRegion, ExportOptions, ColorMode, FastaOptions, Sequence } from './types';
 import { columnDetail } from './analysis';
 import { isGap } from './model';
 import { reverseComplementSequence } from './strand';
@@ -18,13 +18,21 @@ export function resolveRegion(a:Alignment,region:ExportRegion={}) {
 }
 /** The columns of an aligned sequence that a resolved region keeps. */
 const cut=(sequence:string,r:ReturnType<typeof resolveRegion>)=>r.columns?r.columns.map(c=>sequence[c]).join(''):sequence.slice(r.start-1,r.end);
-const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name'],columns:['all','visible'],orientation:['source','reverse-complement']};
+const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name'],orientation:['source','reverse-complement']};
+/** Validate export settings from untrusted input; returns a copy. */
+export function validateExportOptions(input:unknown):ExportOptions {
+  if(typeof input!=='object'||input===null||Array.isArray(input))throw new Error('Export options must be an object.');
+  const result:ExportOptions={};
+  for(const [key,value] of Object.entries(input)){if(key!=='columns'||(value!=='all'&&value!=='visible'))throw new Error(`Invalid export option ${key}.`);result.columns=value;}
+  return result;
+}
 /** Validate FASTA settings from untrusted input; returns a copy. */
 export function validateFastaOptions(input:unknown):FastaOptions {
   if(typeof input!=='object'||input===null||Array.isArray(input))throw new Error('FASTA options must be an object.');
   const result:Record<string,unknown>={};
   for(const [key,value] of Object.entries(input)){
-    if(key==='lineWidth'){if(typeof value!=='number'||!Number.isInteger(value)||(value!==0&&(value<10||value>1000)))throw new Error('FASTA line width must be 0 (unwrapped) or 10 to 1000.');}
+    if(key==='columns'){if(value!=='all'&&value!=='visible')throw new Error('Invalid FASTA option columns.');}
+    else if(key==='lineWidth'){if(typeof value!=='number'||!Number.isInteger(value)||(value!==0&&(value<10||value>1000)))throw new Error('FASTA line width must be 0 (unwrapped) or 10 to 1000.');}
     else if(!Object.hasOwn(fastaChoices,key)||!(fastaChoices[key as keyof typeof fastaChoices] as string[]).includes(value as string))throw new Error(`Invalid FASTA option ${key}.`);
     result[key]=value;
   }
@@ -106,10 +114,20 @@ export function exportNexus(a:Alignment,region:ExportRegion={}):string {
   const {width,rows}=textRows(a,region),names=uniqueNames(rows.map(r=>r.name.replace(/[\r\n]+/g,' '))).map(nexusName),pad=padNames(names,2);
   return `#NEXUS\nBEGIN DATA;\n  DIMENSIONS NTAX=${rows.length} NCHAR=${width};\n  FORMAT DATATYPE=${a.alphabet.toUpperCase()} GAP=- MISSING=?;\n  MATRIX\n${rows.map((r,i)=>`    ${names[i].padEnd(pad)}${r.sequence.replace(/\./g,'-')}\n`).join('')}  ;\nEND;\n`;
 }
-export function exportStatistics(s:AlignmentStats):string {
+/** Per-column statistics; `region.columns` (a mask as in ExportRegion) limits the rows to kept columns. */
+export function exportStatistics(s:AlignmentStats,region:Pick<ExportRegion,'columns'>={}):string {
+  const mask=region.columns;
+  if(mask&&mask.length!==s.width)throw new Error('Export column mask must have one entry per alignment column.');
+  if(mask&&!Array.prototype.some.call(mask,Boolean))throw new Error('No visible columns in the export range.');
   const lines=['column\trows\tgap_count\tgap_fraction\tconsensus\tmodal_frequency_non_gap\tconsensus_support_all_rows\tentropy_bits\tinformation_bits\tquality'];
-  for(let c=1;c<=s.width;c++){const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA',d.entropy??'NA',d.information??'NA',d.quality??'NA'].join('\t'));}
+  for(let c=1;c<=s.width;c++){if(mask&&!mask[c-1])continue;const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA',d.entropy??'NA',d.information??'NA',d.quality??'NA'].join('\t'));}
   return lines.join('\n')+'\n';
+}
+/** Display index ranges (inclusive) of consecutive kept columns inside the one-based alignment columns left to right. */
+function runs(cols:number[],left:number,right:number):[number,number][] {
+  const out:[number,number][]=[];
+  cols.forEach((col,i)=>{if(col+1<left||col+1>right)return;const last=out[out.length-1];if(last&&last[1]===i-1&&cols[i-1]===col-1)last[1]=i;else out.push([i,i]);});
+  return out;
 }
 /** Tab-separated variable-column table: column, reference residue number and letter, alleles as residue:count, gap count and class. */
 export function exportVariableColumns(r:VariableColumnResult):string {
@@ -117,7 +135,7 @@ export function exportVariableColumns(r:VariableColumnResult):string {
 }
 export interface FigureOptions { colorMode?:ColorMode; referenceId?:string; matchDisplay?:'letter'|'dot'; colorThreshold?:number; consensusThreshold?:number }
 export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},schemeId='soft',options:FigureOptions={}):string {
-  const {start,end,rows}=resolveRegion(a,region),count=end-start+1;
+  const {start,end,rows,columns}=resolveRegion(a,region),cols=columns??Array.from({length:end-start+1},(_,i)=>start-1+i),count=cols.length,masked=!!columns&&count<end-start+1;
   if(!rows.length)throw new Error('Select at least one row to export.');
   if(count*rows.length>200000)throw new Error('Figure export is limited to 200,000 cells. Narrow the selected rows or columns.');
   const cw=16,rh=22,gutter=250,top=72,width=gutter+count*cw+24,height=top+rows.length*rh+100,scheme=getColorScheme(schemeId);
@@ -125,22 +143,28 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
   const wantDots=options.matchDisplay==='dot',byRef=!mode.startsWith('consensus');
   if((mode.startsWith('reference')||wantDots&&byRef)&&ref<0)throw new Error('Unknown figure reference.');
   const dots=wantDots&&(!byRef||rows.includes(ref));
-  const chunks=[`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${escapeXml(a.name)}</title><metadata>${escapeXml(JSON.stringify({source:a.metadata.source,alphabet:a.alphabet,start,end,statisticsRows:s.total,definition:'Consensus support = modal non-gap count / all rows in statistics scope',palette:scheme.label,colorMode:mode,matchDisplay:dots?'dot':'letter',referenceId:a.rows[ref]?.id}))}</metadata><rect width="100%" height="100%" fill="#ffffff"/><g font-family="monospace" font-size="12" fill="#243447"><text x="16" y="25" font-size="17">${escapeXml(a.name)}</text><text x="16" y="46">Alignment columns ${start}–${end} · ${rows.length} sequences · ${a.alphabet}</text>`];
-  for(let c=start;c<=end;c++)if(c===start||c%10===0)chunks.push(`<text x="${gutter+(c-start)*cw}" y="${top-8}">${c}</text>`);
+  const chunks=[`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${escapeXml(a.name)}</title><metadata>${escapeXml(JSON.stringify({source:a.metadata.source,alphabet:a.alphabet,start,end,...(masked?{columns:'visible',hiddenColumns:end-start+1-count}:{}),statisticsRows:s.total,definition:'Consensus support = modal non-gap count / all rows in statistics scope',palette:scheme.label,colorMode:mode,matchDisplay:dots?'dot':'letter',referenceId:a.rows[ref]?.id}))}</metadata><rect width="100%" height="100%" fill="#ffffff"/><g font-family="monospace" font-size="12" fill="#243447"><text x="16" y="25" font-size="17">${escapeXml(a.name)}</text><text x="16" y="46">Alignment columns ${start}–${end}${masked?` (${count} visible)`:''} · ${rows.length} sequences · ${a.alphabet}</text>`];
+  cols.forEach((col,i)=>{const c=col+1;if(i===0||c%10===0)chunks.push(`<text x="${gutter+i*cw}" y="${top-8}">${c}</text>`);});
   const used=new Set<string>();
   for(const [j,r] of rows.entries()) {
     const y=top+j*rh;
     chunks.push(`<text x="16" y="${y+15}"><title>${escapeXml(a.rows[r].name)}</title>${escapeXml(a.rows[r].name.slice(0,30))}</text>`);
-    for(let c=start;c<=end;c++) {
-      const residue=String.fromCharCode(a.codes[r*a.width+c-1]),color=dynamic?dynamicColor(scheme,residue,s,c-1,colorThreshold,consensusThreshold):residueColor(residue,scheme,s.support[c-1]),x=gutter+(c-start)*cw;used.add(residue);
-      const comparison=mode.startsWith('consensus')?s.consensus[c-1]:a.codes[ref*a.width+c-1],code=a.codes[r*a.width+c-1],same=code===comparison&&code!==45&&code!==63;
+    for(const [i,col] of cols.entries()) {
+      const c=col+1,residue=String.fromCharCode(a.codes[r*a.width+c-1]),color=dynamic?dynamicColor(scheme,residue,s,c-1,colorThreshold,consensusThreshold):residueColor(residue,scheme,s.support[c-1]),x=gutter+i*cw;used.add(residue);      const comparison=mode.startsWith('consensus')?s.consensus[c-1]:a.codes[ref*a.width+c-1],code=a.codes[r*a.width+c-1],same=code===comparison&&code!==45&&code!==63;
       const faded=mode!=='all'&&(mode.endsWith('differences')?same:!same);
       chunks.push(`<g opacity="${faded?'0.22':'1'}"><rect x="${x}" y="${y}" width="${cw}" height="${rh-1}" fill="${color}"/><text x="${x+cw/2}" y="${y+15}" text-anchor="middle" fill="${textColor(color)}">${dots&&same&&r!==ref&&!isGap(code)?'.':residue==='-'?'·':escapeXml(residue)}</text></g>`);
     }
-    for(const annotation of a.annotations)if(annotation.mapping==='mapped'&&(!annotation.rowId||annotation.rowId===a.rows[r].id)&&annotation.start!<=end&&annotation.end!>=start){const left=Math.max(start,annotation.start!),right=Math.min(end,annotation.end!);chunks.push(`<rect x="${gutter+(left-start)*cw+1}" y="${y+1}" width="${(right-left+1)*cw-2}" height="${rh-3}" fill="none" stroke="${annotation.color&&/^#[0-9a-f]{6}$/i.test(annotation.color)?annotation.color:'#a63d59'}" stroke-width="2"><title>${escapeXml(annotation.label)}</title></rect>`);}
+    for(const annotation of a.annotations)if(annotation.mapping==='mapped'&&(!annotation.rowId||annotation.rowId===a.rows[r].id)&&annotation.start!<=end&&annotation.end!>=start){
+      const left=Math.max(start,annotation.start!),right=Math.min(end,annotation.end!),stroke=annotation.color&&/^#[0-9a-f]{6}$/i.test(annotation.color)?annotation.color:'#a63d59';
+      for(const [from,to] of runs(cols,left,right))chunks.push(`<rect x="${gutter+from*cw+1}" y="${y+1}" width="${(to-from+1)*cw-2}" height="${rh-3}" fill="none" stroke="${stroke}" stroke-width="2"><title>${escapeXml(annotation.label)}</title></rect>`);
+    }
+  }
+  if(masked)for(let i=0;i<=count;i++){
+    const before=i?cols[i-1]+1:start-1,after=i<count?cols[i]+1:end+1;
+    if(after-before>1)chunks.push(`<line x1="${gutter+i*cw}" y1="${top-4}" x2="${gutter+i*cw}" y2="${top+rows.length*rh+2}" stroke="#a63d59" stroke-width="2" stroke-dasharray="4 3"><title>${after-before-1} hidden column${after-before>2?'s':''}: ${before+1}–${after-1}</title></line>`);
   }
   const y=top+rows.length*rh+24;
-  chunks.push(`<text x="16" y="${y}">${escapeXml(scheme.label)} · statistics: ${s.total} rows · gaps retained</text>`);
+  chunks.push(`<text x="16" y="${y}">${escapeXml(scheme.label)} · statistics: ${s.total} rows · gaps retained${masked?' · hidden columns collapsed':''}</text>`);
   if(dynamic)chunks.push(`<text x="16" y="${y+26}">${escapeXml(scheme.description)}</text>`);
   else{let x=16;for(const residue of Array.from(used).sort()){const color=residueColor(residue,scheme,1);chunks.push(`<rect x="${x}" y="${y+12}" width="18" height="20" fill="${color}"/><text x="${x+9}" y="${y+26}" text-anchor="middle" fill="${textColor(color)}">${escapeXml(residue)}</text>`);x+=22;}}
   chunks.push('</g></svg>');return chunks.join('');

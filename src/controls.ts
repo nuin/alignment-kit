@@ -15,6 +15,7 @@ export function buildShell(root:HTMLElement) {
     <button type="button" data-action="inspect" aria-label="Toggle inspector" title="Show or hide inspector">Inspect</button>
     <button type="button" data-action="fullscreen" aria-label="Full screen">⛶</button>
     <select aria-label="Export alignment"><option value="">Export…</option><option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="fasta-visible">Visible columns · FASTA</option><option value="clustal-all">All rows · CLUSTAL</option><option value="clustal">Selection · CLUSTAL</option><option value="stockholm-all">All rows · Stockholm</option><option value="stockholm">Selection · Stockholm</option><option value="phylip-all">All rows · PHYLIP</option><option value="phylip">Selection · PHYLIP</option><option value="nexus-all">All rows · NEXUS</option><option value="nexus">Selection · NEXUS</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="consensus">Consensus · FASTA</option><option value="tsv">Column statistics · TSV</option><option value="variants">Variable columns (selected block or all) · TSV</option><option value="annotations-gff3">Annotations · GFF3</option><option value="annotations-tsv">Annotations · TSV</option><option value="annotations-json">Annotations · JSON</option><option value="state">View state · JSON</option><option value="fasta-options">FASTA options…</option></select>
+    <label class="ak-export-columns" title="Applies to every export and to copy"><input type="checkbox" aria-label="Visible columns only"> Visible columns only</label>
   </div>
   <div class="ak-tools">
     <label>Go to <input type="text" value="1" aria-label="Go to alignment column" title="A column, a reference residue number in reference ruler mode, or row:residue" placeholder="123 or row:45"></label>
@@ -39,7 +40,6 @@ export function buildShell(root:HTMLElement) {
     <label>Gaps <select aria-label="FASTA gaps"><option value="keep">Keep gaps</option><option value="remove">Remove gaps</option></select></label>
     <label>Case <select aria-label="FASTA letter case"><option value="original">Original case</option><option value="upper">Upper case</option><option value="lower">Lower case</option></select></label>
     <label>Line width <select aria-label="FASTA line width"><option value="80">80</option><option value="60">60</option><option value="0">Unwrapped</option></select></label>
-    <label>Columns <select aria-label="FASTA columns"><option value="all">All columns</option><option value="visible">Visible columns only</option></select></label>
     <label>Orientation <select aria-label="FASTA orientation"><option value="source">Source</option><option value="reverse-complement">Reverse complement</option></select></label>
     <label>Header <select aria-label="FASTA header"><option value="name">Name</option><option value="name-species">Name and species</option><option value="id-name">ID and name</option></select></label>
     <button type="button" data-action="close-fasta-options">Done</button></div>

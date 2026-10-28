@@ -144,6 +144,8 @@ export interface ViewerOptions {
   minCoverage?:number;
   /** FASTA settings for exports and Ctrl/Cmd+C; updates merge with the current settings. */
   fasta?:FastaOptions;
+  /** Settings shared by every export and copy. Updates merge with the current settings. */
+  export?:ExportOptions;
   /** Keep location.hash in sync with the view and apply a link found there on the next load. */
   urlSync?:boolean;
   /** Pan by dragging the residue grid. A press that moves under 4 px is a click. Default true. */
@@ -181,6 +183,8 @@ export interface ViewState {
   /** One-based alignment column of a 'residue' sort. */
   sortColumn?:number;
   consensusThreshold?:number; colorThreshold?:number; minIdentity?:number; minCoverage?:number;
+  /** Active motif search: the pattern, its mode when not 'auto', and the strands when not 'both'. Omitted when no search is active. */
+  find?:string; findMode?:SearchMode; strands?:'both'|'forward';
   hiddenRowIds?:string[]; manualOrder?:string[]|null; collapsedGroups?:string[];
   /** Reverse-complement view; omitted in older states, which mean false. */
   reverseComplement?:boolean;
@@ -197,8 +201,10 @@ export interface CellClick extends CellInfo { shiftKey:boolean }
 export interface ViewerEvents { hover:CellInfo|null; cellclick:CellClick; selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState; warnings:ParseWarning[] }
 export type ViewerEvent = keyof ViewerEvents;
 export type EventHandler<K extends ViewerEvent> = (event:ViewerEvents[K])=>void;
+/** Export settings for every format (FASTA, CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG, PNG, statistics TSV, consensus and copy). `columns:'visible'` leaves out columns hidden by column masking and marks the collapsed boundaries in SVG and PNG. Default 'all'. */
+export interface ExportOptions { columns?:'all'|'visible' }
 /** FASTA output settings shared by export and copy. Defaults: keep gaps, original case, 80 columns, name header. */
-export interface FastaOptions { gaps?:'keep'|'remove'; letterCase?:'original'|'upper'|'lower'; /** 0 writes each sequence on one line; otherwise 10 to 1000. */ lineWidth?:number; header?:'name'|'name-species'|'id-name'; /** 'visible' leaves out columns hidden by column masking in the viewer's FASTA exports and copy. Default 'all'. */ columns?:'all'|'visible'; /** 'reverse-complement' writes each exported region reversed and complemented (DNA and RNA only; protein throws). Exports otherwise stay in source orientation, whatever the view shows. Default 'source'. */ orientation?:'source'|'reverse-complement' }
+export interface FastaOptions { gaps?:'keep'|'remove'; letterCase?:'original'|'upper'|'lower'; /** 0 writes each sequence on one line; otherwise 10 to 1000. */ lineWidth?:number; header?:'name'|'name-species'|'id-name'; /** Deprecated alias of ExportOptions.columns; setting it sets the export option. */ columns?:'all'|'visible'; /** 'reverse-complement' writes each exported region reversed and complemented (DNA and RNA only; protein throws). Exports otherwise stay in source orientation, whatever the view shows. Default 'source'. */ orientation?:'source'|'reverse-complement' }
 /** `columns` is a mask of length alignment width (1 keeps a column, 0 drops it, as from getColumnMask) applied inside start to end. */
 export interface ExportRegion { rowIds?:string[]; start?:number; end?:number; columns?:ArrayLike<number> }
 export type SearchMode = 'auto'|'literal'|'iupac'|'regex'|'prosite';

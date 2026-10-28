@@ -1,6 +1,6 @@
 import type { ViewerOptions, ViewerVisibility } from './types';
 import { defaultVisibility } from './visibility';
-import { validateFastaOptions } from './export';
+import { validateFastaOptions, validateExportOptions } from './export';
 import { validateTracks } from './tracks';
 import { validateAnnotationLinks } from './tooltip';
 
@@ -29,6 +29,7 @@ export function parseViewerConfig(input:string|unknown):ViewerConfig {
     }
     if(key==='fasta'){result.fasta=validateFastaOptions(item);continue;}
     if(key==='annotationLinks'){result.annotationLinks=validateAnnotationLinks(item);continue;}
+    if(key==='export'){result.export=validateExportOptions(item);continue;}
     if(key==='tracks'){result.tracks=validateTracks(item,true);continue;}
     if(key==='conservationWindow'){if(typeof item!=='number'||!Number.isInteger(item)||item<1||item>51||item%2===0)throw new Error('conservationWindow must be an odd integer between 1 and 51.');result.conservationWindow=item;continue;}
     if(key==='hideGapColumns'){if(item!==null&&(typeof item!=='number'||!(item>=0&&item<=1)))throw new Error('hideGapColumns must be null or a number between 0 and 1.');result.hideGapColumns=item;continue;}

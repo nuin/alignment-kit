@@ -1,4 +1,4 @@
-import type { SortKey, Alphabet, ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, Annotation, AnnotationImportOptions, AnnotationImportResult, SearchOptions, SearchResult, Hit, CustomTrack, Identity } from '../types';
+import type { SortKey, Alphabet, ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, Annotation, AnnotationImportOptions, AnnotationImportResult, SearchOptions, SearchMode, SearchResult, Hit, CustomTrack, Identity } from '../types';
 import type { AnnotationIndex, filterAnnotations } from '../annotations';
 import type { ThemedSelects } from '../selects';
 import type { Renderer, RenderView, GroupInfo, TreeHit } from '../renderer';
@@ -17,7 +17,7 @@ export interface Carry { reference:string; selection:Selection|null; selectedRow
 export interface SummaryEntry { key:string; limit:number; task:WorkerTask; promise:Promise<ColumnAnalysis>; data?:ColumnAnalysis; error?:string }
 export type On=(target:EventTarget,event:string,handler:(event:any)=>void)=>void;
 export interface SearchState { pattern:string; options:SearchOptions; result:SearchResult; byRow:Map<number,Hit[]>; cursor:number; full?:SearchResult }
-export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'colorThreshold'|'minIdentity'|'minCoverage'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'|'reverseComplement'|'tooltips'|'annotationLinks'>>;
+export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'colorThreshold'|'minIdentity'|'minCoverage'|'fasta'|'export'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'|'reverseComplement'|'tooltips'|'annotationLinks'>>;
 export const bounded=(n:number,min:number,max:number):number=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 
 /** The state and methods of AlignmentViewer that the modules in this folder act on. The class implements it with private members, so it is cast once in AlignmentViewer.core. */
@@ -67,6 +67,7 @@ export interface Core {
   exportRegion(a:Alignment):ExportRegion;
   fastaPanel(open:boolean):void;
   fastaRegion(region:ExportRegion,visible?:boolean):ExportRegion;
+  restoreSearch(pattern:string|undefined,mode?:SearchMode,strands?:'both'|'forward'):Promise<boolean>;
   findMotif(motif:string,direction?:1|-1):Promise<boolean>;
   firstColumn():number;
   getRowOrder():string[];

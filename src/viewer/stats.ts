@@ -1,5 +1,6 @@
 import { type ViewState, type ColumnMark } from '../types';
 import { addMarks, markColor } from '../marks';
+import { compilePattern } from '../search';
 import { hidesEveryColumn, mergeColumnRanges, columnPos, type ColumnRange } from '../mask';
 import { type Core } from './core';
 export async function updateStats(v:Core):Promise<void> {
@@ -14,10 +15,15 @@ export async function updateStats(v:Core):Promise<void> {
     v.inspectorDirty=true;v.overviewDirty=true;v.message('');v.schedule();
   }catch(error){v.error(error);if((error as Error).name!=='AbortError')throw error;}
 }
-export function getState(v:Core):ViewState {return {version:1,alignmentId:v.a?.id??'',referenceId:v.a?.rows[v.reference]?.id??null,query:v.query,sort:v.sort,start:v.firstColumn()+1,rowOffset:Math.floor(v.scroll.scrollTop/v.options.rowHeight),cellWidth:v.options.cellWidth,selection:v.selection?{...v.selection}:null,colorScheme:v.options.colorScheme,colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,statisticsScope:v.options.statisticsScope,rulerCoordinates:v.options.rulerCoordinates,annotationFilter:structuredClone(v.annotationFilter),visibility:v.getVisibility(),sortColumn:v.sort==='residue'?v.sortColumn:undefined,consensusThreshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,minIdentity:v.options.minIdentity,minCoverage:v.options.minCoverage,hiddenRowIds:[...v.hidden],manualOrder:v.manualOrder?[...v.manualOrder]:null,collapsedGroups:[...v.collapsed],hiddenColumns:v.manualHidden.map(r=>[...r] as ColumnRange),reverseComplement:v.reversed,reverseStrandRowIds:[...v.rowStrands],columnMarks:v.columnMarks.map(m=>({...m}))};}
+const searchModes=['auto','literal','iupac','regex','prosite'];
+export function getState(v:Core):ViewState {return {version:1,alignmentId:v.a?.id??'',referenceId:v.a?.rows[v.reference]?.id??null,query:v.query,sort:v.sort,start:v.firstColumn()+1,rowOffset:Math.floor(v.scroll.scrollTop/v.options.rowHeight),cellWidth:v.options.cellWidth,selection:v.selection?{...v.selection}:null,colorScheme:v.options.colorScheme,colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,statisticsScope:v.options.statisticsScope,rulerCoordinates:v.options.rulerCoordinates,annotationFilter:structuredClone(v.annotationFilter),visibility:v.getVisibility(),sortColumn:v.sort==='residue'?v.sortColumn:undefined,consensusThreshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,minIdentity:v.options.minIdentity,minCoverage:v.options.minCoverage,hiddenRowIds:[...v.hidden],manualOrder:v.manualOrder?[...v.manualOrder]:null,collapsedGroups:[...v.collapsed],hiddenColumns:v.manualHidden.map(r=>[...r] as ColumnRange),reverseComplement:v.reversed,reverseStrandRowIds:[...v.rowStrands],columnMarks:v.columnMarks.map(m=>({...m})),...(v.searchState?{find:v.searchState.pattern,...(v.searchState.options.mode&&v.searchState.options.mode!=='auto'?{findMode:v.searchState.options.mode}:{}),...(v.searchState.options.strands&&v.searchState.options.strands!=='both'?{strands:v.searchState.options.strands}:{})}:{})};}
 export async function setState(v:Core, state:ViewState):Promise<void> {
   if(!v.a||state.version!==1||state.alignmentId!==v.a.id)throw new Error('View state belongs to a different alignment or unsupported version.');
   if(!Number.isFinite(state.start)||!Number.isFinite(state.rowOffset))throw new Error('Invalid view state.');
+  if(state.find!==undefined){
+    if(typeof state.find!=='string'||!state.find||(state.findMode!==undefined&&!searchModes.includes(state.findMode))||(state.strands!==undefined&&state.strands!=='both'&&state.strands!=='forward'))throw new Error('Invalid search in view state.');
+    try{compilePattern(state.find,{alphabet:v.a.alphabet,mode:state.findMode});}catch{throw new Error('Invalid search in view state.');}
+  }
   const hiddenColumns=mergeColumnRanges(state.hiddenColumns??[]);
   if(hiddenColumns.some(([s,e])=>!Number.isInteger(s)||!Number.isInteger(e)||s<1||e<s||e>v.a!.width)||hidesEveryColumn(v.a,v.maskOptions(hiddenColumns)))throw new Error('Invalid hidden columns in view state.');
   const marks=(state.columnMarks??[]).map(m=>({start:m.start,end:m.end,color:markColor(m.color)}));
@@ -27,4 +33,5 @@ export async function setState(v:Core, state:ViewState):Promise<void> {
   const known=new Set(v.a.rows.map(r=>r.id));v.hidden=new Set((state.hiddenRowIds??[]).filter(id=>known.has(id)));v.manualOrder=state.manualOrder?state.manualOrder.filter(id=>known.has(id)):null;v.collapsed=new Set(state.collapsedGroups??[]);v.rowStrands=new Set((state.reverseStrandRowIds??[]).filter(id=>known.has(id)));v.labelKey='';
   await v.setSort(state.sort==='tree'&&!v.tree||state.sort==='residue'&&!(Number.isInteger(state.sortColumn)&&state.sortColumn!>=1&&state.sortColumn!<=v.a.width)?'input':state.sort,state.sortColumn);if(v.options.statisticsScope==='filtered')void v.updateStats().catch(()=>{});v.setAnnotationFilter(state.annotationFilter);v.setSelection(state.selection,false);
   v.scroll.scrollLeft=columnPos(v.columns,Math.min(Math.max(1,state.start),v.a.width)-1)*v.options.cellWidth;v.scroll.scrollTop=state.rowOffset*v.options.rowHeight;v.schedule();
+  await v.restoreSearch(state.find,state.findMode,state.strands);
 }

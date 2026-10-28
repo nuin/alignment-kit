@@ -1,4 +1,4 @@
-import { type Hit, type SearchOptions, type SearchResult } from '../types';
+import { type Hit, type SearchMode, type SearchOptions, type SearchResult } from '../types';
 import { compilePattern } from '../search';
 import { $ } from '../controls';
 import { TIMEOUT_ERROR } from '../worker-client';
@@ -10,7 +10,16 @@ export async function search(v:Core, pattern:string,options:Pick<SearchOptions,'
 }
 export function clearSearch(v:Core):void {
   v.assertAlive();if(!v.searchState&&!v.searchBusy)return;
-  v.dropSearch();v.inspectorDirty=true;v.schedule();
+  v.dropSearch();v.inspectorDirty=true;v.schedule();v.emit('state',v.getState());
+}
+/** Make the active search match a stored view: no pattern clears it, otherwise the pattern runs again in the search worker. Returns false when the pattern is invalid or the run failed; a run replaced by a newer one counts as done. */
+export async function restoreSearch(v:Core, pattern:string|undefined,mode?:SearchMode,strands?:'both'|'forward'):Promise<boolean> {
+  if(!pattern){if(v.searchState||v.searchBusy)v.clearSearch();return true;}
+  const options={mode:mode==='auto'?undefined:mode,strands:strands==='both'?undefined:strands};
+  try{if(v.a)compilePattern(pattern,{alphabet:v.a.alphabet,mode:options.mode});}catch{v.clearSearch();return false;}
+  $<HTMLInputElement>(v.root,'[aria-label="Find motif"]').value=pattern;
+  try{await v.runSearch(pattern,options);return true;}
+  catch(error){return (error as Error).name==='AbortError';}
 }
 export function dropSearch(v:Core):void {
   $<HTMLInputElement>(v.root,'[aria-label="Find motif"]').value='';
@@ -32,7 +41,7 @@ export async function runSearch(v:Core, pattern:string,options:SearchOptions,ref
       result={hits:v.filteredRows.flatMap(r=>hits.get(r)??[]),truncated:false};
     }else{let rows:number[];do{rows=v.filteredRows;result=await v.searcher.search(a,pattern,{...options,rows});current();}while(rows!==v.filteredRows);}
   }catch(error){
-    if(run===v.searchRun){v.searchBusy=false;if((error as Error).name===TIMEOUT_ERROR&&v.searchState){v.searchState=undefined;v.inspectorDirty=true;v.schedule();v.emit('search',null);}}
+    if(run===v.searchRun){v.searchBusy=false;if((error as Error).name===TIMEOUT_ERROR&&v.searchState){v.searchState=undefined;v.inspectorDirty=true;v.schedule();v.emit('search',null);v.emit('state',v.getState());}}
     throw error;
   }
   v.searchBusy=false;
@@ -40,6 +49,7 @@ export async function runSearch(v:Core, pattern:string,options:SearchOptions,ref
   for(const hit of result.hits){const list=byRow.get(hit.row);if(list)list.push(hit);else byRow.set(hit.row,[hit]);}
   const cursor=previous?result.hits.findIndex(h=>h.rowId===previous.rowId&&h.start===previous.start&&h.end===previous.end&&h.strand===previous.strand):-1;
   v.searchState={pattern,options,result,byRow,cursor,full};v.inspectorDirty=true;v.schedule();
+  if(!same)v.emit('state',v.getState());
   const key=(h:Hit)=>`${h.row}:${h.start}:${h.end}:${h.strand}`;
   if(!refilter||!old||old.result.truncated!==result.truncated||old.result.hits.length!==result.hits.length||result.hits.some((h,i)=>key(h)!==key(old.result.hits[i])))v.emit('search',{hits:[...result.hits],truncated:result.truncated});
   return v.searchState;

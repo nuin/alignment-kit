@@ -104,3 +104,5 @@
 .ak-tip-title{font-weight:600}.ak-tip-key{color:var(--ak-muted)}.ak-tip-note{margin-top:6px;padding-top:5px;border-top:1px solid var(--ak-line)}.ak-tip-more{margin-top:4px;color:var(--ak-muted)}
 .ak-tip-close{position:absolute;top:3px;right:4px;border:0;background:none;color:var(--ak-muted);font-size:16px;line-height:1;cursor:pointer;padding:2px 5px}
 .ak-tooltip a{color:var(--ak-accent)}
+
+.ak-toolbar .ak-export-columns{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap}.ak-toolbar .ak-export-columns input{margin:0}
