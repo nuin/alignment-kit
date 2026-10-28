@@ -345,7 +345,7 @@ Ctrl/Cmd+C on the focused matrix copies gapped FASTA for the selected columns (o
 With `urlSync: true` the viewer keeps `location.hash` in sync (via `history.replaceState`) and applies a hash link after the next load. The viewer never fetches `src` itself; the host decides what to load:
 
 ```ts
-import { createViewer, decodeViewLink } from '@alignment-kit/viewer';
+import { createViewer, decodeViewLink } from '@nuin/msa-canvas';
 const viewer = createViewer(element, { urlSync: true });
 const { source } = decodeViewLink(location.hash);
 await viewer.loadUrl(source && isTrusted(source) ? source : defaultUrl);
