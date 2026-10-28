@@ -13,7 +13,7 @@ const sorts:ViewState['sort'][]=['input','name','identity'];
 const scopes:ViewState['statisticsScope'][]=['all','filtered'];
 const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','ruler'];
 /** True when a fragment or query holds at least one link parameter; plain anchors such as `#viewer` do not. */
-export const isViewLink=(input:string):boolean=>{const p=new URLSearchParams(input.replace(/^[#?]/,''));return keys.some(key=>p.has(key));};
+export const isViewLink=(input:string):boolean=>{const p=new URLSearchParams(input.replace(/^[#?]/,''));return keys.some(key=>key==='ruler'?!!p.get(key):p.has(key));};
 
 /** Readable URL parameters, e.g. `src=…&sel=50-60&row=seq-3&ref=seq-1&scheme=soft&zoom=16`. Defaults are omitted. */
 export function encodeViewLink(state:ViewState,source?:string):string {

@@ -57,7 +57,7 @@ The matrix is a window into the full alignment. Ordinary scroll controls move th
 | Control | What it does |
 |---|---|
 | Overview | Click or drag to move horizontally across the alignment. |
-| Go to | Enter a **1-based alignment column**, a reference residue number (when Ruler is set to Reference residues), or `row:residue` such as `seq-3:45`, then press Enter. |
+| Go to | Enter a **1-based alignment column**, a reference residue number (when Ruler is set to Reference residues), or `row:residue` such as `seq-3:45`, then press Enter. The row part matches a row ID first, then an exact name; duplicate names resolve to the first row. |
 | − / + | Change residue cell width, preserving the viewport's horizontal center. |
 | Fit | Fit as much width as possible, down to the 3px minimum; very wide alignments still scroll. |
 | Label divider | Drag the divider between sequence labels and residues to change label width. |

@@ -70,13 +70,13 @@ export class Renderer {
     ctx.fillStyle=v.dark?'#172333':'#ffffff';ctx.fillRect(0,0,width,height);ctx.save();ctx.beginPath();ctx.rect(v.gutter,0,width-v.gutter,height);ctx.clip();
     const start=Math.max(0,Math.floor(v.x/v.cw)),end=Math.min(v.a.width,Math.ceil((v.x+width-v.gutter)/v.cw));
     ctx.font='11px "Alignment Mono", monospace';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    const tick=v.cw<5?50:v.cw<10?20:10,refRow=v.ruler==='reference'?v.reference*v.a.width:-1,first=rowOffset(v.a.rows[v.reference]);
+    const tick=v.cw<5?50:v.cw<10?20:10,refRow=v.ruler==='reference'?v.reference*v.a.width:-1,first=rowOffset(v.a.rows[v.reference]),showFirst=tick-first%tick>=Math.ceil(24/v.cw);
     let residue=first-1;if(refRow>=0)for(let c=0;c<start;c++)if(!isGap(v.a.codes[refRow+c]))residue++;
     for(let c=start;c<end;c++) {
       const x=v.gutter+c*v.cw-v.x;
       let number:number|null=c+1;
       if(refRow>=0)number=isGap(v.a.codes[refRow+c])?null:++residue;
-      if(offset.ruler!==null&&number!==null&&(refRow>=0?number%tick===0||number===first:c===0||number%tick===0)){ctx.fillStyle=ink;ctx.font='11px "Alignment Mono", monospace';ctx.fillText(String(number),x+v.cw/2,17);ctx.fillStyle=line;ctx.fillRect(x+v.cw/2,23,1,height-23);}
+      if(offset.ruler!==null&&number!==null&&(refRow>=0?number%tick===0||showFirst&&number===first:c===0||number%tick===0)){ctx.fillStyle=ink;ctx.font='11px "Alignment Mono", monospace';ctx.fillText(String(number),x+v.cw/2,17);ctx.fillStyle=line;ctx.fillRect(x+v.cw/2,23,1,height-23);}
       if(!v.stats)continue;
       if(offset.modalFrequency!==null){ctx.fillStyle='#3a7da4';ctx.fillRect(x,offset.modalFrequency+22-(v.stats.frequency[c]||0)*20,Math.max(1,v.cw-1),(v.stats.frequency[c]||0)*20);}
       if(offset.gapFraction!==null){ctx.fillStyle='#c5a278';const gap=v.stats.total?v.stats.gaps[c]/v.stats.total:0;ctx.fillRect(x,offset.gapFraction+22-gap*18,Math.max(1,v.cw-1),gap*18);}

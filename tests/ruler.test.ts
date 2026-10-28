@@ -49,6 +49,14 @@ it('numbers reference ticks after leading gap columns',()=>{
   const a=createAlignment([{name:'ref',sequence:'-----ACGTACGTACGTACGTACGT'}]);
   expect(labels(a,'reference')).toEqual(['1','10','20']);
 });
+it('drops the first-residue label when a tick label would overlap it',()=>{
+  const s='-'+'ACGT'.repeat(5);
+  expect(labels(createAlignment([{name:'ref',sequence:s,metadata:{start:19}}]),'reference',0,6)).toEqual(['20']);
+  expect(labels(createAlignment([{name:'ref',sequence:s,metadata:{start:15}}]),'reference',0,6)).toEqual(['15','20']);
+});
+it('treats a bare #ruler anchor as plain, not a view link',()=>{
+  expect(isViewLink('#ruler')).toBe(false);expect(isViewLink('ruler=')).toBe(false);expect(isViewLink('#ruler=ref')).toBe(true);
+});
 it('shows the alignment column and reference residue in the Position tab',()=>{
   const a=createAlignment([{id:'r',name:'ref',sequence:'A-CG',metadata:{start:10}},{id:'s',name:'other',sequence:'ATCG'}]),target=document.createElement('div');
   const base={a,selection:{start:3,end:3,rowId:'s'},scheme:'soft',reference:0,selectedRows:new Set<string>(),annotations:[],annotationFilter:{},unknown:0,excluded:0,tab:'position',page:0,scope:'all'};
