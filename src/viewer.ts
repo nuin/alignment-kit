@@ -29,6 +29,7 @@ export class AlignmentViewer {
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
   private visibility:Required<ViewerVisibility>={...defaultVisibility};
   private get gutter(){return this.visibility.labels?this.options.labelWidth:0;}
+  private get matchDots(){return this.options.matchDisplay==='dot'&&(this.options.colorMode.startsWith('consensus')||this.pinned||this.filteredRows.includes(this.reference));}
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
@@ -187,7 +188,7 @@ export class AlignmentViewer {
     this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,matchDisplay:state.matchDisplay??'letter',statisticsScope:state.statisticsScope,visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
     this.scroll.scrollLeft=(state.start-1)*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
   }
-  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,matchDots:this.options.matchDisplay==='dot',dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold};}
+  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,matchDots:this.matchDots,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold};}
   private layout() {
     if(this.disposed)return;const rh=this.options.rowHeight,gutter=this.gutter;
     const tracks=trackLayout(this.visibility,rh);

@@ -320,7 +320,7 @@ Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, H
 
 ## Dots for matches
 
-`matchDisplay: 'dot'` draws a residue identical to the comparison residue as `.`; the cell keeps its color. The comparison is the consensus when `colorMode` starts with `consensus`, otherwise the pinned reference row. The reference row always shows letters. Gaps, `?` and mismatches keep their symbol. The **Dots for matches** checkbox in the secondary toolbar sets the option, and `visibility.matchDots: false` hides the checkbox. Dots need a cell width of 9 or more, like letters. Canvas, SVG and PNG figures use dots; FASTA, copy and the other text exports keep real residues. `getState()` carries `matchDisplay` and links carry `dots=1`.
+`matchDisplay: 'dot'` draws a residue identical to the comparison residue as `.`; the cell keeps its color. The comparison is the consensus when `colorMode` starts with `consensus`, otherwise the pinned reference row. The reference row always shows letters. Gaps, `?` and mismatches keep their symbol. The **Dots for matches** checkbox in the secondary toolbar sets the option, and `visibility.matchDots: false` hides the checkbox. Dots need a cell width of 9 or more, like letters. Canvas, SVG and PNG figures use dots; FASTA, copy and the other text exports keep real residues. `getState()` carries `matchDisplay` and links carry `dots=1`. When the reference row is not shown (reference hidden or filtered out by a name filter), the viewer and `exportSvg` fall back to letters, so a dot never refers to an invisible row.
 
 ```ts
 viewer.setOptions({ matchDisplay: 'dot', colorMode: 'consensus-differences' });

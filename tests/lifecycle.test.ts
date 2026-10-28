@@ -205,3 +205,12 @@ it('toggles dots for matches through the checkbox, options, state and link',asyn
   viewer.setOptions({visibility:{matchDots:false}});expect(box.closest('label')!.hidden).toBe(true);
   expect(viewer.getAlignment()!.rows.map(r=>r.sequence).join('')).toContain('ATCG');
 });
+it('uses letters instead of dots when the reference row is neither pinned nor filtered in',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false,matchDisplay:'dot'});disposers.push(()=>viewer.destroy());await viewer.setAlignment(data());
+  const v=viewer as any,name=viewer.getAlignment()!.rows[1].name;
+  expect(v.view().matchDots).toBe(true);
+  viewer.setOptions({visibility:{reference:false}});viewer.setFilter(name);
+  expect(v.view().matchDots).toBe(false);
+  viewer.setOptions({colorMode:'consensus-matches'});expect(v.view().matchDots).toBe(true);
+  viewer.setOptions({colorMode:'all'});viewer.setFilter('');expect(v.view().matchDots).toBe(true);
+});

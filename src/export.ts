@@ -48,8 +48,9 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
   if(count*rows.length>200000)throw new Error('Figure export is limited to 200,000 cells. Narrow the selected rows or columns.');
   const cw=16,rh=22,gutter=250,top=72,width=gutter+count*cw+24,height=top+rows.length*rh+100,scheme=getColorScheme(schemeId);
   const mode=options.colorMode??'all',ref=options.referenceId?a.rows.findIndex(r=>r.id===options.referenceId):0;
-  const dots=options.matchDisplay==='dot';
-  if((mode.startsWith('reference')||dots&&!mode.startsWith('consensus'))&&ref<0)throw new Error('Unknown figure reference.');
+  const wantDots=options.matchDisplay==='dot',byRef=!mode.startsWith('consensus');
+  if((mode.startsWith('reference')||wantDots&&byRef)&&ref<0)throw new Error('Unknown figure reference.');
+  const dots=wantDots&&(!byRef||rows.includes(ref));
   const chunks=[`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${escapeXml(a.name)}</title><metadata>${escapeXml(JSON.stringify({source:a.metadata.source,alphabet:a.alphabet,start,end,statisticsRows:s.total,definition:'Consensus support = modal non-gap count / all rows in statistics scope',palette:scheme.label,colorMode:mode,matchDisplay:dots?'dot':'letter',referenceId:a.rows[ref]?.id}))}</metadata><rect width="100%" height="100%" fill="#ffffff"/><g font-family="monospace" font-size="12" fill="#243447"><text x="16" y="25" font-size="17">${escapeXml(a.name)}</text><text x="16" y="46">Alignment columns ${start}–${end} · ${rows.length} sequences · ${a.alphabet}</text>`];
   for(let c=start;c<=end;c++)if(c===start||c%10===0)chunks.push(`<text x="${gutter+(c-start)*cw}" y="${top-8}">${c}</text>`);
   const used=new Set<string>();
