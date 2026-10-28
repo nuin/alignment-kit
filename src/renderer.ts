@@ -1,7 +1,7 @@
 import { defaultVisibility, trackLayout } from './visibility';
 import type { ViewerVisibility, RulerCoordinates } from './types';
 import { isGap, rowOffset } from './model';
-import type { Alignment, AlignmentStats, ColorMode, Selection } from './types';
+import type { Alignment, AlignmentStats, ColorMode, Selection, Hit } from './types';
 import { getColorScheme, residueColor, textColor } from './colors';
 import { AnnotationIndex } from './annotations';
 import { STRIDE, SYMBOLS, consensusSymbol } from './analysis';
@@ -9,6 +9,8 @@ export interface RenderView {
   a:Alignment; stats?:AlignmentStats; rows:number[]; reference:number; x:number; y:number;
   cw:number; rh:number; gutter:number; scheme:string; mode:ColorMode; dark:boolean;
   selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; matchDots?:boolean; ruler?:RulerCoordinates;
+  /** Search hits by alignment row index, sorted by start column. */
+  hits?:Map<number,Hit[]>; activeHit?:Hit;
 }
 export function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
   const dpr=Math.min(window.devicePixelRatio||1,3);
@@ -50,6 +52,14 @@ export class Renderer {
       } else {ctx.globalAlpha=faded?0.22:1;ctx.drawImage(atlas,code*v.cw*ratio,dot?v.rh*ratio:0,v.cw*ratio,v.rh*ratio,x,y,v.cw,v.rh);}
       ctx.globalAlpha=1;
     }
+    const hits=v.hits?.get(row);
+    if(hits)for(const hit of hits){
+      if(hit.start>end||hit.end<=start)continue;
+      const x=v.gutter+(hit.start-1)*v.cw-v.x,w=Math.max(2,(hit.end-hit.start+1)*v.cw),active=hit===v.activeHit;
+      ctx.strokeStyle=active?'#d63b00':v.dark?'#ffb347':'#e08a00';ctx.lineWidth=active?3:2;ctx.setLineDash(hit.strand==='-'?[4,3]:[]);
+      ctx.strokeRect(x+1,y+1,w-2,v.rh-3);
+    }
+    ctx.setLineDash([]);
     if(v.visibility?.annotationMarks===false)return;
     const items=[...v.annotations.query(v.a.rows[row].id,start+1,end),...v.annotations.query('*',start+1,end)];
     // Merge overlapping marks into pixel bins at low zoom; never draw unbounded feature DOM.

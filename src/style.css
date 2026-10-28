@@ -72,3 +72,5 @@
 .ak-viewer .ak-row-label .ak-pin{flex-basis:24px}
 
 .ak-fasta-options{background:var(--ak-panel);border-bottom:1px solid var(--ak-line);display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:7px 14px;font-size:12px;flex-shrink:0}.ak-fasta-options[hidden]{display:none}.ak-fasta-options label{display:flex;align-items:center;gap:6px;color:var(--ak-muted)}.ak-fasta-options button[data-action]{font-size:11px;padding:3px 9px}
+.ak-feature[aria-current=true]{border-left-color:#e08a00;box-shadow:0 0 0 1px #e08a00}
+.ak-tools .ak-motif{gap:4px}

@@ -81,6 +81,7 @@ export interface ViewerVisibility {
   featuresTab?:boolean;
   compareTab?:boolean;
   colorsTab?:boolean;
+  hitsTab?:boolean;
   pinReference?:boolean;
   rowFeaturesToggle?:boolean;
   featureType?:boolean;
@@ -115,9 +116,15 @@ export interface ViewState {
   rulerCoordinates?:RulerCoordinates;
 }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
-export interface ViewerEvents { selection:Selection|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }
+export interface ViewerEvents { selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }
 export type ViewerEvent = keyof ViewerEvents;
 export type EventHandler<K extends ViewerEvent> = (event:ViewerEvents[K])=>void;
 /** FASTA output settings shared by export and copy. Defaults: keep gaps, original case, 80 columns, name header. */
 export interface FastaOptions { gaps?:'keep'|'remove'; letterCase?:'original'|'upper'|'lower'; /** 0 writes each sequence on one line; otherwise 10 to 1000. */ lineWidth?:number; header?:'name'|'name-species'|'id-name' }
 export interface ExportRegion { rowIds?:string[]; start?:number; end?:number }
+export type SearchMode = 'auto'|'literal'|'iupac'|'regex'|'prosite';
+/** `rows` limits the search to those row indices, in that order; `limit` lowers the 10,000 hit cap. `strands` applies to DNA and RNA only. */
+export interface SearchOptions { mode?:SearchMode; strands?:'both'|'forward'; rows?:number[]; limit?:number }
+/** Columns are alignment columns (one-based, inclusive); seqStart and seqEnd count ungapped residues of the forward strand. `row` is the zero-based row index; `match` is the text matched on the hit's strand. */
+export interface Hit { rowId:string; row:number; start:number; end:number; seqStart:number; seqEnd:number; strand:'+'|'-'; match:string }
+export interface SearchResult { hits:Hit[]; truncated:boolean }

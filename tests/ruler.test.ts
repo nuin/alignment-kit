@@ -59,7 +59,7 @@ it('treats a bare #ruler anchor as plain, not a view link',()=>{
 });
 it('shows the alignment column and reference residue in the Position tab',()=>{
   const a=createAlignment([{id:'r',name:'ref',sequence:'A-CG',metadata:{start:10}},{id:'s',name:'other',sequence:'ATCG'}]),target=document.createElement('div');
-  const base={a,selection:{start:3,end:3,rowId:'s'},scheme:'soft',reference:0,selectedRows:new Set<string>(),annotations:[],annotationFilter:{},unknown:0,excluded:0,tab:'position',page:0,scope:'all'};
+  const base={a,selection:{start:3,end:3,rowId:'s'},scheme:'soft',reference:0,selectedRows:new Set<string>(),annotations:[],annotationFilter:{},unknown:0,excluded:0,tab:'position',page:0,scope:'all',hits:[],truncated:false,pattern:'',hit:-1};
   renderInspector(target,base);
   expect(target.textContent).toContain('Column 3');expect(target.textContent).toContain('Reference ref: residue 11');expect(target.textContent).toContain('Sequence position 3');
   renderInspector(target,{...base,selection:{start:2,end:2}});expect(target.textContent).toContain('Reference ref: gap');

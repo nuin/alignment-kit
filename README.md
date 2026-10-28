@@ -188,7 +188,7 @@ All flags default to `true`, except `logo`, which defaults to `false`. Parent re
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `consensus`, `logo`, `reference` |
 | Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `labelResize` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay` |
-| Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab` |
+| Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
 | Feedback | `statusSummary`, `statusDetails`, `messages`, `emptyState` |
 
@@ -292,13 +292,52 @@ const records = parseGff3(text); // { seqid, start, end, kind, label, metadata }
 
 ## Coordinates and statistics
 
-Public positions are **1-based, inclusive alignment columns**. Sequence coordinates require a row identity and count only non-gap symbols. Use `alignmentToSequence(alignment, rowIndex, column)` and `sequenceToAlignment(alignment, rowIndex, position)`; a gap maps to `null`.
+Public positions are **1-based, inclusive alignment columns**. Sequence coordinates require a row identity and count only non-gap symbols. UseSearch motifs
 
-### Reference ruler and residue go-to
+The motif box and `search()` accept three syntaxes. Auto mode picks one from the text:
 
-`rulerCoordinates: 'reference'` (or the **Ruler** menu, **Reference residues**) labels the ruler with the ungapped residue numbers of the pinned reference row instead of alignment columns. Columns where the reference has a gap get no number or tick. Labels fall on multiples of the tick step, plus the first residue. The Position tab shows both the alignment column and the reference residue number.
+| `alignmentToSequence(alignment,Text rowIndex, column)`Mode | Example and|
+|---|---|---|
+| `sequenceToAlignment(alignment, rowIndex, position)/.../`; a gap maps to `null`.
 
-A row starts counting at `row.metadata.start` when that is a positive integer, otherwise at 1. The Stockholm parser sets it from names of the form `NAME/START-END` (START at least 1 and not above END) and does not rename the row. Reverse-strand ranges (START above END) are not numbered backwards. This numbering applies to the ruler, the Position tab and go-to; `alignmentToSequence` and `sequenceToAlignment` stay offset-free.
+### Reference| Regular rulerexpression and| residue`/N[^P][ST]/` go-to
+
+`rulerCoordinates: 'reference'` (or the **Ruler** menu, **Reference-` residues**)between labelselements, thea rulerwhole `x` theelement, ungapped`{...}`, residue`[...]`, numbers`(n)`, of the pinned reference`<` rowor instead`>` of| alignmentPROSITE columns.| Columns`N-{P}-[ST]-{P}` where|
+| the referenceAnything haselse a| gapIUPAC getletters no| number`ACGNACGG` or|
+
+- tick.IUPAC Labelsfor DNA/RNA: fall`R onY multiplesS ofW theK tickM step,B plusD theH firstV residue.N`; The`U` Positionequals tab`T`. showsAn bothambiguity theletter alignmentin columnthe pattern also matches itself in the data, so `R` matches `A`, `G` and a literal `R`. A lowercase string such as `acx` is IUPAC; `x` is PROSITE only as an element (`x`, `x(2)`, `A-x-G`). For protein: `X` is any residue, `B` is D or N, `Z` is E or Q, `J` is I or L.
+- PROSITE: `x` any residue, `[ST]` one of, `{P}` any except, `x(2,4)` repeat, `<` N-terminus, `>` C-terminus, `[G>]` G or C-terminus. A trailing `.` is ignored.
+- Regular expressions are case-insensitive and run on each ungapped sequence. Gaps never break a match.
+- DNA/RNA searches also scan the reverse complement unless `strands: 'forward'` is set. A site that reads the same on both strands (`ACGT`) is reported once, as `+`.
+- Overlapping matches are all reported. The list stops at 10,000 hits or after 2 seconds (`truncated: true`); past the cap each row's scan also stops early.
+- Searches run on the main thread, including with `worker: true`. Regexes with a repeated group that contains a repeat, such as `(A+)+B`, are rejected because they can freeze the page. Other pathological patterns are bounded only by the 2 second budget between rows.
+- Only the filtered rows are searched; changing the filter or order re-derives the hits from one scan of all rows and emits `search` only when the hit list changes. Loading another alignment or calling `clear()` removes the search, empties the motif box and emits `search` with `null`.
+
+```ts
+viewer.search('N-{P}-[ST]-{P}');              // N-glycosylation sequon
+viewer.search('ACGNACGG', { strands: 'both' }); // primer with an IUPAC code, both strands
+const { hits, truncated } = viewer.search('/C..C/', { mode: 'regex' });
+hits[0]; // { rowId, row, start, end, seqStart, seqEnd, strand: '+' | '-', match }
+```
+
+`start` and `end` are alignment columns (1-based, inclusive). `seqStart` and `seqEnd` count residues of the forward sequence. `row` is the zero-based row index into the alignment. `findHits` throws on a `rows` entry outside the alignment and ignores a non-finite `limit`. For a `'-'` hit, `match` is the text found on the reverse complement. Every hit is outlined in the grid (dashed on the reverse strand), the status bar shows the count, and the **Hits** inspector tab lists the first 200. The `hitsTab` visibility key hides the tab. `findHits(alignment, pattern, options)` and `compilePattern(pattern, { alphabet, mode })` run the same engine without a viewer.
+
+## API and controls
+
+| Method | Purpose |
+|---|---|
+| `load(input, parseOptions?)` | Parse text, a file or bytes; await exact statistics |
+| `loadUrl(url, parseOptions?)` | Fetch and load with cancellation/CORS diagnostics |
+| `setAlignment(alignment)` | Replace data; await exact statistics |
+| `clear()` / `destroy()` | Clear data / permanently dispose resources |
+| `setOptions(options)` | Update visual/analysis options |
+| `setReference(rowId)` | Pin a stable row as reference |
+| `setFilter(query)` | Filter names and species |
+| `setSort('input' and the reference residue number.
+
+A row starts counting at `row.metadata.start` when that is a positive integer, otherwise at 1. The Stockholm parser sets it from names of the form `NAME/START-END` (START at least 1 and not above END) and does not rename the row. Reverse-strand ranges `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif; highlight hits; return `{ hits, truncated }` |
+| `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
+| `findMotif(START above ENDtext, direction?) are not numbered backwards. This numbering applies toSearch if `text` is new, then select the ruler, the(`1`, Positiondefault) tabor andprevious go-to;(`-1`) `alignmentToSequence`hit, wrapping around; returns `true` when it started a new search and `sequenceToAlignment` stay offset-free.
 
 The **Go to** box accepts `123` (an alignment column, or a reference residue number when the ruler is in reference mode) and `rowIdOrName:45` (residue 45 of that row; the ID is tried before the name, and the last `:` splits the text). Out-of-range numbers and unknown rows show a message. `goToResidue(rowId, position)` does the same by row ID. The view link carries `ruler=ref` in reference mode, and `getState()` includes `rulerCoordinates`. Hide the menu with `visibility.rulerCoordinates`.
 
@@ -350,7 +389,7 @@ Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, H
 
 ## Dots for matches
 
-`matchDisplay: 'dot'` draws a residue identical to the comparison residue as `.`; the cell keeps its color. The comparison is the consensus when `colorMode` starts with `consensus`, otherwise the pinned reference row. The reference row always shows letters. Gaps, `?` and mismatches keep their symbol. The **Dots for matches** checkbox in the secondary toolbar sets the option, and `visibility.matchDots: false` hides the checkbox. Dots need a cell width of 9 or more, like letters. Canvas, SVG and PNG figures use dots; FASTA, copy and the other text exports keep real residues. `getState()` carries `matchDisplay` and links carry `dots=1`. When the reference row is not shown (reference hidden or filtered out by a name filter), the viewer and `exportSvg` fall back to letters, so a dot never refers to an invisible row.
+`matchDisplay: 'dot'` draws a residue identical to the comparison residue as `.search` (`{ hits, truncated }`, or `null` after `clearSearch()` or a new alignment), `viewport`; the cell keeps its color. The comparison is the consensus when `colorMode` starts with `consensus`, otherwise the pinned reference row. The reference row always shows letters. Gaps, `?` and mismatches keep their symbol. The **Dots for matches** checkbox in the secondary toolbar sets the option, and `visibility.matchDots: false` hides the checkbox. Dots need a cell width of 9 or more, like letters. Canvas, SVG and PNG figures use dots; FASTA, copy and the other text exports keep real residues. `getState()` carries `matchDisplay` and links carry `dots=1`. When the reference row is not shown (reference hidden or filtered out by a name filter), the viewer and `exportSvg` fall back to letters, so a dot never refers to an invisible row.
 
 ```ts
 viewer.setOptions({ matchDisplay: 'dot', colorMode: 'consensus-differences' });

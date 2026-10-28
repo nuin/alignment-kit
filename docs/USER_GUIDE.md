@@ -90,11 +90,31 @@ Alignment column 3 has no sequence position for this row. Column 4 corresponds t
 
 ## Number the ruler by reference residues
 
-Choose **Ruler > Reference residues** in the second toolbar row to number the ruler with the residues of the pinned reference sequence. Columns where the reference has a gap show no number. Pin a different row to renumber from that row. The Position tab shows the alignment column and the reference residue number together.
+Choose **Ruler > Reference residues** in the second toolbar row to number the ruler with the residues of the pinned reference sequence. Columns where the reference has a gap show no number. Pin a different row tothe filtered rows for renumber frompattern. Press **Find next** (or Enter) to jump to the next hit, **Previous** (or Shift+Enter) to go back. Both wrap around. Gaps are ignored: `ACG` matches `A-C-G`, and the hit spans the intervening columns.
 
-Rows can start counting above 1. Stockholm names like `seqA/51-120` start at residue 51, and the row keeps its full name. Residue numbers in the ruler, the Position tab and Go to use that start.
+The viewer picks the syntax from what you type:
 
-To jump to a residue, type `seq-3:45` in **Go to** (row ID or exact row name, a colon, then the residue number). In Reference residues mode a plain number such as `123` means reference residue 123; in Alignment columns mode it means column 123. If the row or residue does not exist, a message appears above the alignment. Shared links carry the ruler setting as `ruler=ref`.
+| You type | Syntax | Example |
+|---|---|---|
+| Text between slashes | Regular expression, case-insensitive | `/C..C/` |
+| `-` between elements, a whole `x` element, `{...}`, `[...]`, `(n)`, `<` or `>` | PROSITE | `N-{P}-[ST]-{P}` |
+| Anything else | Letters with IUPAC codes | `ACGNACGG` |
+
+**IUPAC codes.** DNA and RNA: R (A/G), Y (C/T), S (C/G), W (A/T), K (G/T), M (A/C), B, D, H, V, N (any). U and T are the same. An ambiguity letter you type also matches itself in the data. Lowercase text like `acx` stays IUPAC. Protein: X is any residue, B is D or N, Z is E or Q, J is I or L.
+
+**PROSITE.** `x` is any residue, `[ST]` is S or T, `{P}` is anything except P, `x(2,4)` repeats two to four times, `<` anchors the N-terminus and `>` the C-terminus. The N-glycosylation site is `N-{P}-[ST]-{P}`.
+
+**Example: a primer.** In a DNA alignment, `ACGNACGG` finds the primer with any base at position 4. DNA and RNA alignments are also searched on the reverse complement; those hits have a dashed outline and the strand `-` in the Hits tab. Hit columns are always forward alignment columns. A site that reads the same on both strands, such as `ACGT`, is listed once, as `+`.
+
+Every hit is outlined in the grid, and the status bar shows the count, such as `12 hits`. The **Hits** inspector tab lists the first 200 hits with row name, columns, strand and match. Click one to jump thatto row.it. TheOverlapping Positionhits tabare showsall thelisted. alignmentThe columnsearch andstops theat reference10,000 residuehits numberor together.
+
+Rowsafter 2 seconds and can startcount countingthen abovereads 1.`10,000+ hits`. StockholmRegular names likeexpressions with a repeated group that contains a repeat, such as `seqA/51-120(A+)+B`, are rejected with a message start atthey residuecan 51, andfreeze the rowpage. keepsClearing the box itsremoves fullthe namehighlights. Changing Residuethe numberssequence filter or order updates the hits without in thenew ruler,scan. theLoading Positionanother tabalignment andclears Gothe tosearch useand thatthe box. An start.
+
+Toinvalid jumppattern shows to aerror residue,and typeleaves `seq-3:45`the incurrent hits and tab as they were.
+
+An **Goinvalid to**pattern (rowshows IDa ormessage exactthat rownames the problem, such as an unbalanced bracket.
+
+## name, a colon, then the residue number). In Reference residues mode a plain number such as `123` means reference residue 123; in Alignment columns mode it means column 123. If the row or residue does not exist, a message appears above the alignment. Shared links carry the ruler setting as `ruler=ref`.
 
 ## Find sequences and motifs
 
@@ -256,7 +276,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | Escape / matrix | Clear residue selection. |
 | Ctrl/Cmd + C / matrix | Copy the selection as gapped FASTA. |
 | Enter / Go to | Navigate to the entered column, reference residue or `row:residue`. |
-| Enter / motif input | Find the next literal motif. |
+| Enter / motif input | Find the next hit. Shift+Enter finds the previous hit. |
 | Left / Right / overview | Move the viewport horizontally. |
 | Left / Right / label divider | Change label width. |
 | Enter, Space or arrow / closed menu | Open the viewer-themed menu. |
@@ -277,7 +297,7 @@ Controls have accessible names and focus indicators, and selections have textual
 | File is not recognized | Use aligned FASTA, Stockholm or CLUSTAL. A3M, FASTQ, VCF and tree files are not alignment inputs here. |
 | Colors look wrong | Check Type, Color and the Colors legend. Type changes interpretation, not letters. |
 | A palette disappeared | The Color menu filters schemes by alphabet. |
-| No motif found | Search is literal, ignores gaps and searches filtered rows. Ambiguity letters are not wildcards. |
+| No motif found | Search ignores gaps and covers only filtered rows. `N` (DNA) and `X` (protein) match any residue; use `/regex/` or PROSITE for finer control. |
 | Filtering does not change statistics | Select Stats → Filtered sequences if that is the intended denominator. |
 | Reference remains after filtering | The pinned reference is intentionally retained for context. |
 | No annotations appear | Sequence formats do not automatically retrieve annotations; the host must supply them. |

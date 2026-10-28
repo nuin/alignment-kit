@@ -1,14 +1,20 @@
-import type { Alignment, AlignmentStats, Selection, Annotation, AnnotationFilter, Identity } from './types';
+import type { Alignment, AlignmentStats, Selection, Annotation, AnnotationFilter, Identity, Hit } from './types';
 import { columnDetail } from './analysis';
 import { columnToResidue } from './model';
 import { getColorScheme, residueColor, textColor } from './colors';
 import { escapeXml as e } from './export';
-export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;scope:string;identity?:Identity }
+import { hitCount } from './search';
+export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number }
+export const HIT_LIST_LIMIT=200;
 const percent=(n:number|null)=>n===null?'Unavailable':`${(n*100).toFixed(1)}%`;
 export function renderInspector(target:HTMLElement,v:InspectorInput) {
   if(v.tab==='legend') {
     const scheme=getColorScheme(v.scheme);
     target.innerHTML=`<h3>${e(scheme.label)}</h3><p>${e(scheme.description)}</p><div class="ak-residue-legend">${[...(v.a.alphabet==='protein'?'ACDEFGHIKLMNPQRSTVWYBXZ*':'ACGTUNRYKMSWBDHV')].map(r=>{const color=residueColor(r,scheme,1);return `<span style="background:${color};color:${textColor(color)}">${r}</span>`;}).join('')}</div><p>Letters remain visible at residue zoom. Dots mark alignment gaps.</p><h4>Coordinate systems</h4><p>Alignment columns include gaps. Sequence positions count only residues and are shown for the selected row.</p>`;return;
+  }
+  if(v.tab==='hits') {
+    const shown=v.hits.slice(0,HIT_LIST_LIMIT);
+    target.innerHTML=v.pattern?`<h3>Hits</h3><p>${hitCount({hits:v.hits,truncated:v.truncated})} for <code>${e(v.pattern)}</code>${v.truncated?' (stopped at the 10,000 hit limit)':''}</p><div class="ak-feature-list">${shown.map((h,i)=>`<button type="button" class="ak-feature" data-hit="${i}" ${i===v.hit?'aria-current="true"':''}><strong>${e(v.a.rows[h.row].name)}</strong><span>columns ${h.start}–${h.end} · ${h.strand==='+'?'forward':'reverse'} strand</span><small>${e(h.match.length>48?h.match.slice(0,48)+'…':h.match)}</small></button>`).join('')||'<p>No matches.</p>'}</div>${v.hits.length>shown.length?`<p>Showing the first ${HIT_LIST_LIMIT} hits. Use Find next to reach the rest.</p>`:''}`:'<h3>Hits</h3><p>Search with the motif box. It accepts IUPAC letters, <code>/regex/</code> and PROSITE patterns such as <code>N-{P}-[ST]-{P}</code>.</p>';return;
   }
   if(v.tab==='compare') {
     target.innerHTML=`<h3>Compare sequences</h3><p>Select rows with the checkboxes beside their names. Comparison uses canonical residues present in both sequences.</p><strong>${v.selectedRows.size} selected</strong><div class="ak-inspector-actions"><button type="button" data-action="compare" ${v.selectedRows.size<2?'disabled':''}>Calculate identity</button><button type="button" data-action="clear-rows">Clear rows</button></div><p>Maximum 200 rows. Gaps and ambiguous residues are excluded; each pair reports its compared-position count.</p><div class="ak-identity-result"></div>`;return;
