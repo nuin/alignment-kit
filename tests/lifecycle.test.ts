@@ -101,7 +101,7 @@ it('collapses disabled track heights and supports legacy aliases and integration
 it('lists every export choice in the toolbar menu',()=>{
   const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
   const exportMenu=el.querySelector<HTMLSelectElement>('select[aria-label="Export alignment"]')!;
-  expect([...exportMenu.options].map(o=>o.value)).toEqual(['','fasta-all','fasta','svg','png','tsv','state']);
+  expect([...exportMenu.options].map(o=>o.value)).toEqual(['','fasta-all','fasta','svg','png','consensus','tsv','state']);
 });
 it('keeps identity ordering when a pairwise comparison starts during the sort',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());const internal=viewer as any;
@@ -115,17 +115,17 @@ it('keeps identity ordering when a pairwise comparison starts during the sort',a
 it('copies the clicked row, else checked rows in display order with filtered-out rows last',async()=>{
   const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(data());
-  viewer.setSelection({start:2,end:3,rowId:'seq-2'});expect(viewer.getSelectionText()).toBe('>b\nTC\n');
+  viewer.setSelection({start:2,end:3,rowId:'seq-2'});expect(viewer.getSelectionText()).toBe('>consensus columns 2-3; all rows (3); threshold 0\nTC\n>b\nTC\n');
   (viewer as any).selectedRows=new Set(['seq-3','seq-2','seq-1']);
   viewer.setFilter('c');viewer.setSelection({start:1,end:4});
-  expect(viewer.getSelectionText()).toBe('>a\nA-CG\n>c\nAT-G\n>b\nATCG\n');
+  expect(viewer.getSelectionText()).toBe('>consensus columns 1-4; all rows (3); threshold 0\nATCG\n>a\nA-CG\n>c\nAT-G\n>b\nATCG\n');
 });
 it('writes the copy to the clipboard on Ctrl/Cmd+C and reports clipboard failures',async()=>{
   const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(data());viewer.setSelection({start:1,end:2,rowId:'seq-3'});
   const writeText=vi.fn(async(_:string)=>{});Object.defineProperty(navigator,'clipboard',{value:{writeText},configurable:true});
   const scroll=el.querySelector<HTMLElement>('.ak-scroll')!,key=new KeyboardEvent('keydown',{key:'c',metaKey:true,bubbles:true,cancelable:true});
-  scroll.dispatchEvent(key);expect(key.defaultPrevented).toBe(true);expect(writeText).toHaveBeenCalledWith('>c\nAT\n');
+  scroll.dispatchEvent(key);expect(key.defaultPrevented).toBe(true);expect(writeText).toHaveBeenCalledWith('>consensus columns 1-2; all rows (3); threshold 0\nAT\n>c\nAT\n');
   await vi.waitFor(()=>expect(el.querySelector('.ak-live')!.textContent).toBe('Copied 1 sequence, columns 1–2, as FASTA.'));
   Reflect.deleteProperty(navigator,'clipboard');const errors=vi.fn();viewer.on('error',errors);
   await expect(viewer.copySelection()).rejects.toThrow('secure');expect(errors).toHaveBeenCalledOnce();
@@ -133,7 +133,7 @@ it('writes the copy to the clipboard on Ctrl/Cmd+C and reports clipboard failure
 it('copies at least one column in a zero-width viewer and ignores Ctrl+Shift+C',async()=>{
   const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(data());(viewer as any).selectedRows=new Set(['seq-2']);
-  expect(viewer.getSelectionText()).toBe('>b\nA\n');
+  expect(viewer.getSelectionText()).toBe('>consensus columns 1-1; all rows (3); threshold 0\nA\n>b\nA\n');
   const key=new KeyboardEvent('keydown',{key:'C',code:'KeyC',ctrlKey:true,shiftKey:true,bubbles:true,cancelable:true});
   el.querySelector('.ak-scroll')!.dispatchEvent(key);expect(key.defaultPrevented).toBe(false);
 });
@@ -174,4 +174,9 @@ it('ignores in-page anchors and resets missing scroll fields when applying a lin
   const scroll=el.querySelector<HTMLElement>('.ak-scroll')!;Object.defineProperty(scroll,'scrollLeft',{value:96,writable:true});
   await viewer.applyViewLink('sel=1');expect(scroll.scrollLeft).toBe(0);
   history.replaceState(null,'','/');
+});
+it('exposes the consensus through the API with an overridable threshold',async()=>{
+  const viewer=createViewer(host(),{worker:false,consensusThreshold:1});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(parseAlignment('>a\nACGT\n>b\nACGA\n>c\nTCG-',{alphabet:'dna'}));
+  expect(viewer.getConsensus()).toBe('NCGN');expect(viewer.getConsensus({threshold:0})).toBe('ACGW');
 });

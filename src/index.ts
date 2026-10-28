@@ -1,7 +1,7 @@
 export { AlignmentViewer, createViewer } from './viewer';
 export { createAlignment, alignmentToSequence, sequenceToAlignment } from './model';
 export { parseAlignment, readAlignmentInput } from './parsers';
-export { calculateStats, columnDetail, pairwiseIdentity, pairwiseMatrix } from './analysis';
+export { calculateStats, columnDetail, pairwiseIdentity, pairwiseMatrix, consensusSequence } from './analysis';
 export { registerColorScheme, getColorScheme, colorSchemes } from './colors';
 export { exportFasta, exportStatistics, exportSvg, exportPng } from './export';
 export { AnnotationIndex, filterAnnotations } from './annotations';

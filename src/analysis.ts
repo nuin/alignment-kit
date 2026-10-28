@@ -49,3 +49,21 @@ export function pairwiseMatrix(a:Alignment,rows:number[]) {
   if(new Set(rows).size!==rows.length) throw new Error('Select distinct sequence rows.');
   return rows.map(rowA=>rows.map(rowB=>pairwiseIdentity(a,rowA,rowB)));
 }
+const iupac:Record<string,string>={AG:'R',CT:'Y',CG:'S',AT:'W',GT:'K',AC:'M',CGT:'B',AGT:'D',ACT:'H',ACG:'V',ACGT:'N'};
+/** Consensus symbol for a 0-based column: modal non-gap residue; X/N below `threshold` (modal frequency among non-gap rows); ties as IUPAC codes (DNA/RNA) or X; all-gap columns '-'. */
+export function consensusSymbol(s:AlignmentStats,alphabet:Alignment['alphabet'],column:number,threshold=0):string {
+  const off=column*STRIDE,unknown=alphabet==='protein'?'X':'N';let max=0;const tied:string[]=[];
+  for(let k=0;k<27;k++){const n=s.counts[off+k];if(n>max){max=n;tied.length=0;tied.push(SYMBOLS[k]);}else if(n&&n===max)tied.push(SYMBOLS[k]);}
+  if(!max)return '-';
+  if(max/(s.total-s.gaps[column])<threshold)return unknown;
+  if(tied.length===1)return tied[0];
+  if(alphabet==='protein')return 'X';
+  const bases=[...new Set(tied.map(b=>b==='U'?'T':b))].sort().join('');
+  return iupac[bases]??'N';
+}
+/** Consensus over inclusive 1-based columns `start`..`end`. */
+export function consensusSequence(s:AlignmentStats,alphabet:Alignment['alphabet'],threshold=0,start=1,end=s.width):string {
+  if(!Number.isInteger(start)||!Number.isInteger(end)||start<1||end<start||end>s.width)throw new Error('Consensus range must use valid inclusive alignment columns.');
+  if(!(threshold>=0&&threshold<=1))throw new Error('Consensus threshold must be between 0 and 1.');
+  let out='';for(let c=start-1;c<end;c++)out+=consensusSymbol(s,alphabet,c,threshold);return out;
+}
