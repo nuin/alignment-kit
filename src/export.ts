@@ -1,4 +1,4 @@
-import type { Alignment, AlignmentStats, ExportRegion, ColorMode } from './types';
+import type { Alignment, AlignmentStats, ExportRegion, ColorMode, FastaOptions, Sequence } from './types';
 import { columnDetail } from './analysis';
 import { getColorScheme, residueColor, textColor } from './colors';
 export const escapeXml=(s:unknown)=>String(s).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
@@ -10,9 +10,30 @@ export function resolveRegion(a:Alignment,region:ExportRegion={}) {
   if(new Set(rows).size!==rows.length)throw new Error('Export rows must be unique.');
   return {start,end,rows};
 }
-export function exportFasta(a:Alignment,region:ExportRegion={}):string {
-  const {start,end,rows}=resolveRegion(a,region);
-  return rows.map(r=>`>${a.rows[r].name.replace(/[\r\n]/g,' ')}\n${a.rows[r].sequence.slice(start-1,end).match(/.{1,80}/g)!.join('\n')}\n`).join('');
+const fastaChoices={gaps:['keep','remove'],letterCase:['original','upper','lower'],header:['name','name-species','id-name']};
+/** Validate FASTA settings from untrusted input; returns a copy. */
+export function validateFastaOptions(input:unknown):FastaOptions {
+  if(typeof input!=='object'||input===null||Array.isArray(input))throw new Error('FASTA options must be an object.');
+  const result:Record<string,unknown>={};
+  for(const [key,value] of Object.entries(input)){
+    if(key==='lineWidth'){if(typeof value!=='number'||!Number.isInteger(value)||(value!==0&&(value<10||value>1000)))throw new Error('FASTA line width must be 0 (unwrapped) or 10 to 1000.');}
+    else if(!Object.hasOwn(fastaChoices,key)||!(fastaChoices[key as keyof typeof fastaChoices] as string[]).includes(value as string))throw new Error(`Invalid FASTA option ${key}.`);
+    result[key]=value;
+  }
+  return result as FastaOptions;
+}
+const headers={name:(r:Sequence)=>r.name,'name-species':(r:Sequence)=>r.species?`${r.name} ${r.species}`:r.name,'id-name':(r:Sequence)=>`${r.id} ${r.name}`};
+/** One FASTA record with gap removal, case and line width applied. */
+export function formatFastaRecord(header:string,sequence:string,options:FastaOptions={}):string {
+  validateFastaOptions(options);const width=options.lineWidth??80;
+  let seq=options.gaps==='remove'?sequence.replace(/[-.]/g,''):sequence;
+  if(options.letterCase==='upper')seq=seq.toUpperCase();else if(options.letterCase==='lower')seq=seq.toLowerCase();
+  const lines=width?seq.match(new RegExp(`.{1,${width}}`,'g'))??[]:seq?[seq]:[];
+  return `>${header.replace(/[\r\n]/g,' ')}\n${lines.map(line=>line+'\n').join('')}`;
+}
+export function exportFasta(a:Alignment,region:ExportRegion={},options:FastaOptions={}):string {
+  const {start,end,rows}=resolveRegion(a,region),header=headers[options.header??'name'];
+  return rows.map(r=>formatFastaRecord(header(a.rows[r]),a.rows[r].sequence.slice(start-1,end),options)).join('');
 }
 export function exportStatistics(s:AlignmentStats):string {
   const lines=['column\trows\tgap_count\tgap_fraction\tconsensus\tmodal_frequency_non_gap\tconsensus_support_all_rows'];

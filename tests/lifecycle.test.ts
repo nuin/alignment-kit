@@ -101,7 +101,7 @@ it('collapses disabled track heights and supports legacy aliases and integration
 it('lists every export choice in the toolbar menu',()=>{
   const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
   const exportMenu=el.querySelector<HTMLSelectElement>('select[aria-label="Export alignment"]')!;
-  expect([...exportMenu.options].map(o=>o.value)).toEqual(['','fasta-all','fasta','svg','png','consensus','tsv','state']);
+  expect([...exportMenu.options].map(o=>o.value)).toEqual(['','fasta-all','fasta','svg','png','consensus','tsv','state','fasta-options']);
 });
 it('keeps identity ordering when a pairwise comparison starts during the sort',async()=>{
   const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());const internal=viewer as any;
@@ -179,4 +179,15 @@ it('exposes the consensus through the API with an overridable threshold',async()
   const viewer=createViewer(host(),{worker:false,consensusThreshold:1});disposers.push(()=>viewer.destroy());
   await viewer.setAlignment(parseAlignment('>a\nACGT\n>b\nACGA\n>c\nTCG-',{alphabet:'dna'}));
   expect(viewer.getConsensus()).toBe('NCGN');expect(viewer.getConsensus({threshold:0})).toBe('ACGW');
+});
+it('applies FASTA options from the export panel to copy, consensus included',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(parseAlignment('>a sp\nAc-G\n>b\nACTG',{alphabet:'dna'}));viewer.setSelection({start:1,end:4,rowId:'seq-1'});
+  const menu=el.querySelector<HTMLSelectElement>('select[aria-label="Export alignment"]')!,panel=el.querySelector<HTMLElement>('.ak-fasta-options')!;
+  menu.value='fasta-options';menu.dispatchEvent(new Event('change',{bubbles:true}));expect(panel.hidden).toBe(false);
+  for(const [label,value] of [['FASTA gaps','remove'],['FASTA letter case','lower'],['FASTA header','id-name']]){const select=el.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;select.value=value;select.dispatchEvent(new Event('change',{bubbles:true}));}
+  expect(viewer.getSelectionText()).toBe('>consensus columns 1-4; all rows (2); threshold 0\nactg\n>seq-1 a sp\nacg\n');
+  panel.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));expect(panel.hidden).toBe(true);
+  viewer.setOptions({fasta:{lineWidth:120}});expect(el.querySelector<HTMLSelectElement>('select[aria-label="FASTA line width"]')!.value).toBe('120');
+  expect(()=>viewer.setOptions({fasta:{lineWidth:5}})).toThrow('line width');
 });

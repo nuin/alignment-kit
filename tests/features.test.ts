@@ -37,6 +37,8 @@ it('indexes annotations by stable row identity and interval',()=>{
 it('exports selected original rows and inclusive columns safely',()=>{
   const a=parseAlignment('>a <unsafe>\nAC-G\n>b\nATCG');
   expect(exportFasta(a,{rowIds:[a.rows[1].id],start:2,end:3})).toBe('>b\nTC\n');
+  expect(exportFasta(a,{rowIds:[a.rows[1].id]},{lineWidth:0,letterCase:'lower',header:'id-name'})).toBe(`>${a.rows[1].id} b\natcg\n`);
+  expect(()=>exportFasta(a,{},{lineWidth:9})).toThrow('line width');expect(()=>exportFasta(a,{},{header:'x' as any})).toThrow('header');
   const svg=exportSvg(a,calculateStats(a),{start:1,end:2});
   expect(svg).toContain('&lt;unsafe&gt;');
   expect(svg).not.toContain('<unsafe>');
