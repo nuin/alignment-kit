@@ -184,7 +184,7 @@ All flags default to `true`, except `logo`, which defaults to `false`. Parent re
 |---|---|
 | Main layout | `toolbar`, `tools`, `overview`, `overviewTitle`, `tracks`, `alignment`, `inspector`, `inspectorTabs`, `status` |
 | Main toolbar | `open`, `search`, `colorScheme`, `zoom`, `fit`, `theme`, `inspectorToggle`, `fullscreen`, `export` |
-| Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `alphabet` |
+| Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `rulerCoordinates`, `alphabet` |
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `consensus`, `logo`, `reference` |
 | Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `labelResize` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay` |
@@ -275,6 +275,14 @@ Omit `rowId` for a global interval. Supply domains/exon boundaries as annotation
 
 Public positions are **1-based, inclusive alignment columns**. Sequence coordinates require a row identity and count only non-gap symbols. Use `alignmentToSequence(alignment, rowIndex, column)` and `sequenceToAlignment(alignment, rowIndex, position)`; a gap maps to `null`.
 
+### Reference ruler and residue go-to
+
+`rulerCoordinates: 'reference'` (or the **Ruler** menu, **Reference residues**) labels the ruler with the ungapped residue numbers of the pinned reference row instead of alignment columns. Columns where the reference has a gap get no number or tick. Labels fall on multiples of the tick step, plus the first residue. The Position tab shows both the alignment column and the reference residue number.
+
+A row starts counting at `row.metadata.start` when that is a positive integer, otherwise at 1. The Stockholm parser sets it from names of the form `NAME/START-END` (START at least 1 and not above END) and does not rename the row. Reverse-strand ranges (START above END) are not numbered backwards. This numbering applies to the ruler, the Position tab and go-to; `alignmentToSequence` and `sequenceToAlignment` stay offset-free.
+
+The **Go to** box accepts `123` (an alignment column, or a reference residue number when the ruler is in reference mode) and `rowIdOrName:45` (residue 45 of that row; the ID is tried before the name, and the last `:` splits the text). Out-of-range numbers and unknown rows show a message. `goToResidue(rowId, position)` does the same by row ID. The view link carries `ruler=ref` in reference mode, and `getState()` includes `rulerCoordinates`. Hide the menu with `visibility.rulerCoordinates`.
+
 Statistics default to all loaded rows. Scrolling, pinning a reference and visually filtering rows do not change that scope. Select **Filtered sequences** explicitly to recompute for a subset. Each row receives one vote; no deduplication, phylogenetic weighting or sampling is implicit.
 
 | Quantity | Definition |
@@ -309,12 +317,13 @@ Ambiguity symbols are counted separately and never fractionally distributed. All
 | `getSelectedRowIds()` | Read checked sequence IDs |
 | `copySelection()` / `getSelectionText()` | Copy the selection to the clipboard as gapped FASTA / return that text |
 | `getViewLink()` / `applyViewLink(link)` | Encode the view as URL parameters / apply a link, skipping settings that do not fit |
+| `goToResidue(rowId, position)` | Select residue `position` of the row with that ID (numbered as in the ruler); returns `false` and shows a message if the row or residue does not exist |
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
 Events: `ready`, `selection`, `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
-Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
 
@@ -355,7 +364,7 @@ Consensus sequence: the modal non-gap residue per column. With a `consensusThres
 
 `getViewLink()` returns readable parameters such as `src=…&aln=…&sel=50-60&row=seq-3&ref=seq-1&scheme=soft&zoom=16&q=human&x=41`. `src` appears only when the alignment came from `loadUrl`; links to local files carry the view without the data. `src` is the full URL passed to `loadUrl`, query string included; with `urlSync` it lands in the address bar, so do not use it with signed or token-bearing URLs. Hash changes without link parameters, such as in-page anchors, are ignored. If `history.replaceState` is blocked (for example in a sandboxed iframe), sync stops and an `error` event reports it. Annotation filters and visibility are not part of links.
 
-`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
+`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
 
 With `urlSync: true` the viewer keeps `location.hash` in sync (via `history.replaceState`) and applies a hash link after the next load. The viewer never fetches `src` itself; the host decides what to load:
 

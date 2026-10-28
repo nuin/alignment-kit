@@ -1,6 +1,6 @@
 import type { Alignment, AlignmentStats, Selection, Annotation, AnnotationFilter, Identity } from './types';
 import { columnDetail } from './analysis';
-import { alignmentToSequence } from './model';
+import { columnToResidue } from './model';
 import { getColorScheme, residueColor, textColor } from './colors';
 import { escapeXml as e } from './export';
 export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;scope:string;identity?:Identity }
@@ -20,8 +20,8 @@ export function renderInspector(target:HTMLElement,v:InspectorInput) {
   }
   if(!v.selection) {target.innerHTML=`<div class="ak-inspector-intro"><div class="ak-inspector-symbol" aria-hidden="true">⌖</div><h3>A closer look</h3><p>Select a residue to inspect its column, sequence position and annotations.</p></div><h4>Explore the alignment</h4><ul><li>Scroll to move through sequences.</li><li>Shift-click to select a range.</li><li>Pin any row as the reference.</li><li>Use + and − to change detail.</li></ul><p>${v.a.rows.length.toLocaleString()} sequences<br>${v.a.width.toLocaleString()} aligned columns<br>${e(v.a.alphabet.toUpperCase())}</p>${v.a.metadata.source?`<h4>Source</h4><p class="ak-wrap">${e(v.a.metadata.source.description??v.a.metadata.source.url??'Imported alignment')}</p>`:''}`;return;}
   const col=v.selection.start,row=v.selection.rowId?v.a.rows.findIndex(r=>r.id===v.selection!.rowId):v.reference;
-  const position=row>=0?alignmentToSequence(v.a,row,col):null,residue=row>=0?String.fromCharCode(v.a.codes[row*v.a.width+col-1]):null;
-  let html=`<div class="ak-position-heading"><span>Alignment position</span><h2>Column ${col}</h2>${v.selection.end!==col?`<p>Selected range ${col}–${v.selection.end}</p>`:''}</div>`;
+  const position=row>=0?columnToResidue(v.a,row,col):null,ref=columnToResidue(v.a,v.reference,col),residue=row>=0?String.fromCharCode(v.a.codes[row*v.a.width+col-1]):null;
+  let html=`<div class="ak-position-heading"><span>Alignment position</span><h2>Column ${col}</h2>${v.selection.end!==col?`<p>Selected range ${col}–${v.selection.end}</p>`:''}<p class="ak-reference-position">Reference ${e(v.a.rows[v.reference].name)}: ${ref===null?'gap':`residue ${ref}`}</p></div>`;
   if(row>=0)html+=`<div class="ak-selected-residue"><b>${e(residue==='-'?'—':residue)}</b><div><strong>${e(v.a.rows[row].name)}</strong><span>${position===null?'Alignment gap':`Sequence position ${position}`}</span>${v.a.rows[row].species?`<small>${e(v.a.rows[row].species)}</small>`:''}</div></div><div class="ak-inspector-actions"><button type="button" data-action="pin-selected">Pin reference</button><button type="button" data-action="toggle-row-features">${v.annotationFilter.hiddenRowIds?.includes(v.a.rows[row].id)?'Show':'Hide'} row features</button></div>`;
   if(v.identity)html+=`<p>Identity to reference: <strong>${percent(v.identity.identity)}</strong><br>${v.identity.matches.toLocaleString()} matches / ${v.identity.compared.toLocaleString()} canonical positions compared</p>`;
   if(!v.stats){target.innerHTML=html+'<p>Calculating exact column statistics…</p>';return;}

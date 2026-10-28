@@ -59,6 +59,13 @@
         "filtered"
       ]
     },
+    "rulerCoordinates": {
+      "enum": [
+        "alignment",
+        "reference"
+      ],
+      "description": "Ruler numbering: alignment columns, or ungapped residue numbers of the pinned reference row."
+    },
     "workerUrl": {
       "type": "string",
       "minLength": 1
@@ -149,6 +156,9 @@
           "type": "boolean"
         },
         "alphabet": {
+          "type": "boolean"
+        },
+        "rulerCoordinates": {
           "type": "boolean"
         },
         "ruler": {
