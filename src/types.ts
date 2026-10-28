@@ -86,7 +86,7 @@ export interface ViewerVisibility {
 }
 export interface ViewerOptions {
   visibility?:ViewerVisibility;
-  alignment?: Alignment; height?:number; name?:string; theme?:'light'|'dark';
+  alignment?: Alignment; height?:number; theme?:'light'|'dark';
   colorScheme?:string; colorMode?:ColorMode; cellWidth?:number; rowHeight?:number;
   labelWidth?:number; showLogo?:boolean; showInspector?:boolean; showToolbar?:boolean;
   statisticsScope?:'all'|'filtered'; workerUrl?:string|URL; worker?:boolean;

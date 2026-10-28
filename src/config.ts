@@ -2,7 +2,7 @@ import type { ViewerOptions, ViewerVisibility } from './types';
 import { defaultVisibility } from './visibility';
 
 /** JSON-safe viewer configuration; alignment data is supplied separately. */
-export type ViewerConfig = Omit<ViewerOptions, 'alignment'|'workerUrl'|'name'> & {workerUrl?:string};
+export type ViewerConfig = Omit<ViewerOptions, 'alignment'|'workerUrl'> & {workerUrl?:string};
 const ranges:Record<string,[number,number]>={height:[360,2000],cellWidth:[3,32],rowHeight:[18,48],labelWidth:[100,420]};
 const enums:Record<string,string[]>={theme:['light','dark'],colorMode:['all','reference-differences','reference-matches','consensus-differences','consensus-matches'],statisticsScope:['all','filtered']};
 const bools=new Set(['worker','showLogo','showInspector','showToolbar']);

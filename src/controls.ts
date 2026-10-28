@@ -14,7 +14,7 @@ export function buildShell(root:HTMLElement) {
     <button type="button" data-action="theme" aria-label="Toggle theme" title="Toggle light and dark theme">◐</button>
     <button type="button" data-action="inspect" aria-label="Toggle inspector" title="Show or hide inspector">Inspect</button>
     <button type="button" data-action="fullscreen" aria-label="Full screen">⛶</button>
-    <select aria-label="Export alignment"><option value="">Export…</option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="tsv">Column statistics · TSV</option><option value="state">View state · JSON</option></select>
+    <select aria-label="Export alignment"><option value="">Export…</option><option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="tsv">Column statistics · TSV</option><option value="state">View state · JSON</option></select>
   </div>
   <div class="ak-tools">
     <label>Go to <input type="number" min="1" value="1" aria-label="Go to alignment column"></label>

@@ -78,9 +78,10 @@ export async function readAlignmentInput(input:Blob|ArrayBuffer|string):Promise<
   if(typeof input==='string') return input;
   const buffer=input instanceof Blob?await input.arrayBuffer():input;
   const bytes=new Uint8Array(buffer);
+  const decode=(data:ArrayBuffer)=>new TextDecoder('utf-8',{fatal:true}).decode(data);
   if(bytes[0]===31 && bytes[1]===139) {
     const stream=new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return new Response(stream).text();
+    return decode(await new Response(stream).arrayBuffer());
   }
-  return new TextDecoder('utf-8',{fatal:true}).decode(buffer);
+  return decode(buffer);
 }
