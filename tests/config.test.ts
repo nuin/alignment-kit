@@ -17,3 +17,7 @@ it('validates FASTA options in viewer configuration',()=>{
   expect(parseViewerConfig({fasta:{gaps:'remove',lineWidth:0}})).toEqual({fasta:{gaps:'remove',lineWidth:0}});
   expect(()=>parseViewerConfig({fasta:{lineWidth:2}})).toThrow('line width');expect(()=>parseViewerConfig({fasta:{bold:true}})).toThrow('bold');
 });
+it('validates matchDisplay and the matchDots visibility key',()=>{
+  expect(parseViewerConfig({matchDisplay:'dot',visibility:{matchDots:false}})).toEqual({matchDisplay:'dot',visibility:{matchDots:false}});
+  expect(()=>parseViewerConfig({matchDisplay:'dots'})).toThrow(/matchDisplay/);
+});

@@ -57,3 +57,10 @@ it('exports difference coloring and only explicitly supplied annotations',()=>{
   expect(svg).not.toContain('hidden variant');
   expect(svg).toContain('opacity="0.22"');
 });
+it('draws matching residues as dots in SVG figures and keeps the reference row as letters',()=>{
+  const a=parseAlignment('>r\nACGT\n>s\nACGA\n>t\nA-GT',{alphabet:'dna'}),s=calculateStats(a);
+  const text=(svg:string)=>[...svg.matchAll(/text-anchor="middle" fill="#[0-9a-f]+">([^<]*)<\/text>/gi)].map(m=>m[1]).slice(0,12).join('');
+  expect(text(exportSvg(a,s,{},'soft',{referenceId:'seq-1'}))).toBe('ACGTACGAA·GT');
+  expect(text(exportSvg(a,s,{},'soft',{referenceId:'seq-1',matchDisplay:'dot'}))).toBe('ACGT...A.·..');
+  expect(text(exportSvg(a,s,{},'soft',{colorMode:'consensus-matches',matchDisplay:'dot'}))).toBe('ACGT'+'...A'+'.·..');
+});

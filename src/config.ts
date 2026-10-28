@@ -5,7 +5,7 @@ import { validateFastaOptions } from './export';
 /** JSON-safe viewer configuration; alignment data is supplied separately. */
 export type ViewerConfig = Omit<ViewerOptions, 'alignment'|'workerUrl'> & {workerUrl?:string};
 const ranges:Record<string,[number,number]>={height:[360,2000],cellWidth:[3,32],rowHeight:[18,48],labelWidth:[100,420],consensusThreshold:[0,1]};
-const enums:Record<string,string[]>={theme:['light','dark'],colorMode:['all','reference-differences','reference-matches','consensus-differences','consensus-matches'],statisticsScope:['all','filtered']};
+const enums:Record<string,string[]>={theme:['light','dark'],colorMode:['all','reference-differences','reference-matches','consensus-differences','consensus-matches'],statisticsScope:['all','filtered'],matchDisplay:['letter','dot']};
 const bools=new Set(['worker','urlSync','showLogo','showInspector','showToolbar']);
 const object=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value)&&(Object.getPrototypeOf(value)===Object.prototype||Object.getPrototypeOf(value)===null);
 
