@@ -1,8 +1,9 @@
 import { type Alignment, type ExportRegion } from '../types';
 import { $, download } from '../controls';
-import { exportFasta, exportClustal, exportStockholm, exportPhylip, exportNexus, formatFastaRecord, exportStatistics, exportSvg, exportPng, resolveRegion } from '../export';
+import { exportFasta, exportClustal, exportStockholm, exportPhylip, exportNexus, formatFastaRecord, exportStatistics, exportVariableColumns, exportSvg, exportPng, resolveRegion } from '../export';
 import { consensusSequence } from '../analysis';
 import { type Core } from './core';
+import { getVariableColumns } from './summary';
 const textExports:Record<string,{ext:string;write:(a:Alignment,region:ExportRegion)=>string}>={clustal:{ext:'aln',write:exportClustal},stockholm:{ext:'sto',write:exportStockholm},phylip:{ext:'phy',write:(a,r)=>exportPhylip(a,r)},nexus:{ext:'nex',write:exportNexus}};
 export function exportRegion(v:Core, a:Alignment):ExportRegion {
   const m=v.columns,start=v.selection?.start??v.firstColumn()+1;
@@ -62,6 +63,7 @@ export async function exportKind(v:Core, kind:string):Promise<void> {
     if(kind==='state')download(JSON.stringify(v.getState(),null,2),'alignment-view.json','application/json');
     if(['svg','png','tsv','consensus'].includes(kind)&&!v.stats)throw new Error('Wait for column statistics to finish before exporting.');
     if(kind==='consensus')download(v.consensusFasta(region.start!,region.end!,v.options.fasta.columns==='visible'),'consensus.fasta');
+    if(kind==='variants'){const block=v.selection&&v.selection.end>v.selection.start?{start:v.selection.start,end:v.selection.end}:{};download(exportVariableColumns(await getVariableColumns(v,{...block,limit:2**31})),'variable-columns.tsv','text/tab-separated-values');}
     if(kind==='tsv')download(exportStatistics(v.stats!),'column-statistics.tsv','text/tab-separated-values');
     if(kind==='svg')download(exportSvg({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,referenceId:v.a.rows[v.reference].id}),'alignment.svg','image/svg+xml');
     if(kind==='png')download(await exportPng({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,region,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,referenceId:v.a.rows[v.reference].id}),'alignment.png');

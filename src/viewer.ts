@@ -1,5 +1,5 @@
 import { defaultVisibility } from './visibility';
-import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack } from './types';
+import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack, type SummaryOptions, type AlignmentSummary, type VariableColumnResult } from './types';
 import { AnnotationIndex, filterAnnotations } from './annotations';
 import { ThemedSelects } from './selects';
 import { Renderer, type RenderView, type GroupInfo, type TreeHit } from './renderer';
@@ -22,9 +22,10 @@ import * as modDraw from './viewer/draw';
 import * as modLink from './viewer/link';
 import * as modFind from './viewer/find';
 import * as modOutput from './viewer/output';
+import * as modSummary from './viewer/summary';
 import * as modActions from './viewer/actions';
 import * as modBind from './viewer/bind';
-import type { Core, Carry, BoundTree, SearchState, ViewerSettings } from './viewer/core';
+import type { Core, Carry, BoundTree, SearchState, SummaryEntry, ViewerSettings } from './viewer/core';
 
 export class AlignmentViewer {
   readonly element:HTMLElement;
@@ -35,7 +36,7 @@ export class AlignmentViewer {
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
   private filteredAnnotations:ReturnType<typeof filterAnnotations>={visible:[],unknown:0,excluded:0};private annotationIndex=new AnnotationIndex([]);
   private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;private menus:ThemedSelects;
-  private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private searcher:WorkerTask;private searchRun=0;private searchBusy=false;private request?:AbortController;
+  private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private searcher:WorkerTask;private summarizer:WorkerTask;private summaryCache?:SummaryEntry;private summaryPage=0;private searchRun=0;private searchBusy=false;private request?:AbortController;
   private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
   private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
@@ -83,7 +84,7 @@ export class AlignmentViewer {
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
     this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,...options,fasta:{}};
-    this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);
+    this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);this.summarizer=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
     if(options.urlSync&&typeof location!=='undefined'){
@@ -108,6 +109,10 @@ export class AlignmentViewer {
   private requestAlphabet(next:Alphabet):void {modLoad.requestAlphabet(this.core, next);}
   private applyAlphabet(next:Alphabet):void {modLoad.applyAlphabet(this.core, next);}
   getStatistics():AlignmentStats|undefined{return this.stats;}
+  /** Column classes (conserved, variable, singleton, parsimony-informative, gap-only), gap fraction, identity estimates and GC per row (DNA/RNA) for `start`..`end` (default all columns) over the all or filtered rows (default: the statisticsScope option). Runs in the worker; a newer summary request, a load or destroy rejects a pending one with an AbortError. */
+  getSummary(options:SummaryOptions={}):Promise<AlignmentSummary> {return modSummary.getSummary(this.core, options);}
+  /** Variable columns versus the reference row with reference residue number and allele counts, at most `limit` (default 50,000) with `total` and `truncated` for the rest. Same scope and worker rules as getSummary. */
+  getVariableColumns(options:SummaryOptions={}):Promise<VariableColumnResult> {return modSummary.getVariableColumns(this.core, options);}
   getSelectedRowIds():string[]{return [...this.selectedRows];}
   load(input:string|Blob|ArrayBuffer,options:ParseOptions={}):Promise<void> {return this.loadInput(input,options);}
   private loadInput(input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {return modLoad.loadInput(this.core, input, options, source);}
@@ -200,6 +205,6 @@ export class AlignmentViewer {
   private export(kind:string):Promise<void> {return modOutput.exportKind(this.core, kind);}
   private bind():void {modBind.bind(this.core);}
   clear():void {modLoad.clear(this.core);}
-  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.searcher.cancel();this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);clearTimeout(this.linkTimer);this.listeners.clear();this.root.remove();}
+  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.searcher.cancel();this.summarizer.cancel();this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);clearTimeout(this.linkTimer);this.listeners.clear();this.root.remove();}
 }
 export const createViewer=(element:HTMLElement,options:ViewerOptions={})=>new AlignmentViewer(element,options);

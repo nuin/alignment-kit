@@ -10,7 +10,7 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   rulerCoordinates:true, ruler:true, modalFrequency:true, gapFraction:true, consensus:true, logo:false, entropy:false, quality:false, stockholmTracks:true, reference:true,
   labels:true, rowNames:true, rowSpecies:true, rowSelection:true, rowPinning:true, labelResize:true,
   residueLetters:true, annotationMarks:true, selectionOverlay:true,
-  positionTab:true, featuresTab:true, compareTab:true, colorsTab:true, hitsTab:true,
+  positionTab:true, featuresTab:true, compareTab:true, colorsTab:true, hitsTab:true, summaryTab:true,
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
   messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true,
@@ -24,12 +24,12 @@ const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
   goTo:'[aria-label="Go to alignment column"]',motif:'.ak-motif',order:'select[aria-label="Sequence order"]',colorMode:'select[aria-label="Residues to color"]',
   logoToggle:'[aria-label="Show frequency logo"]',matchDots:'[aria-label="Dots for matches"]',statisticsScope:'select[aria-label="Statistics scope"]',alphabet:'select[aria-label="Sequence alphabet"]',rulerCoordinates:'select[aria-label="Ruler coordinates"]',
   labels:'.ak-labels,.ak-track-labels',rowNames:'.ak-row-name',rowSpecies:'.ak-row-species',rowSelection:'[data-select-row]',rowPinning:'[data-pin]',labelResize:'.ak-gutter-resize',
-  positionTab:'[data-tab="position"]',featuresTab:'[data-tab="annotations"]',compareTab:'[data-tab="compare"]',colorsTab:'[data-tab="legend"]',hitsTab:'[data-tab="hits"]',
+  positionTab:'[data-tab="position"]',featuresTab:'[data-tab="annotations"]',compareTab:'[data-tab="compare"]',colorsTab:'[data-tab="legend"]',hitsTab:'[data-tab="hits"]',summaryTab:'[data-tab="summary"]',
   pinReference:'[data-action="pin-selected"]',rowFeaturesToggle:'[data-action="toggle-row-features"]',featureType:'select[aria-label="Feature type"]',
   featureConsequence:'select[aria-label="Feature consequence"]',diseaseFilter:'[aria-label="Features with disease evidence"]',phenotypeFilter:'[aria-label="Features with phenotype evidence"]',
   featurePagination:'.ak-feature-pagination',rowHiding:'[data-hide],[data-action="show-hidden"]',tree:'.ak-tree-canvas',columnMasking:'[data-action="hide-columns"],[data-action="show-columns"]',calculateIdentity:'[data-action="compare"]',clearRows:'[data-action="clear-rows"]',
 };
-export const inspectorTabs = {position:'positionTab',annotations:'featuresTab',compare:'compareTab',legend:'colorsTab',hits:'hitsTab'} as const;
+export const inspectorTabs = {position:'positionTab',annotations:'featuresTab',compare:'compareTab',legend:'colorsTab',hits:'hitsTab',summary:'summaryTab'} as const;
 export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {
   const own=new Set<HTMLElement>();
   for(const [key,selector] of Object.entries(selectors))for(const element of root.querySelectorAll<HTMLElement>(selector)) {

@@ -86,6 +86,7 @@ export interface ViewerVisibility {
   compareTab?:boolean;
   colorsTab?:boolean;
   hitsTab?:boolean;
+  summaryTab?:boolean;
   pinReference?:boolean;
   rowFeaturesToggle?:boolean;
   featureType?:boolean;
@@ -164,3 +165,28 @@ export interface SearchOptions { mode?:SearchMode; strands?:'both'|'forward'; ro
 /** Columns are alignment columns (one-based, inclusive); seqStart and seqEnd count ungapped residues of the forward strand. `row` is the zero-based row index; `match` is the text matched on the hit's strand. */
 export interface Hit { rowId:string; row:number; start:number; end:number; seqStart:number; seqEnd:number; strand:'+'|'-'; match:string }
 export interface SearchResult { hits:Hit[]; truncated:boolean }
+/** Columns and rows a summary covers. `rows` are zero-based row indexes (default all), `start` and `end` are inclusive 1-based columns (default the whole alignment), `reference` is the zero-based reference row (default 0) and `limit` caps the variable-column list (default 50,000). */
+export interface ColumnScope { rows?:number[]; start?:number; end?:number; reference?:number; limit?:number }
+/** Viewer form of ColumnScope: `rows` is 'all' or 'filtered' (default: the statisticsScope option), `referenceId` defaults to the pinned reference row. */
+export interface SummaryOptions { rows?:'all'|'filtered'; start?:number; end?:number; referenceId?:string; limit?:number }
+/** Allele count for one residue letter in one column. */
+export interface AlleleCount { residue:string; count:number }
+/** A column with two or more distinct residues. `referenceResidue` is the reference residue number (honors the row offset), null where the reference has a gap. `kind` is 'informative' when two or more residues each occur at least twice, else 'singleton'. */
+export interface VariableColumn { column:number; referenceResidue:number|null; reference:string; alleles:AlleleCount[]; gapCount:number; kind:'singleton'|'informative' }
+/** `total` counts every variable column in scope; `columns` stops at the limit and `truncated` says so. */
+export interface VariableColumnResult { columns:VariableColumn[]; total:number; truncated:boolean }
+/** GC content of one row over the summarized columns: `gc` is G+C over A+C+G+T+U (0 to 1), null when the row has none of them. */
+export interface RowGc { id:string; name:string; gc:number|null; bases:number }
+/** Column classes over the summarized rows and columns. conserved + constantWithGaps + variable + gapOnly = columns, and singleton + parsimonyInformative = variable. */
+export interface AlignmentSummary {
+  start:number; end:number; columns:number; rows:number; referenceId:string;
+  conserved:number; constantWithGaps:number; variable:number; singleton:number; parsimonyInformative:number; gapOnly:number;
+  /** Gap cells over rows times columns. */
+  gapFraction:number|null;
+  /** Pooled identity over all row pairs, canonical residues only. */
+  meanPairwiseIdentity:number|null;
+  /** Pooled identity of every other row to the reference, canonical residues only. */
+  identityToReference:Identity|null;
+  /** One entry per summarized row for DNA and RNA, null for protein. */
+  rowGc:RowGc[]|null;
+}

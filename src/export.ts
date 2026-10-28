@@ -1,4 +1,4 @@
-import type { Alignment, AlignmentStats, ExportRegion, ColorMode, FastaOptions, Sequence } from './types';
+import type { VariableColumnResult, Alignment, AlignmentStats, ExportRegion, ColorMode, FastaOptions, Sequence } from './types';
 import { columnDetail } from './analysis';
 import { isGap } from './model';
 import { getColorScheme, residueColor, textColor } from './colors';
@@ -99,6 +99,10 @@ export function exportStatistics(s:AlignmentStats):string {
   const lines=['column\trows\tgap_count\tgap_fraction\tconsensus\tmodal_frequency_non_gap\tconsensus_support_all_rows\tentropy_bits\tinformation_bits\tquality'];
   for(let c=1;c<=s.width;c++){const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA',d.entropy??'NA',d.information??'NA',d.quality??'NA'].join('\t'));}
   return lines.join('\n')+'\n';
+}
+/** Tab-separated variable-column table: column, reference residue number and letter, alleles as residue:count, gap count and class. */
+export function exportVariableColumns(r:VariableColumnResult):string {
+  return ['column\treference_residue_number\treference_residue\talleles\tgap_count\tclass',...r.columns.map(c=>[c.column,c.referenceResidue??'NA',c.reference,c.alleles.map(x=>`${x.residue}:${x.count}`).join(','),c.gapCount,c.kind].join('\t'))].join('\n')+'\n';
 }
 export interface FigureOptions { colorMode?:ColorMode; referenceId?:string; matchDisplay?:'letter'|'dot' }
 export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},schemeId='soft',options:FigureOptions={}):string {

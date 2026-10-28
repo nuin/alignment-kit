@@ -28,6 +28,9 @@ export async function action(v:Core, action:string):Promise<void> {
     if(action==='toggle-row-features'&&v.selection?.rowId){const ids=new Set(v.annotationFilter.hiddenRowIds??[]),id=v.selection.rowId;if(ids.has(id))ids.delete(id);else ids.add(id);v.setAnnotationFilter({...v.annotationFilter,hiddenRowIds:[...ids]});}
     if(action==='features-prev'){v.featurePage=Math.max(0,v.featurePage-1);v.inspectorDirty=true;v.schedule();}
     if(action==='features-next'){v.featurePage++;v.inspectorDirty=true;v.schedule();}
+    if(action==='summary-prev'){v.summaryPage=Math.max(0,v.summaryPage-1);v.inspectorDirty=true;v.schedule();}
+    if(action==='summary-next'){v.summaryPage++;v.inspectorDirty=true;v.schedule();}
+    if(action==='export-variants')await v.export('variants');
     if(action==='show-hidden')v.showRows();
     if(action==='hide-columns'){const sel=v.selection;if(!sel){v.message('Select columns first, then hide them.');return;}v.hideColumns(sel.start,sel.end);v.setSelection(null,false);}
     if(action==='show-columns')v.showColumns();

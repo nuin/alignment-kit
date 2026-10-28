@@ -7,10 +7,12 @@ import type { WorkerTask } from '../worker-client';
 import type { ViewLink } from '../link';
 import type { ColumnMap, ColumnRange, MaskOptions } from '../mask';
 import type { TreeLayout } from '../tree';
+import type { ColumnAnalysis } from '../summary';
 
 export interface BoundTree { layout:TreeLayout; leafRow:Int32Array; treePos:Int32Array; note:string }
 /** View state that survives removeRows. */
 export interface Carry { reference:string; selection:Selection|null; selectedRows:string[]; query:string; sort:ViewState['sort']; hidden:string[]; manualOrder:string[]|null; collapsed:string[]; groupMap:Map<string,string>|null; tree?:TreeLayout; annotationFilter:AnnotationFilter; hiddenColumns:ColumnRange[] }
+export interface SummaryEntry { key:string; limit:number; promise:Promise<ColumnAnalysis>; data?:ColumnAnalysis; error?:string }
 export type On=(target:EventTarget,event:string,handler:(event:any)=>void)=>void;
 export interface SearchState { pattern:string; options:SearchOptions; result:SearchResult; byRow:Map<number,Hit[]>; cursor:number; full?:SearchResult }
 export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'>>;
@@ -25,7 +27,7 @@ export interface Core {
   selection:Selection|null; selectedRows:Set<string>; annotationFilter:AnnotationFilter;
   filteredAnnotations:ReturnType<typeof filterAnnotations>; annotationIndex:AnnotationIndex;
   renderer:Renderer; controller:AbortController; menus:ThemedSelects;
-  parser:WorkerTask; analysis:WorkerTask; comparison:WorkerTask; ranking:WorkerTask; searcher:WorkerTask; searchRun:number; searchBusy:boolean; request?:AbortController;
+  parser:WorkerTask; analysis:WorkerTask; comparison:WorkerTask; ranking:WorkerTask; searcher:WorkerTask; summarizer:WorkerTask; summaryCache?:SummaryEntry; summaryPage:number; searchRun:number; searchBusy:boolean; request?:AbortController;
   disposed:boolean; revision:number; statsRevision:number; loadRevision:number;
   tab:string; featurePage:number; labelKey:string; overviewDirty:boolean; inspectorDirty:boolean;
   visibility:Required<ViewerVisibility>;
