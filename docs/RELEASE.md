@@ -11,11 +11,11 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 ## Automated release
 
-`.github/workflows/release.yml` runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `deno.json`. Then it runs `release:check`, `npm publish --provenance`, `deno publish` and `gh release create --generate-notes`. `.github/workflows/ci.yml` runs tests, type checks and `deno publish --dry-run` on every pull request.
+`.github/workflows/release.yml` runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `deno.json`. Then it runs `release:check`, `npm publish` (trusted publishing, with provenance), `deno publish` and `gh release create --generate-notes`. `.github/workflows/ci.yml` runs tests, type checks and `deno publish --dry-run` on every pull request.
 
 One-time setup:
 
-- Add an npm automation token as the repository secret `NPM_TOKEN`.
+- On npmjs.com, open `@nuin/msa-canvas` > Settings > Trusted publishing and add GitHub Actions: owner `nuin`, repository `alignment-kit`, workflow `release.yml`. npm then accepts the workflow's OIDC token, so no npm token is stored.
 - Create the `@nuin/msa-canvas` package on jsr.io and link it to `nuin/alignment-kit` in its settings. JSR then accepts the workflow's GitHub OIDC token, so no JSR secret is stored.
 
 To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, merge to master, then run `git tag -a v0.2.0 -m v0.2.0 && git push origin v0.2.0` on that merge commit.

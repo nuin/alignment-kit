@@ -21,8 +21,9 @@ jobs:
           test "$tag" = "$(node -p "require('./deno.json').version")"
       - run: npm ci
       - run: npm run release:check
-      - run: npm publish --provenance --access public
-        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
+      - name: npm 11.5.1 or later for trusted publishing
+        run: npm install -g npm@^11.5.1
+      - run: npm publish --access public
       - run: deno publish
       - run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
         env: { GH_TOKEN: '${{ github.token }}' }
