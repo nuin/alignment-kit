@@ -107,6 +107,9 @@
         "statusDetails": {
           "type": "boolean"
         },
+        "warnings": {
+          "type": "boolean"
+        },
         "open": {
           "type": "boolean"
         },
@@ -221,6 +224,9 @@
         "hitsTab": {
           "type": "boolean"
         },
+        "summaryTab": {
+          "type": "boolean"
+        },
         "pinReference": {
           "type": "boolean"
         },
@@ -274,6 +280,30 @@
         },
         "columnMasking": {
           "type": "boolean"
+        },
+        "reverseComplementToggle": {
+          "type": "boolean"
+        },
+        "rowStrand": {
+          "type": "boolean"
+        },
+        "columnMarks": {
+          "type": "boolean"
+        },
+        "consensusThreshold": {
+          "type": "boolean"
+        },
+        "colorThreshold": {
+          "type": "boolean"
+        },
+        "minIdentity": {
+          "type": "boolean"
+        },
+        "minCoverage": {
+          "type": "boolean"
+        },
+        "tooltip": {
+          "type": "boolean"
         }
       }
     },
@@ -285,6 +315,24 @@
       "minimum": 0,
       "maximum": 1,
       "description": "Consensus columns whose modal frequency among non-gap rows is below this become X (protein) or N (DNA/RNA)."
+    },
+    "colorThreshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "For the conservation and percent-identity schemes, residues whose column value is below this are left uncoloured."
+    },
+    "minIdentity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Show only rows whose identity to the reference is at least this percentage."
+    },
+    "minCoverage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Show only rows whose non-gap fraction is at least this percentage."
     },
     "fasta": {
       "type": "object",
@@ -329,7 +377,28 @@
             "all",
             "visible"
           ],
-          "description": "visible leaves out columns hidden by column masking in FASTA exports and copy."
+          "description": "Deprecated alias of export.columns."
+        },
+        "orientation": {
+          "enum": [
+            "source",
+            "reverse-complement"
+          ],
+          "description": "reverse-complement writes each exported region reversed and complemented (DNA and RNA only). Default source."
+        }
+      }
+    },
+    "export": {
+      "type": "object",
+      "description": "Settings for every export and copy.",
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "enum": [
+            "all",
+            "visible"
+          ],
+          "description": "visible leaves out columns hidden by column masking in every export and copy, and marks collapsed boundaries in SVG and PNG. Default all."
         }
       }
     },
@@ -448,6 +517,22 @@
     "hideAllGapColumns": {
       "type": "boolean",
       "description": "Hide columns that are gaps in every row."
+    },
+    "reverseComplement": {
+      "type": "boolean",
+      "description": "Show the whole alignment reverse-complemented (DNA and RNA only). Default false."
+    },
+    "tooltips": {
+      "type": "boolean",
+      "description": "Show hover cards for residues and annotation marks and pin annotation cards on click. Default true."
+    },
+    "annotationLinks": {
+      "type": "object",
+      "description": "URL templates keyed by source or id type (pubmed, evidence, or a source name). Each must be an http or https URL containing {id}.",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^https?://.*\\{id\\}"
+      }
     }
   }
 }

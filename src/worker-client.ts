@@ -1,7 +1,8 @@
 import { parseAlignment } from './parsers';
 import { calculateStats, pairwiseIdentity, pairwiseMatrix } from './analysis';
 import { findHits, MAX_SEARCH_MS } from './search';
-import type { Alignment, AlignmentStats, ParseOptions, Identity, SearchOptions, SearchResult } from './types';
+import { analyzeColumns, type ColumnAnalysis } from './summary';
+import type { Alignment, AlignmentStats, ColumnScope, ParseOptions, Identity, SearchOptions, SearchResult } from './types';
 /** Grace after the in-worker 2 s budget for worker start-up and transfer; past it a regex stuck in one exec call is terminated. */
 export const SEARCH_TIMEOUT_MS=MAX_SEARCH_MS+500;
 /** Rejection name when a worker job runs past its hard timeout and is terminated. */
@@ -44,6 +45,11 @@ export class WorkerTask {
   identities(a:Alignment,reference:number,rows:number[]):Promise<Identity[]> {
     const compact={codes:a.codes,width:a.width,alphabet:a.alphabet,rows:a.rows.map(()=>true)};
     return this.run({kind:'identity',alignment:compact,reference,rows},()=>rows.map(row=>pairwiseIdentity(a,reference,row)));
+  }
+  /** Column summary and variable-column list for `scope`, computed off the main thread. */
+  summary(a:Alignment,scope:ColumnScope):Promise<ColumnAnalysis> {
+    const compact={codes:a.codes,width:a.width,alphabet:a.alphabet,rows:a.rows.map(r=>({id:r.id,name:r.name,metadata:{start:r.metadata?.start}}))};
+    return this.run({kind:'summary',alignment:compact,scope},()=>analyzeColumns(a,scope));
   }
   /** Run findHits off the main thread; a pattern still running after SEARCH_TIMEOUT_MS is terminated with a TimeoutError. */
   search(a:Alignment,pattern:string,options:SearchOptions):Promise<SearchResult> {

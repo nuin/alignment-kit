@@ -1,20 +1,32 @@
 import { mergeColumnRanges } from './mask';
-import type { ColorMode, RulerCoordinates, Selection, ViewState } from './types';
+import type { ColorMode, RulerCoordinates, SearchMode, Selection, SortKey, ViewState } from './types';
 
 /** View fields a shareable link can carry. Annotation filters and visibility stay out of links. */
 export interface ViewLink {
   source?:string; alignmentId?:string; selection?:Selection|null; referenceId?:string;
   colorScheme?:string; colorMode?:ColorMode; matchDisplay?:'letter'|'dot'; cellWidth?:number; query?:string;
-  sort?:ViewState['sort']; statisticsScope?:ViewState['statisticsScope']; start?:number; rowOffset?:number; rulerCoordinates?:RulerCoordinates;
+  sort?:SortKey; sortColumn?:number; minIdentity?:number; minCoverage?:number; statisticsScope?:ViewState['statisticsScope']; start?:number; rowOffset?:number; rulerCoordinates?:RulerCoordinates;
   /** Manually hidden columns, from `hide=10-20,30-35`. */
   hiddenColumns?:[number,number][];
+  /** Reverse-complement view, from `rc=1`. */
+  reverseComplement?:boolean;
+  /** Rows flagged as reverse strand, from `strand=id1,id2` (IDs percent-encoded inside the list). */
+  reverseStrandRowIds?:string[];
+  /** User column marks, from `marks=10-12,40`; colors are not carried. */
+  marks?:[number,number][];
+  /** Motif search to rerun after the link applies, from `find=N-{P}-[ST]-{P}`; `findmode` and `strands` refine it. */
+  find?:string; findMode?:SearchMode; strands?:'both'|'forward';
   /** Parameter names present in the link but malformed. */
   ignored?:string[];
 }
 const modes:ColorMode[]=['all','reference-differences','reference-matches','consensus-differences','consensus-matches'];
-const sorts:ViewState['sort'][]=['input','name','identity','tree'];
+const sorts:SortKey[]=['input','name','identity','gaps','length','residue','annotations','tree'];
 const scopes:ViewState['statisticsScope'][]=['all','filtered'];
-const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide'];
+const findModes:SearchMode[]=['literal','iupac','regex','prosite'];
+const strandChoices=['both','forward'] as const;
+/** Longest `find` pattern a link carries; longer ones are ignored. */
+const maxFind=500;
+const keys=['src','aln','sel','row','ref','scheme','mode','zoom','q','sort','scope','x','y','dots','ruler','hide','rc','strand','marks','scol','minid','mincov','find'];
 /** True when a fragment or query holds at least one link parameter; plain anchors such as `#viewer` do not. */
 export const isViewLink=(input:string):boolean=>{const p=new URLSearchParams(input.replace(/^[#?]/,''));return keys.some(key=>key==='ruler'?!!p.get(key):p.has(key));};
 
@@ -31,9 +43,20 @@ export function encodeViewLink(state:ViewState,source?:string):string {
   p.set('zoom',String(state.cellWidth));
   if(state.query)p.set('q',state.query);
   if(state.sort!=='input'&&state.sort!=='manual')p.set('sort',state.sort);
+  if(state.sort==='residue'&&state.sortColumn)p.set('scol',String(state.sortColumn));
+  if(state.minIdentity)p.set('minid',String(state.minIdentity));
+  if(state.minCoverage)p.set('mincov',String(state.minCoverage));
   if(state.statisticsScope!=='all')p.set('scope',state.statisticsScope);
   if(state.rulerCoordinates==='reference')p.set('ruler','ref');
   if(state.hiddenColumns?.length)p.set('hide',state.hiddenColumns.map(([s,e])=>s===e?String(s):`${s}-${e}`).join(','));
+  if(state.reverseComplement)p.set('rc','1');
+  if(state.reverseStrandRowIds?.length)p.set('strand',state.reverseStrandRowIds.map(encodeURIComponent).join(','));
+  if(state.columnMarks?.length)p.set('marks',mergeColumnRanges(state.columnMarks.map(m=>[m.start,m.end] as [number,number])).map(([s,e])=>s===e?String(s):`${s}-${e}`).join(','));
+  if(state.find){
+    p.set('find',state.find);
+    if(state.findMode&&state.findMode!=='auto')p.set('findmode',state.findMode);
+    if(state.strands&&state.strands!=='both')p.set('strands',state.strands);
+  }
   if(state.start>1)p.set('x',String(state.start));
   if(state.rowOffset>0)p.set('y',String(state.rowOffset));
   return p.toString();
@@ -53,11 +76,25 @@ export function decodeViewLink(input:string):ViewLink {
   link.colorMode=pick('mode',modes);link.sort=pick('sort',sorts);link.statisticsScope=pick('scope',scopes);
   const dots=p.get('dots');if(dots==='1')link.matchDisplay='dot';else if(dots==='0')link.matchDisplay='letter';else if(dots!==null)ignored.push('dots');
   link.rulerCoordinates=pick('ruler',['ref'] as const)&&'reference';
-  const hide=p.get('hide');
-  if(hide!==null){
-    const parts=hide.split(',').map(part=>part.match(/^(\d+)(?:-(\d+))?$/)),ranges=parts.map(m=>m&&[Number(m[1]),Number(m[2]??m[1])] as [number,number]);
-    if(ranges.length&&ranges.every(r=>r&&r[0]>=1&&r[1]>=r[0]))link.hiddenColumns=mergeColumnRanges(ranges as [number,number][]);else ignored.push('hide');
-  }
+  const columns=(key:string)=>{
+    const text=p.get(key);if(text===null)return undefined;
+    const parts=text.split(',').map(part=>part.match(/^(\d+)(?:-(\d+))?$/)),ranges=parts.map(m=>m&&[Number(m[1]),Number(m[2]??m[1])] as [number,number]);
+    if(ranges.length&&ranges.every(r=>r&&r[0]>=1&&r[1]>=r[0]))return mergeColumnRanges(ranges as [number,number][]);ignored.push(key);return undefined;
+  };
+  link.hiddenColumns=columns('hide');link.marks=columns('marks');
+  const rc=p.get('rc');if(rc==='1')link.reverseComplement=true;else if(rc==='0')link.reverseComplement=false;else if(rc!==null)ignored.push('rc');
+  const strand=p.get('strand');
+  if(strand!==null){try{const ids=strand.split(',').filter(Boolean).map(decodeURIComponent);if(ids.length)link.reverseStrandRowIds=[...new Set(ids)];else ignored.push('strand');}catch{ignored.push('strand');}}
+  link.sortColumn=int('scol',1);
+  for(const [key,field] of [['minid','minIdentity'],['mincov','minCoverage']] as const){const value=p.get(key);if(value===null)continue;const n=Number(value);if(value!==''&&Number.isFinite(n)&&n>=0&&n<=100)link[field]=n;else ignored.push(key);}
+  const find=p.get('find');
+  if(find!==null){
+    if(find&&find.length<=maxFind){
+      link.find=find;
+      const mode=p.get('findmode');if(mode!==null){if(findModes.includes(mode as SearchMode))link.findMode=mode as SearchMode;else ignored.push('findmode');}
+      const strands=p.get('strands');if(strands!==null){if((strandChoices as readonly string[]).includes(strands))link.strands=strands as 'both'|'forward';else ignored.push('strands');}
+    }else ignored.push('find');
+  }else for(const key of ['findmode','strands'])if(p.has(key))ignored.push(key);
   link.cellWidth=int('zoom',1);link.start=int('x',1);link.rowOffset=int('y',0);
   for(const key of Object.keys(link) as (keyof ViewLink)[])if(link[key]===undefined)delete link[key];
   if(ignored.length)link.ignored=ignored;

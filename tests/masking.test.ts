@@ -182,7 +182,7 @@ it('writes the FASTA download for visible columns and the full alignment otherwi
 it('lists the visible-columns export and FASTA option in the menus',async()=>{
   const v=await viewerFor(),root=rootOf(v);
   expect([...root.querySelector<HTMLSelectElement>('select[aria-label="Export alignment"]')!.options].map(o=>o.value)).toContain('fasta-visible');
-  v.setOptions({fasta:{columns:'visible'}});expect(root.querySelector<HTMLSelectElement>('select[aria-label="FASTA columns"]')!.value).toBe('visible');
+  v.setOptions({fasta:{columns:'visible'}});expect(root.querySelector<HTMLInputElement>('input[aria-label="Visible columns only"]')!.checked).toBe(true);
   expect(()=>v.setOptions({fasta:{columns:'some' as any}})).toThrow(/columns/);
 });
 it('validates masking options in configuration',()=>{

@@ -152,7 +152,7 @@ The Svelte component accepts `class`, `style` and `id`. It supports SSR and only
 }}></div>
 ```
 
-Both framework integrations accept `alignment`, `options`, `onReady`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick`, `onSearch` and `onError`. `onSearch` receives a copy of `{ hits, truncated }` when each search finishes, or `null` when the search is cleared. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
+Both framework integrations accept `alignment`, `options`, `onReady`, `onWarnings`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick`, `onSearch` and `onError`. `onSearch` receives a copy of `{ hits, truncated }` when each search finishes, or `null` when the search is cleared. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
 
 ## Configure the interface
 
@@ -184,14 +184,16 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 |---|---|
 | Main layout | `toolbar`, `tools`, `overview`, `overviewTitle`, `tracks`, `alignment`, `inspector`, `inspectorTabs`, `status` |
 | Main toolbar | `open`, `search`, `colorScheme`, `zoom`, `fit`, `theme`, `inspectorToggle`, `fullscreen`, `export` |
-| Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `rulerCoordinates`, `alphabet` |
+| Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `rulerCoordinates`, `alphabet`, `reverseComplementToggle` |
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`, `stockholmTracks` |
-| Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize` |
-| Column masking | `columnMasking` |
+| Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize`, `rowStrand` |
+| Column masking and marks | `columnMasking`, `columnMarks` |
+| Thresholds and row filters | `consensusThreshold`, `colorThreshold`, `minIdentity`, `minCoverage` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
-| Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
+| Hover cards | `tooltip` |
+| Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab`, `summaryTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
-| Feedback | `statusSummary`, `statusDetails`, `messages`, `emptyState` |
+| Feedback | `statusSummary`, `statusDetails`, `warnings`, `messages`, `emptyState` |
 
 `toolbar` controls the main toolbar; `tools` controls the secondary row. `alignment` controls the scrolling matrix. `logoToggle` hides only its checkbox, while `logo` controls the actual frequency track. `reference: false` (or `tracks: false`) returns the reference sequence to the scrolling rows under the current filter/order; it remains the comparison reference. No sequence is dropped from the alignment or statistics. `labels: false` reclaims the gutter width and keeps canvas hit testing aligned.
 
@@ -289,7 +291,23 @@ const records = parseGff3(text); // { seqid, start, end, kind, label, metadata }
 - Records with no matching row, or beyond the sequence, become `mapping: 'unmapped'` and add a warning.
 - BED12 blocks become one `exon` annotation each. GenBank and EMBL `join()` locations become one annotation spanning the lowest to highest position, with `<`, `>` and `complement()` kept in `metadata`. Labels come from `/gene`, `/product`, `/note`, `/label`, then the feature key.
 - `viewer.addAnnotations(list)`, `viewer.removeAnnotations(ids?)` (all when omitted) and `viewer.importAnnotations(text, options?)` rebuild the index and the Features tab. Warnings appear in the message area.
-- With an alignment loaded, opening or dropping `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` files (optionally `.gz`) imports annotations instead of replacing the alignment.
+- With an alignment loaded, opening or dropping `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` files (optionally `.gz`) imports annotations instead of replacing the alignment. A `.json` file does the same when it is UniProt JSON (`isUniProtJson(text)`: a `features` array on the entry, on every list element or on every `results` element). Other JSON is refused with an error.
+
+### Export annotations
+
+```ts
+import { exportAnnotationsGff3, exportAnnotationsTsv, exportAnnotationsJson } from '@nuin/msa-canvas';
+const warnings: string[] = [];
+const gff = exportAnnotationsGff3(alignment, { filter: viewer.getState().annotationFilter, warnings });
+const tsv = exportAnnotationsTsv(alignment, { annotations: subset });
+const json = exportAnnotationsJson(alignment);
+```
+
+- Options (`AnnotationExportOptions`): `annotations` (default all of `alignment.annotations`), `filter` (an `AnnotationFilter`, applied when `annotations` is omitted), `coordinates` (GFF3 only: `'sequence'` default, or `'alignment'`), `seqid` (GFF3 only: `'name'` default, or `'id'`; rows whose name is shared by several rows always use their id, with a warning, and a leading `#` or `>` in a name is percent-encoded) and `warnings` (an array that receives skip messages).
+- The Explorer's Export menu entries (Annotations · GFF3, TSV, JSON) write the annotations visible under the active filter.
+- Coordinates are 1-based inclusive. Sequence coordinates count ungapped residues from 1 at the first residue of the row; row offsets such as `seqA/51-120` are not applied, as on import. Alignment columns are always present in TSV and JSON.
+- GFF3 skips unmapped annotations, annotations without a row and annotations whose columns are all gaps in their row, with one warning each. TSV and JSON list them with empty (TSV) or null (JSON) coordinates.
+- GFF3 with `coordinates: 'sequence'` read by `importAnnotations` returns the same mapped annotations. Columns that are gaps at an annotation's edge shrink it to its first and last residue.
 
 ## Coordinates and statistics
 
@@ -320,6 +338,8 @@ Statistics default to all loaded rows. Scrolling, pinning a reference and visual
 | Gap fraction | Gap count / rows in statistics scope |
 | Modal frequency | Largest non-gap symbol count / non-gap rows |
 | Consensus support | Largest non-gap symbol count / all scoped rows |
+| Percent identity | Rows carrying the residue / all scoped rows, per column; shaded by that fraction |
+| BLOSUM62 to consensus | Protein only: residues with a positive BLOSUM62 score against the column consensus are colored |
 | Consensus | Unique most frequent non-gap symbol; ties are explicit |
 | Consensus sequence | Track, export, copy and `getConsensus()`: modal non-gap residue; ties as IUPAC codes (DNA/RNA) or `X`; `X`/`N` below `consensusThreshold` |
 | Frequency logo | Literal symbol frequencies among non-gap rows; information content with `logoMode: 'bits'` |
@@ -329,6 +349,19 @@ Statistics default to all loaded rows. Scrolling, pinning a reference and visual
 | Pairwise identity | Exact matches / columns with canonical residues in both rows |
 
 Ambiguity symbols are counted separately and never fractionally distributed. All-gap modal frequency/consensus and identity with zero comparable positions are unavailable. Pairwise identity excludes gaps, ambiguity and stops; it includes matched and compared-position counts. Its matrix is calculated only for selected rows, capped at 200, in a cancellable worker. Selecting **Identity to reference** computes and sorts reference identities; selecting a row then shows its identity and compared-position count.
+
+## Parser warnings
+
+Recoverable problems no longer fail a load. The parser repairs them and lists them in `alignment.metadata.warnings` (absent when there are none). Each warning is `{ code, message, line?, rowId? }`; `line` is one-based and `rowId` is the ID the row has in the alignment.
+
+| Code | Case | Repair |
+|---|---|---|
+| `duplicate-id` | FASTA, PHYLIP or PIR rows with the same name | Later rows get `_2`, `_3` and so on (next free number) |
+| `invalid-residue` | FASTA, Stockholm, CLUSTAL, PHYLIP, PIR, MSF or NEXUS characters other than letters, `*`, `-` and `.` | Replaced by `N` for nucleotide input, `X` otherwise (the `alphabet` option decides when given); one warning per row |
+| `unequal-length` | Rows of different length, only with the `padShort` parse option (FASTA, PIR, MSF) | Short rows padded with trailing gaps; without `padShort` the load still fails |
+| `unknown-stockholm-tag` | A `#=GF`, `#=GS`, `#=GR` or `#=GC` tag outside the Stockholm standard set, or a `#=` line of another kind | Kept in `metadata.stockholm` (or `metadata.headers`); one warning per tag |
+
+The viewer shows a warnings badge in the status bar (`visibility.warnings`). Clicking it lists the warnings in the message area, also when `visibility.messages` is off. The `warnings` event fires after each load (not after `removeRows` or an alphabet switch) with the same list, and `getWarnings()` returns the current list. `removeRows` drops the warnings of the removed rows. A strict PHYLIP name that fills all 10 characters is read as is with no warning, because a longer name would have shifted the sequence columns and failed the load. Stockholm export writes back comments and every `#=GF`, `#=GS`, `#=GR` and `#=GC` line, cut to the exported rows and columns.
 
 ## Hide columns
 
@@ -353,9 +386,53 @@ viewer.getColumnMask();            // Uint8Array, 1 = visible, 0 = hidden, one e
 
 Rendering: a dashed amber line marks each collapsed boundary in the grid and the tracks, with a small tab on the ruler. Ruler labels show original column numbers. A label appears at the first column after a boundary when it has room (about 36 px from the previous label). In reference mode the residue numbers count residues in hidden columns, so the labels still match the sequence. A hit or annotation that spans hidden columns draws as one box over its visible columns, and one that lies entirely in hidden columns is not drawn. A selection draws over the visible part of its range and stays at least 2 px wide when all of it is hidden. Custom track `render` callbacks run once per run of adjacent visible columns, clipped to that run, with `start`, `end` and `offsetX` describing the run. Arrow keys step over hidden columns, Shift+arrows extends a selection across a boundary, and Go to refuses a hidden column with a message.
 
-Export: default exports contain every column. **Export > Visible columns · FASTA** writes every row without the hidden columns. The FASTA options panel has a **Columns** menu (`fasta: { columns: 'visible' }`) that applies the same rule to **Selection · FASTA**, **All rows · FASTA**, the consensus export and Ctrl/Cmd+C. In code, `exportFasta(a, { columns: viewer.getColumnMask() })` keeps only the visible columns inside `start` to `end`; the other text exporters accept the same `columns` region field. A range with no visible column throws. In the viewer, only FASTA honours hidden columns (`fasta.columns: 'visible'` or **Visible columns · FASTA**). The viewer's CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG, PNG and TSV exports include hidden columns; pass a `columns` mask to the standalone text exporters to drop them.
+Export: default exports contain every column. **Export > Visible columns · FASTA** writes every row without the hidden columns. The **Visible columns only** checkbox beside the Export menu (`export: { columns: 'visible' }`, default `'all'`) that applies the same rule to every export except view state JSON, the consensus export and Ctrl/Cmd+C. `fasta: { columns }` still works as an alias. In code, `exportFasta(a, { columns: viewer.getColumnMask() })` keeps only the visible columns inside `start` to `end`; `exportClustal`, `exportStockholm`, `exportPhylip`, `exportNexus`, `exportSvg` and `exportPng` accept the same `columns` region field, and `exportStatistics(stats, { columns })` keeps only those rows. SVG and PNG collapse the hidden columns, number the ruler with original columns, split annotation outlines at the gaps and draw a dashed line with a `<title>` ("2 hidden columns: 3–4") at each collapsed boundary; the SVG metadata records `hiddenColumns`. A range with no visible column throws.
 
 The link parameter is `hide=10-20,30-35` (manual ranges only). A link without `hide` shows all manually hidden columns again; a range beyond the alignment width is skipped and reported as `hide`. The helpers `computeColumnMask(alignment, { gapFraction, allGap, hidden })`, `mergeColumnRanges` and `buildColumnMap` are exported for use outside the viewer.
+
+## Reverse complement view
+
+DNA and RNA alignments can be shown reverse-complemented without changing the alignment. There are two display switches.
+
+```ts
+viewer.setReverseComplement(true);       // whole view; also the option reverseComplement and the "Reverse complement" checkbox
+viewer.getReverseComplement();           // true while active; always false for protein
+viewer.setRowStrand('seq-3', '-');       // flag one row as reverse strand; '+' clears it
+viewer.getRowStrand('seq-3');            // '-' or '+'
+```
+
+Coordinate model:
+
+- Whole view (`setReverseComplement`) is a display transform. Columns run right to left and every residue is complemented (A pairs with T for DNA and U for RNA; IUPAC codes swap in pairs: C/G, R/Y, K/M, B/V, D/H; gaps and other symbols stay). The ruler shows original column numbers, descending (`12 ... 1`), or reference residue numbers descending in reference mode. The ruler label and the status line say "reverse complement".
+- Row strand (`setRowStrand(id, '-')`) complements one row in place. Columns stay aligned and the row label shows a `−` button (`+` for forward rows) that toggles the flag. With the whole view on, a flagged row is complemented twice and reads as its source letters, right to left.
+- Coordinates never change. Selection, `getState()`, search hits, annotations, Go to, hidden columns, column statistics and `viewport` events (`start <= end`) all use original 1-based columns. Search runs on the source rows; the `-` strand of a hit still means the reverse complement of the source.
+- Consensus and logo tracks complement their letters in the whole view; the statistics themselves stay in source orientation. Row strand flags do not change them. The Position tab shows the displayed letter and, when it differs, the source residue as secondary text.
+- Keyboard: in the whole view, Left and Right move one displayed column, so Right moves to a lower column number.
+- Custom track `render` callbacks receive `reversed: true` in the whole view. Runs of adjacent columns are drawn right to left: column `end` sits at `offsetX` and each lower column one `cellWidth` further right.
+- Protein alignments cannot be reverse-complemented. `setReverseComplement(true)`, `setOptions({reverseComplement:true})` and `setRowStrand` leave the viewer unchanged and show "Reverse complement needs a DNA or RNA alignment." The checkbox is disabled. Switching a loaded alignment to protein turns the view off; switching back turns it on again if the option is still true.
+
+Exports stay in source orientation, whatever the view shows. To export reverse-complemented FASTA, set the FASTA option `orientation: 'reverse-complement'` (panel: **FASTA options > Orientation**). It applies to FASTA exports, the consensus export and Ctrl/Cmd+C: each exported region is reversed and complemented, headers gain ` (reverse complement)` and the column range stays in source coordinates. It does not follow the view or row strand flags. On a protein alignment the option is ignored and the select is disabled. Other formats are never reverse-complemented. Row strand flags never change copy, FASTA or Stockholm exports: they always write the stored residues, reverse-complemented only when `orientation` says so. Sorting by residue, identity, gaps or length compares the stored residues, not the displayed ones, in both the reverse-complement view and flagged rows. `complementSequence(seq, alphabet)` and `reverseComplementSequence(seq, alphabet)` are exported for scripts.
+
+State and links: `ViewState.reverseComplement` and `ViewState.reverseStrandRowIds`; link parameters `rc=1` and `strand=id1,id2` (IDs percent-encoded inside the list). A link without `rc` turns the view off and clears flags. `rc` on a protein alignment and unknown row IDs are skipped and listed. Config: `reverseComplement` (boolean), `fasta.orientation`, `visibility.reverseComplementToggle` and `visibility.rowStrand`.
+
+## Mark columns
+
+Marks flag columns of interest with a persistent coloured outline box across all rows and a marker bar in the ruler.
+
+```ts
+viewer.markColumns([10, [12, 14]]);          // a column or an inclusive one-based [start, end] range each
+viewer.markColumns([[40, 42]], '#d62728');   // hex color, default #7b2cbf
+viewer.unmarkColumns([[13, 13]]);            // remove part of a mark
+viewer.unmarkColumns();                      // remove every mark
+viewer.getColumnMarks();                     // [{ start: 10, end: 10, color }, ...] sorted, non-overlapping
+```
+
+- Alt-click (Option-click on macOS) a cell or the ruler toggles a mark on that column. The click does not change the selection.
+- The Position tab has **Mark column** (**Unmark column**; plural for a range). It marks the selected columns, or unmarks them when all are already marked. Columns that already carry a colour keep it. `visibility.columnMarks` hides the button and turns off Alt-click; the API keeps working.
+- Ranges outside 1 to the alignment width throw. Adjacent ranges of one colour merge. Marking a marked column replaces its colour.
+- Marks use original column numbers. Column masking does not move or drop them: a mark spanning hidden columns draws over its visible columns, and a mark whose columns are all hidden is kept but not drawn until they return.
+- `getState().columnMarks` holds `{ start, end, color }` ranges; `setState` restores them and rejects ranges beyond the width. `removeRows` keeps marks; loading another alignment clears them.
+- Links carry `marks=10-12,40` (ranges only, no colours). Applying a link replaces the marks with the link's ranges; columns already marked keep their colour, others get the default. A range beyond the width is skipped and reported as `marks`. A link without `marks` clears them.
 
 ## Search motifs
 
@@ -431,9 +508,11 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `setOptions(options)` | Update visual/analysis options |
 | `setReference(rowId)` | Pin a stable row as reference |
 | `setFilter(query)` | Filter names and species |
-| `setSort('input' \| 'name' \| 'identity' \| 'manual' \| 'tree')` | Stable ordering; identity calculation is asynchronous; `tree` needs `setTree` first |
+| `setSort(sort, column?)` | Stable ordering by `'input'`, `'name'`, `'identity'`, `'gaps'` (fewest gaps first), `'length'` (longest ungapped first), `'residue'` (residue at `column`, default the selected column, gaps last; rejects without a valid column), `'annotations'` (most annotated first), `'manual'` or `'tree'`; identity calculation is asynchronous; `tree` needs `setTree` first. `gaps` and `length` give the same order |
+| `setRowOrderFromNames(names)` | Put the rows named in `names` (row name, then ID) first in that order, keep the rest in their current order, switch to manual order; returns names that matched no row |
 | `hideRows(ids)` / `showRows(ids?)` | Hide rows from the grid / restore some or all hidden rows |
 | `hideColumns(start, end)` / `showColumns(start?, end?)` | Hide columns by one-based range / show a range, or everything when called with no arguments (see Hide columns) |
+| `markColumns(ranges, color?)` / `unmarkColumns(ranges?)` / `getColumnMarks()` | Mark columns, remove marks (all when called with no argument), read the marks (see Mark columns) |
 | `getColumnMask()` | `Uint8Array` with 1 for each visible column and 0 for each hidden one |
 | `moveRow(id, index)` / `getRowOrder()` | Move a row to a zero-based position and switch to manual order / read all row IDs in the current order |
 | `removeRows(ids)` | Delete rows from a copy of the alignment and recompute statistics |
@@ -444,6 +523,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
 | `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; resolves a boolean, `true` when it started a new search, and reports errors through the status line and `error`. Auto mode applies, so in IUPAC text `N` (DNA/RNA) and `X` (protein) match any residue |
 | `addAnnotations(list)` / `removeAnnotations(ids?)` | Add annotations / remove some by ID (all when omitted) |
+| `exportAnnotationsGff3`, `exportAnnotationsTsv`, `exportAnnotationsJson` | Functions of `(alignment, options?)`; see **Export annotations** |
 | `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
 | `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
 | `getState()` / `setState(state)` | Serialize/restore view state for the same dataset |
@@ -454,18 +534,41 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `getViewLink()` / `applyViewLink(link)` | Encode the view as URL parameters / apply a link, skipping settings that do not fit |
 | `goToResidue(rowId, position)` | Select residue `position` of the row with that ID (numbered as in the ruler); returns `false` and shows a message if the row or residue does not exist |
 | `addTrack(track)` / `removeTrack(id)` / `getTracks()` | Register, remove and list custom tracks (see Tracks) |
+| `getWarnings()` | Copies of the parser warnings of the loaded alignment (see Parser warnings) |
+| `getResidue(rowId, column)` | Upper-case residue at a one-based column; `null` for a gap, an unknown row or a column outside the alignment |
+| `getColumn(column)` | `{ rowId, residue }[]` for every row in input order (`-` for gaps); `[]` outside the alignment |
+| `getSelectionSequences({ gaps? })` | `{ id, name, sequence }[]` for the checked rows (display order), else the selected row, cut to the selected columns; `gaps: 'remove'` drops gap characters; `[]` with no selection |
+| `getVisibleRows()` | Row IDs shown in the grid in display order: the pinned reference first, then rows that are not hidden, filtered out or collapsed |
+| `getVisibleColumns()` | `{ start, end }`, the one-based original columns at the viewport edges |
+| `scrollToRow(rowId)` / `scrollToColumn(column)` | Scroll the row to the top or the column to the left edge without changing the selection; `false` for unknown, hidden, filtered, collapsed or out-of-range targets |
+| `getSummary(options?)` / `getVariableColumns(options?)` | Column-class counts, identity and GC / variable columns versus the reference. See Column summary |
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
-Events: `ready`, `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
+Events: `ready`, `warnings` (the parser warnings of each loaded alignment, an empty array when there are none), `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `hover` (`{ rowId, column, residue, position }`, or `null` when the pointer leaves a cell), `cellclick` (the same plus `shiftKey`), `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
-Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+Options: `reverseComplement` (default `false`, see Reverse complement view), `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `colorThreshold` (0–1, default 0), `minIdentity` (0–100, default 0), `minCoverage` (0–100, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `export` (`{ columns: 'all' | 'visible' }`), `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
-Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Clicking a residue selects its column and row; clicking the same cell again, without Shift, while it is the whole selection clears the selection. The same applies to a track column. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off.
+Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Clicking a residue selects its column and row; clicking the same cell again, without Shift, while it is the whole selection clears the selection. The same applies to a track column. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off. No hover card shows while panning.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
 
 Alphabet guard: the viewer detects the alphabet from the residues on load (`getDetectedAlphabet()`). Nucleotide means at least 90% of non-gap residues are A, C, G, T, U or N. When the **Type** select is changed across the protein/nucleotide line from the detected alphabet, the message area asks first, for example `This alignment looks like protein (83.3% of residues are not A, C, G, T/U, N). Treat it as DNA?`, with **Switch** and **Cancel** buttons. Switch reloads the alignment with the new alphabet; Cancel restores the select. DNA to RNA and back switch without asking. The prompt shows even when `visibility.messages` is off. Programmatic alphabets (`load`, `parseAlignment` or `createAlignment` with `alphabet`, then `setAlignment`) are not gated. The Color select lists only schemes for the current alphabet (`colorSchemes(alphabet)`), and a scheme that no longer fits falls back to `soft` (protein) or `soft-nucleotide` (DNA/RNA).
+
+## Tooltips
+
+Hovering a residue for about 300 ms shows a card with the row name, residue, alignment column, residue number in the row (offset by `metadata.start`, "gap" in a gap) and, when `rulerCoordinates` is `reference`, the reference residue number. The card hides on leave, scroll, key press or while a drag-to-pan is active. Touch input has no hover cards.
+
+Over an annotation mark the card also lists, for up to 3 annotations, the label, kind, consequence, disease and phenotype flags, and `metadata.evidence` (evidence codes), `metadata.source` and `metadata.pubmed` or `metadata.pmid` (PubMed IDs). Clicking a residue under an annotation pins the card (up to 10 annotations) until Escape or its close button. All text is inserted as text, never HTML.
+
+- `tooltips` (default `true`) and `visibility.tooltip` turn the cards off. The `hover` and `cellclick` events still fire. `hover` skips touch; `cellclick` fires for every non-drag click on a residue.
+- `annotationLinks` maps a key to a URL template with `{id}`: `pubmed` (or `pmid`) for PubMed IDs, `evidence` (or `eco`) for evidence codes, or a source name (matched case-insensitively, `{id}` is the annotation `id`). There are no default links, so the viewer makes no network request. Only `http` and `https` templates are accepted; anything else throws. Links open with `rel="noopener noreferrer"`.
+- React and Svelte forward `onHover` and `onCellClick`.
+
+```js
+createViewer(el, { annotationLinks: { pubmed: 'https://pubmed.ncbi.nlm.nih.gov/{id}/' } });
+viewer.on('hover', cell => cell && console.log(cell.rowId, cell.column, cell.residue, cell.position));
+```
 
 ## Dots for matches
 
@@ -489,7 +592,7 @@ viewer.getRowOrder();                   // all row IDs in the current order, inc
 await viewer.removeRows(['seq-2']);     // new alignment copy, new alignment ID, statistics recomputed
 ```
 
-`ViewState` carries `hiddenRowIds`, `manualOrder` (null until a manual order exists) and `collapsedGroups`. Links carry `sort` (`tree` included, `manual` omitted because a link holds no row list) but not hidden rows. `removeRows` keeps the filter, order, hidden rows, groups and tree, drops annotations of removed rows, and throws if no row would remain.
+`ViewState` carries `hiddenRowIds`, `manualOrder` (null until a manual order exists) and `collapsedGroups`. Links carry `sort` (`tree` and the new `gaps`, `length`, `residue` and `annotations` included, `manual` omitted because a link holds no row list), `scol` for the residue sort column, and `minid`/`mincov` for the row filters, but not hidden rows. `ViewState` also carries `sortColumn`, `consensusThreshold`, `colorThreshold`, `minIdentity` and `minCoverage`. `removeRows` keeps the filter, order, hidden rows, groups and tree, drops annotations of removed rows, and throws if no row would remain.
 
 Groups: `groupBy` takes `'species'` or a `row.metadata` key. `setGroups({ rowId: 'name' })` overrides it, and `setGroups(null)` returns to `groupBy`. Rows order by group (alphabetical, `Ungrouped` last), then by the current order inside each group. Each group has a header row with its name and visible row count, and a color bar on its labels. Click a header, in the label gutter or on the grid, to collapse or expand it; `toggleGroup(name)` does the same. The pinned reference stays above the groups.
 
@@ -505,6 +608,8 @@ viewer.setTree(null);
 
 Protein alignments default to **Residue classes** (`soft`); DNA/RNA default to **Nucleotide · muted** (`soft-nucleotide`), with A green, C gold, G rose and T/U blue. Ambiguity symbols have a neutral background. The original vivid mapping remains **Nucleotide · classic** (`nucleotide`). The Color menu lists schemes compatible with the loaded alphabet; changing Type or loading a different alphabet replaces an incompatible scheme with its default. Type changes interpretation, not the underlying sequence letters—it does not translate proteins or convert T to U.
 
+Colorblind-safe and high-contrast schemes: `cvd-protein` (**Residue classes · colorblind-safe**), `cvd-nucleotide` (**Nucleotide · colorblind-safe**, Okabe-Ito based), `hc-protein` and `hc-nucleotide` (**… · high contrast**). The protein schemes use seven classes (aliphatic AVLIM, aromatic FWY, polar STNQ, positive KRH, negative DE, glycine and proline GP, cysteine C); the nucleotide schemes color A, C, G and T/U. All four keep every pair of class colors, and the neutral color of ambiguity symbols (B, Z, X, J, U, O and * in protein; R, Y, S, W, K, M, B, D, H, V, N in nucleotides), at a CIELAB distance of 25 or more under normal vision and under simulated deuteranopia and protanopia (Machado 2009 matrices, checked in `tests/palettes.test.ts`). The high-contrast schemes also give every letter at least 7:1 contrast against its fill. The nucleotide schemes are limited to DNA and RNA, the protein schemes to protein. The Colors tab lists each class with its residues. `ColorScheme` has the optional fields `classes`, `cvdSafe` and `highContrast`. No other built-in scheme is claimed to be colorblind-safe; the Nightingale schemes, Clustal, Zappo and the muted defaults rely on red-green or similar hue differences.
+
 Additional DNA/RNA options are `nucleotide-blue-orange`, `nucleotide-contrast` (strong), `nucleotide-grayscale`, `nucleotide-gc` (GC vs AT/U), and `nucleotide-purine` (muted purines vs pyrimidines). Group schemes handle unambiguous group membership explicitly: GC colors S with G/C and W with A/T/U; purine coloring groups R with A/G and Y with C/T/U. Other mixed ambiguity codes stay neutral. These are qualitative encodings, not GC percentages or evidence of biological function. The user guide includes descriptions and base-by-base previews.
 
 All dropdowns use viewer-themed menus with keyboard navigation (arrows, Home/End, typeahead, Enter, Escape), following the viewer theme rather than the OS theme. Nightingale fixed palettes include Clustal/Clustal2, Taylor, Zappo, Lesk, Cinema, MAE, nucleotide, hydrophobicity, buried index, helix/strand/turn propensity and property highlights. Clustal2 here is a fixed residue mapping, not column-dependent ClustalX. The consensus-support scheme is calculated from the explicitly selected statistics scope.
@@ -517,7 +622,7 @@ Override scoped CSS properties (`--ak-bg`, `--ak-panel`, `--ak-ink`, `--ak-muted
 
 The toolbar exports all rows or a selected region as FASTA, CLUSTAL, Stockholm, PHYLIP (relaxed) or NEXUS, a selected region as SVG/PNG, or the consensus of the selected (or visible) columns as FASTA. Checked rows define exported rows; otherwise the pinned reference and currently visible rows are used. Selected columns define the range; otherwise the visible range is used. Figure exports preserve active annotation filters, palette and reference/consensus emphasis. Figures include coordinate scope, legend and source metadata when supplied.
 
-**FASTA options…** in the Export menu opens a panel with gap removal, letter case (original, upper, lower), line width (80, 60, unwrapped) and header (name; name and species; ID and name). The same settings apply to FASTA exports, the consensus export and Ctrl/Cmd+C. `fasta.columns: 'visible'` leaves out hidden columns (see Hide columns); **Visible columns · FASTA** in the Export menu does the same for all rows. Set them in code with `setOptions({ fasta: { gaps: 'remove', letterCase: 'upper', lineWidth: 0, header: 'id-name' } })`; updates merge with the current settings. `lineWidth` is 0 (unwrapped) or 10 to 1000.
+**FASTA options…** in the Export menu opens a panel with gap removal, letter case (original, upper, lower), line width (80, 60, unwrapped), header (name; name and species; ID and name) and orientation (source or reverse complement, see Reverse complement view). The same settings apply to FASTA exports, the consensus export and Ctrl/Cmd+C. The **Visible columns only** checkbox beside the Export menu covers all exports (`export.columns`, see Hide columns); **Visible columns · FASTA** in the Export menu writes all rows without hidden columns. Set them in code with `setOptions({ fasta: { gaps: 'remove', letterCase: 'upper', lineWidth: 0, header: 'id-name' } })`; updates merge with the current settings. `lineWidth` is 0 (unwrapped) or 10 to 1000.
 
 The standalone `exportFasta(alignment, region?, fastaOptions?)`, `exportClustal(alignment, region?)` (60-column blocks, `*` under identical non-gap columns; CLUSTAL, Stockholm and NEXUS add `_2`, `_3` to repeated names so the file re-opens), `exportStockholm(alignment, region?)`, `exportPhylip(alignment, region?, { variant?: 'relaxed' | 'strict' })` (strict truncates names to 10 characters and adds numeric suffixes to keep them unique), `exportNexus(alignment, region?)` (DATA block, `gap=-`, `missing=?`, names quoted when needed), `formatFastaRecord`, `exportStatistics`, `exportSvg` and `exportPng` functions are also exported. SVG/PNG figures are capped at **200,000 cells**; PNG additionally caps raster dimensions/area. Use a smaller region or SVG when raster dimensions are excessive. TSV exports define denominators in column headers. JSON view state contains navigation/filter/selection settings, not alignment data or hosted sharing URLs.
 
@@ -525,13 +630,40 @@ Pasting text (Ctrl/Cmd+V) anywhere in the viewer, except into an input, textarea
 
 Ctrl/Cmd+C on the focused matrix copies gapped FASTA for the selected columns (or the visible columns). Rows are the checked rows in display order, with checked rows hidden by the filter appended; else the clicked row; else the export rows. Once statistics are ready, the copy starts with a `consensus` record for the same columns. Copy requires a secure context (HTTPS or localhost); otherwise the viewer reports an error.
 
+### Column summary
+
+`getSummary({ rows?, start?, end?, referenceId?, limit? })` returns `AlignmentSummary` and `getVariableColumns(options)` returns `VariableColumnResult`. Both return promises, run in the worker (`worker: false` runs them on the page) and share one cached result per rows, columns and reference. `rows` is `'all'` or `'filtered'` and defaults to the `statisticsScope` option. `start` and `end` are inclusive 1-based columns and default to the whole alignment. `referenceId` defaults to the pinned reference row. A newer request, a load or `destroy()` rejects a pending one with an `AbortError`.
+
+| Field | Meaning |
+| --- | --- |
+| `conserved` | One residue, no gaps |
+| `constantWithGaps` | One residue plus at least one gap |
+| `variable` | Two or more distinct residues; gaps are ignored. `singleton + parsimonyInformative = variable` |
+| `parsimonyInformative` | At least two residues each seen at least twice |
+| `singleton` | Any other variable column |
+| `gapOnly` | Every row has a gap |
+| `gapFraction` | Gap cells over rows times columns |
+| `meanPairwiseIdentity` | Pooled over all row pairs from per-column counts, canonical residues only (A/C/G/T, A/C/G/U, or the 20 amino acids). One pass, no sampling |
+| `identityToReference` | Pooled identity of every other row to the reference, as `{ matches, compared, identity }` |
+| `rowGc` | DNA and RNA only: `{ id, name, gc, bases }` per row, G+C over A+C+G+T/U in the columns summarized; null for protein |
+
+`VariableColumn` is `{ column, referenceResidue, reference, alleles: [{ residue, count }], gapCount, kind }`. `referenceResidue` honors the row offset and is null where the reference has a gap. Alleles sort by count, then letter, and exclude gaps. The list stops at `limit` (default 50,000); `total` is always exact and `truncated` says whether the list is short. Pure functions `summarizeColumns(alignment, scope)` and `variableColumns(alignment, scope)` take `{ rows (indexes), start, end, reference (index), limit }`, and `exportVariableColumns(result)` writes the TSV.
+
+Limits: the work reads rows times columns cells once (plus one pass each for reference identity and GC), in blocks of 4,096 columns so memory stays flat. The 250 million cell load limit bounds it; on the page thread a full alignment of that size blocks for seconds, so keep the worker on.
+
+The **Summary** inspector tab (`summaryTab`) shows these numbers and a table of 20 variable columns per page. Selecting two or more columns switches it to the selected block: the same counts for those columns, mean identity to the reference and the gap fraction inside the block. **Export > Variable columns (selected block or all) · TSV** writes the table for the selected block (file `variable-columns-<start>-<end>.tsv`) or, with fewer than two columns selected, the whole alignment (`variable-columns.tsv`). `getSummary` and `getVariableColumns` calls run in parallel without cancelling each other; with `statisticsScope: "filtered"` and a filter that matches no rows they reject with "No sequences match the filter". Hidden columns are not excluded from the counts.
+
 Consensus sequence: the modal non-gap residue per column. With a `consensusThreshold` above 0, a column whose modal frequency (among non-gap rows) is below the threshold becomes `X` (protein) or `N` (DNA/RNA). Ties become the IUPAC code covering every tied base for DNA/RNA (A+G is `R`, A+R is `R`, U counts as T; a tie involving `*` becomes `N`) and `X` for protein. All-gap columns stay `-`, so the sequence keeps the alignment width. The consensus track draws these symbols as colored cells; `getConsensus({ threshold? })` returns the full-width sequence and `consensusSequence(stats, alphabet, threshold?, start?, end?)` is exported as a pure function.
+
+Color threshold: `colorThreshold` (0–1) leaves residues uncolored when their column value is below it, for the `conservation` (support) and `percent-identity` (fraction of scoped rows sharing the residue) schemes. `blosum62` ignores it and uses `consensusThreshold` to decide which columns have a consensus. Row filters: `minIdentity` keeps rows with at least that percent identity to the reference (canonical positions, as in the identity sort); `minCoverage` keeps rows with at least that percent non-gap fraction. The tools row has controls for all four, each behind its own `visibility` key.
 
 ## Shareable links
 
 `getViewLink()` returns readable parameters such as `src=…&aln=…&sel=50-60&row=seq-3&ref=seq-1&scheme=soft&zoom=16&q=human&x=41`. `src` appears only when the alignment came from `loadUrl`; links to local files carry the view without the data. `src` is the full URL passed to `loadUrl`, query string included; with `urlSync` it lands in the address bar, so do not use it with signed or token-bearing URLs. Hash changes without link parameters, such as in-page anchors, are ignored. If `history.replaceState` is blocked (for example in a sandboxed iframe), sync stops and an `error` event reports it. Annotation filters and visibility are not part of links.
 
-`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `hide`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
+The active motif search travels in `ViewState` as `find`, `findMode` (omitted for `auto`) and `strands` (omitted for `both`), and in links as `find=<pattern>`, `findmode=literal|iupac|regex|prosite` and `strands=forward`. `find` is capped at 500 characters; an empty or longer value, an unknown `findmode` or `strands`, or `findmode`/`strands` without `find` is ignored and listed. Applying a link or `setState()` reruns the search through the search worker and fills the Find box; a link without `find` clears the search. `applyViewLink` skips a `find` that does not compile for the alphabet and returns `find`; `setState()` throws `Invalid search in view state.` before changing anything.
+
+`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `find`, `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `hide`, `marks`, `rc`, `strand`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
 
 With `urlSync: true` the viewer keeps `location.hash` in sync (via `history.replaceState`) and applies a hash link after the next load. The viewer never fetches `src` itself; the host decides what to load:
 

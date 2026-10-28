@@ -24,7 +24,8 @@ describe('alignment inputs and coordinates', () => {
   });
   it('rejects malformed rows, unsupported letters and unequal lengths', () => {
     expect(() => parseAlignment('>a\nAC\n>b\nA')).toThrow(/length.*b|b.*length/i);
-    expect(() => parseAlignment('>a\nA1')).toThrow(/symbol|residue/i);
+    expect(() => createAlignment([{name:'a',sequence:'A1'}])).toThrow(/symbol|residue/i);
+    expect(parseAlignment('>a\nA1').metadata.warnings?.[0].code).toBe('invalid-residue');
     expect(() => parseAlignment('hello world')).toThrow(/format/i);
     expect(() => createAlignment([])).toThrow(/sequence/i);
   });

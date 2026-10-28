@@ -88,6 +88,12 @@ function parseFlatFile(text:string,embl:boolean,warnings:string[]):AnnotationRec
 }
 export function parseGenBank(text:string,warnings:string[]=[]):AnnotationRecord[] {return parseFlatFile(text,false,warnings);}
 export function parseEmbl(text:string,warnings:string[]=[]):AnnotationRecord[] {return parseFlatFile(text,true,warnings);}
+/** True when the text is JSON whose entry, or every result or array element, has a features array. */
+export function isUniProtJson(text:string):boolean {
+  let data:any;try{data=JSON.parse(text.replace(/^﻿/,''));}catch{return false;}
+  const entries:any[]=Array.isArray(data)?data:Array.isArray(data?.results)?data.results:[data];
+  return entries.length>0&&entries.every(e=>Array.isArray(e?.features));
+}
 export function parseUniProtJson(text:string,warnings:string[]=[]):AnnotationRecord[] {
   let data:any;try{data=JSON.parse(text);}catch(error){throw new Error(`Invalid UniProt JSON: ${(error as Error).message}`);}
   const entries:any[]=Array.isArray(data)?data:Array.isArray(data?.results)?data.results:[data];

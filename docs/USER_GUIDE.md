@@ -34,11 +34,22 @@ AC-GT
 ACTGT
 ```
 
-The viewer preserves duplicate FASTA display names as separate rows. Explicit IDs supplied by an embedding application must be unique. Interleaved Stockholm and CLUSTAL blocks must be separated by blank lines and retain consistent row membership and chunk widths.
+The viewer keeps rows whose FASTA names repeat as separate rows and renames the later ones with a numeric suffix (see Check parser warnings). Explicit IDs supplied by an embedding application must be unique. Interleaved Stockholm and CLUSTAL blocks must be separated by blank lines and retain consistent row membership and chunk widths.
 
 The viewer does not align raw sequences, infer homology or repair ragged inputs. Align the sequences first using your chosen alignment tool. A3M insertion notation is unsupported: convert it to a rectangular alignment first. Known `.a3m` files and URLs are rejected; anonymous text cannot reliably distinguish insertion notation from lowercase aligned FASTA.
 
 Remote URL loading is available through the JavaScript API, not a separate URL field in the Explorer. If the source server blocks browser CORS requests, download the file and open it locally.
+
+## Check parser warnings
+
+A file with fixable problems still opens. A **N warnings** button appears at the right of the status bar. Click it to list each warning in the message area with its code, the row and the line number; **Close** dismisses the list.
+
+- `duplicate-id`: two FASTA, PHYLIP or PIR rows had the same name. The later ones were renamed with `_2`, `_3`.
+- `invalid-residue`: in any format, a character such as `?` or a digit was replaced by `N` (nucleotides) or `X` (protein).
+- `unequal-length`: rows were padded with gaps. This happens only when the page that embeds the viewer asks for it.
+- `unknown-stockholm-tag`: a `#=GF`, `#=GS`, `#=GR` or `#=GC` tag this viewer does not know was kept. Stockholm export writes it back.
+
+The list shows even when the embedding page hides the message area. The badge is hidden when there are no warnings, and removing a row drops its warnings. Embedding applications can turn it off with `visibility.warnings`.
 
 ## Choose Protein, DNA or RNA
 
@@ -109,7 +120,22 @@ To hide columns by hand, select them (click, then Shift+click, or Shift+arrows) 
 
 Selections, search hits, features, Go to and the Position tab keep using original columns. A selection that crosses a boundary still includes the hidden columns inside it. Go to a hidden column shows a message instead of moving. A search hit inside hidden columns is still selected, and the status line says it is hidden. Gap-based hiding is not saved in links or view state. Arrow keys skip hidden columns. Statistics and the consensus still use all columns.
 
-To export only what you see, choose **Export > Visible columns · FASTA**, or set **FASTA options > Columns** to **Visible columns only** so that FASTA exports, the consensus export and Ctrl/Cmd+C leave hidden columns out. The default exports always include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
+To export only what you see, choose **Export > Visible columns · FASTA**, or tick **Visible columns only** beside the Export menu. The checkbox applies to every export (FASTA, CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG, PNG, column statistics TSV, consensus) and to Ctrl/Cmd+C. In SVG and PNG figures the hidden columns collapse and a dashed red line marks each collapsed boundary; hover it in the SVG to see which columns are hidden. With the box cleared, exports include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
+
+## Read data from the API
+
+Embedding code can read the loaded data without parsing exports: `getResidue(rowId, column)`, `getColumn(column)`, `getSelectionSequences({ gaps })`, `getVisibleRows()` and `getVisibleColumns()`. `scrollToRow(rowId)` and `scrollToColumn(column)` move the view without selecting. Columns are one-based alignment columns. Gaps read as `null` from `getResidue` and `-` from `getColumn`. See the API table in the README for exact return values.
+
+## Mark columns
+
+Marks flag columns you want to come back to. A marked column gets a purple outline box across all rows and a purple bar in the ruler.
+
+- Hold Alt (Option on a Mac) and click a residue or the ruler to mark that column. Alt-click it again to remove the mark. The selection does not change.
+- Select columns, open the **Position** tab and press **Mark column**. The button reads **Unmark column** when every selected column is already marked.
+- Marks stay on their original column when you hide columns. A mark across hidden columns is drawn over the columns you can see, and a mark on hidden columns reappears when they come back.
+- Shared links carry marks as `marks=10-12,40`. Marks are cleared when you open another alignment.
+
+Developers can use `markColumns(ranges, color?)`, `unmarkColumns(ranges?)` and `getColumnMarks()`; see the README.
 
 ## Find sequences and motifs
 
@@ -139,7 +165,7 @@ An invalid pattern shows a message that names the problem, such as an unbalanced
 
 Click the diamond beside a sequence to pin it as the reference. You can also click a residue and choose **Pin reference** in the Position inspector. The reference is displayed once above the scrolling rows; pinning does not give it an extra statistical vote.
 
-**Order** offers input order, name order, identity to reference, manual order and tree order (the last once a tree is loaded). Identity ordering runs an exact comparison against the pinned sequence. After choosing it, selecting a row shows matched and compared-position counts in the inspector. Changing the reference while using identity order recomputes those comparisons.
+**Order** offers input order, name order, identity to reference, fewest gaps, longest sequence, residue at the selected column, most annotations, manual order and tree order (the last once a tree is loaded). Fewest gaps and longest sequence give the same order, because ungapped length is alignment width minus gap count. Residue at the selected column groups rows by the residue in the first selected column, alphabetically with gaps last; select a column first, and choose the order again after selecting another one. Most annotations counts annotations attached to each row. The API method `setRowOrderFromNames(names)` puts rows named in a list first, in list order, and returns the names it could not match. Identity ordering runs an exact comparison against the pinned sequence. After choosing it, selecting a row shows matched and compared-position counts in the inspector. Changing the reference while using identity order recomputes those comparisons.
 
 Row IDs keep annotations attached to their original sequence when you reorder or filter. The viewer does not infer a phylogenetic tree or cluster sequences by evolutionary distance; it draws a Newick tree you supply (see **Hide, reorder and group rows, and show a tree**).
 
@@ -172,10 +198,23 @@ Open **Color** to choose a scheme, then open the inspector's **Colors** tab for 
 | Purine / pyrimidine · muted | Explore chemical classes | A/G/R are blue; C/T/U/Y are gold. |
 | Purine / pyrimidine | Vivid chemical-class coloring | The attributed Nightingale group palette. |
 | Consensus support | Locate well-supported columns | Shade represents modal residue count divided by all rows in the chosen statistics scope. |
+| Percent identity | See how many rows share each residue | Each residue is shaded by the fraction of rows in the statistics scope that carry the same residue in its column. Gaps count as rows. |
+| BLOSUM62 to consensus | Spot conservative substitutions (protein only) | Residues with a positive BLOSUM62 score against the column consensus are colored. Tied, all-gap and below-threshold consensus columns stay uncolored. |
 
 The new four-base schemes give mixed ambiguity symbols a neutral background. Group schemes color an ambiguity symbol only when every possible base belongs to the same group: S means G/C; W means A/T; R means A/G; Y means C/T. Symbols spanning both groups remain neutral. The color choice does not change statistics, search semantics or pairwise identity exclusions.
 
 <!-- nucleotide-palette-preview -->
+
+### Colorblind-safe and high-contrast schemes
+
+| Scheme | Alphabet | Colorblind-safe | Notes |
+|---|---|---|---|
+| Residue classes · colorblind-safe | Protein | Yes | Seven classes: aliphatic, aromatic, polar, positive, negative, glycine and proline, cysteine. |
+| Nucleotide · colorblind-safe | DNA, RNA | Yes | Okabe-Ito based: A sky blue, C yellow, G dark blue, T/U vermillion. |
+| Residue classes · high contrast | Protein | Yes | Same classes with strong fills; letters keep at least 7:1 contrast. |
+| Nucleotide · high contrast | DNA, RNA | Yes | A teal, C yellow, G navy, T/U brown; letters keep at least 7:1 contrast. |
+
+"Colorblind-safe" here means every pair of class colors, and the neutral fill of ambiguity symbols (a light gray, or a dark gray in Nucleotide · high contrast), stays at least 25 apart in CIELAB under simulated deuteranopia and protanopia, checked by an automated test. Classes differ in lightness as well as hue, and the letters never depend on color. The Colors tab shows the classes of the chosen scheme. All other schemes are not checked, and several (Clustal, Zappo, Cinema, the Nightingale nucleotide palette) separate groups mostly by red and green.
 
 For protein alignments, **Residue classes** is the muted default. Fixed schemes include Clustal/Clustal2, Taylor, Zappo, Lesk, Cinema, MAE, hydrophobicity, buried index and secondary-structure propensities. These color residue identities or properties; they do not predict function or structure. Clustal2 is a fixed mapping, not column-dependent ClustalX coloring.
 
@@ -188,6 +227,16 @@ For protein alignments, **Residue classes** is the muted default. Fixed schemes 
 The menu next to **Order** controls which residues receive full color. Choose all residues, matches/differences to the reference, or matches/differences to the consensus. De-emphasized cells remain present; no rows, columns or letters are deleted.
 
 Reference comparison uses the pinned row. Consensus comparison uses the selected statistics scope. Gaps and tied-consensus markers are not treated as matching residue identities. Coloring and identity percentages are different operations: identity uses only canonical, comparable positions.
+
+## Set consensus and color thresholds
+
+Three controls in the second toolbar row set cutoffs.
+
+- **Consensus** (0 to 100%) is the `consensusThreshold` option. A consensus column whose modal frequency among non-gap rows is below it becomes `X` (protein) or `N` (DNA/RNA) in the consensus track, the consensus export and Ctrl/Cmd+C. The BLOSUM62 scheme uses the same cutoff to decide which columns have a consensus.
+- **Color cutoff** (0 to 100%) is the `colorThreshold` option. It applies to **Consensus support** and **Percent identity**: a residue whose column value is below the cutoff keeps its letter and loses its color. The slider is disabled for other schemes.
+- **Min identity** and **Min coverage** (percent) filter rows. Min identity keeps rows whose identity to the pinned reference is at least that value, using the same canonical-position comparison as the identity order; it recomputes when the reference changes. Min coverage keeps rows whose non-gap fraction (ungapped length divided by alignment width) is at least that value. Both filters combine with the name filter and hidden rows, and the status line shows the filtered row count. With **Stats → Filtered sequences**, statistics follow the filters.
+
+`visibility.consensusThreshold`, `colorThreshold`, `minIdentity` and `minCoverage` hide each control. The values are part of **View state · JSON**; links carry the two filters (`minid`, `mincov`).
 
 ## Understand the tracks and statistics
 
@@ -219,6 +268,23 @@ A Stockholm file with `#=GC` lines shows one track per line below the built-in c
 
 Developers can add their own tracks (bars, heatmaps, text or drawn by a callback) with `addTrack`, `removeTrack` and the `tracks` option. See the Tracks section of the README. When registered tracks are taller than 45% of the viewer, the track area scrolls. #=GR tracks follow the selected row, or the pinned reference when it is shown.
 
+## Summarize columns and list variants
+
+Open the **Summary** tab. It counts, for the rows in your statistics scope:
+
+- **Conserved**: one residue and no gaps.
+- **Variable**: two or more different residues. Gaps are ignored.
+- **Parsimony informative**: two residues that each appear at least twice.
+- **Singleton**: any other variable column.
+- **Constant with gaps**: one residue plus gaps.
+- **Gap only**: every row has a gap.
+
+It also shows the gap fraction, the mean pairwise identity, the identity to the reference row and, for DNA and RNA, the mean GC with the lowest and highest rows. Identity uses canonical residues only.
+
+Below the counts, a table lists each variable column with the reference residue number, the reference residue and the allele counts, such as `A:12 G:3`. Twenty columns show per page; use **Previous** and **Next**. **Export TSV**, or Export > Variable columns (selected block or all) · TSV, saves the whole list for the selected block (`variable-columns-3-12.tsv`) or, with fewer than two columns selected, for the whole alignment. With a filter that matches no rows and the filtered statistics scope, the tab says "No sequences match the filter". Hidden columns still count.
+
+To summarize a block, drag or Shift-click two or more columns while the Summary tab is open. The tab then shows the same counts for those columns only, with the mean identity to the reference and the gap fraction inside the block. Select one column or press Escape to return to the whole alignment. The Stats scope menu still chooses which rows count. The list holds up to 50,000 variable columns; the count stays exact and the TSV export lists all of them.
+
 ## Compare selected sequences
 
 1. Check two or more sequence rows.
@@ -230,6 +296,12 @@ Each pair excludes columns where either sequence has a gap, an ambiguity symbol 
 
 The matrix is limited to **200 explicitly selected rows**. It is not automatically calculated for the whole alignment. Use identity-to-reference ordering for large families.
 
+## Hover cards
+
+Rest the mouse on a residue for about 0.3 s. A card shows the sequence name, the residue, the alignment column, the residue number in that sequence (a gap has none) and, when the ruler uses reference numbering, the reference residue number. The card disappears when you move off the grid, scroll, press a key or start dragging. Touch screens show no hover cards.
+
+On a residue that carries an annotation the card also gives its label, type, consequence, disease or phenotype evidence, evidence codes, source and PubMed IDs when the data supplies them. Click the residue to keep the card open. Press Escape or the close button to dismiss it. IDs become links only when the embedding application supplies `annotationLinks`; otherwise they are plain text and nothing is fetched. Turn the cards off with `tooltips: false` or `visibility.tooltip`.
+
 ## Inspect supplied annotations
 
 The **Features** tab displays annotations supplied by the embedding application or the synthetic annotated demo. A FASTA file alone does not fetch variants, domains or disease evidence. Stockholm `#=GC` and `#=GR` lines are drawn as tracks (see Stockholm tracks below); other Stockholm metadata is retained but not plotted.
@@ -240,12 +312,14 @@ Click a mapped feature to select its alignment range. Unmapped features remain i
 
 ### Import annotation files
 
-With an alignment loaded, choose **Open alignment** or drop a `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank` or `.embl` file. The viewer adds its features to the Features tab and keeps the alignment. Gzip-compressed files work too. Without a loaded alignment, these files are rejected as alignments.
+With an alignment loaded, choose **Open alignment** or drop a `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank`, `.embl` or UniProt `.json` file. The viewer adds its features to the Features tab and keeps the alignment. Gzip-compressed files work too. Without a loaded alignment, these files are rejected as alignments.
 
 - Each feature is matched to a sequence by its ID, then its display name. GenBank and EMBL also match accession numbers.
 - Positions are residue numbers in the ungapped sequence, counted from 1 at the first residue of the row. A row start such as `seqA/51-120` is not applied, so shift such files by 50 before import. The viewer converts them to alignment columns.
 - A BED12 line becomes one `exon` feature per block. A GenBank or EMBL `join()` becomes one feature from its first to its last position.
 - Features with no matching sequence or a position past the sequence end are listed as unmapped. The message area shows how many were imported and the first warnings.
+
+A `.json` file is imported as UniProt features when it parses as JSON and has a `features` array (one entry, a list of entries, or a REST `results` list). Any other JSON, such as an exported view state, is refused with the message "is JSON but not UniProt annotations", and the alignment stays as it was. There is no alignment JSON loader, so a `.json` file never replaces the alignment while one is loaded.
 
 Applications can also call `viewer.importAnnotations(text, { rowId })` to attach features with an unknown sequence name to one row, or pass UniProt JSON.
 
@@ -266,14 +340,23 @@ Use the **Export** menu:
 | Selection · PNG | Raster version of the selected figure. |
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
 | Column statistics · TSV | All alignment columns using the current statistics scope, with denominator-specific headers, plus `entropy_bits`, `information_bits` and `quality` (`NA` when undefined). |
+| Annotations · GFF3 / TSV / JSON | The annotations listed in the Features tab, so the active annotation filter (types, consequences, disease, phenotype, hidden rows) applies. The message area reports how many were written and the first warnings. See **Export annotations** below. |
 | View state · JSON | Navigation, reference, order, filters, selection and coloring settings; not the alignment itself. |
-| FASTA options… | Opens a panel for FASTA output: keep or remove gaps, letter case, line width (80, 60 or one line per sequence) and header (name, name and species, or ID and name) and columns (all, or visible only). Press **Done** or Escape to close it. |
+| Export options… | Opens a panel with **Visible columns only** (all exports) and the FASTA settings: keep or remove gaps, letter case, line width (80, 60 or one line per sequence), header (name, name and species, or ID and name) and orientation (source, or reverse complement). Press **Done** or Escape to close it. |
 
-FASTA options apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. Only FASTA can leave out hidden columns. CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG and PNG exports always include hidden columns. They last until the page is reloaded.
+**Visible columns only** applies to every export except View state · JSON, and to **Ctrl/Cmd+C**. The FASTA settings apply to every FASTA export, the consensus export and **Ctrl/Cmd+C**. They last until the page is reloaded.
 
 For selection exports, a selected column range takes precedence over the horizontal viewport. Checked rows take precedence over the vertical viewport. Without checked rows, export uses the pinned reference plus the currently visible scrolling rows. A checked row hidden by a name filter remains part of the export. Clear checked rows when you want a viewport-only export.
 
 Figures preserve the palette, match/difference emphasis and annotation filters. They use their own fixed figure layout, not a screenshot of the entire application. SVG/PNG exports are limited to **200,000 cells** (rows × selected columns). PNG also limits dimensions to 16,384px per side and total area to 32 million pixels. Narrow the region when an export exceeds a limit.
+
+### Export annotations
+
+- Every export has alignment columns and per-row sequence coordinates, both 1-based and inclusive. Sequence coordinates count ungapped residues from 1 at the first residue of the row. A row start such as `seqA/51-120` is not applied, which matches annotation import, so a GFF3 exported here reads back onto the same residues.
+- A row-attached annotation whose columns are all gaps in its row has alignment columns but no sequence coordinates. An annotation without a row (a global interval) has alignment columns only.
+- **GFF3** writes sequence coordinates with the row name as `seqid` (the row id when several rows share the name, with a warning). Unmapped annotations, annotations without a row and annotations with no residue in their row are skipped, each with a warning. The `aln_start` and `aln_end` attributes keep the alignment columns.
+- **TSV** has one line per annotation with the columns `id`, `label`, `kind`, `row_id`, `row_name`, `mapping`, `aln_start`, `aln_end`, `seq_start`, `seq_end`, `consequence`, `disease`, `phenotype`. Unmapped annotations are listed with empty coordinate cells.
+- **JSON** has `alignment`, a `coordinates` note and an `annotations` list with `alignmentStart`, `alignmentEnd`, `sequenceStart`, `sequenceEnd` (null when unmapped), consequence, disease, phenotype and metadata.
 
 Names containing whitespace are written with `_` in CLUSTAL, Stockholm and PHYLIP; NEXUS quotes them. The API also offers strict PHYLIP (`exportPhylip(a, region, { variant: 'strict' })`). FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button; see **Share a view** for links.
 
@@ -282,9 +365,23 @@ Tick **Dots for matches** in the second toolbar row to draw each residue that eq
 
 ## Share a view
 
-In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, minimum identity and coverage, order (with `scol` for the residue order) and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`), column marks (`marks=10-12,40`), the reverse-complement view (`rc=1`), reverse-strand rows (`strand=seq-1,seq-3`) and the motif search (`find=N-{P}-[ST]-{P}`, plus `findmode=regex` or `strands=forward` when they are not the defaults). The search runs again after the alignment loads, so its hits appear a moment later. A link to a file you opened from your computer restores the view only; the recipient must open the same file.
 
 If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
+
+## Show the reverse complement
+
+For DNA and RNA, tick **Reverse complement** in the second toolbar row to see the alignment as its reverse complement. The columns run right to left and every base is complemented, so A becomes T (U in RNA), C becomes G, and ambiguity codes swap in pairs (R/Y, K/M, B/V, D/H). Gaps stay gaps. The alignment itself does not change.
+
+The ruler counts original column numbers downwards, for example `12 ... 1`, and its label reads "Alignment position · reverse complement". The status line shows the visible columns from high to low. Selections, search hits, features, Go to, hidden columns and links keep original column numbers. The consensus and logo tracks show complemented letters. Column statistics still describe the source residues. The Position tab shows the displayed letter and, when it differs, a line "Source residue X". Press Left and Right to move one displayed column, so Right goes to a lower column number.
+
+To flag one sequence as the reverse strand, click the `+` button in its label. It turns into `−` and that row is drawn complemented in place, so columns stay aligned. Click again to clear it. With **Reverse complement** on, a flagged row is complemented twice and reads as its source letters, right to left. A developer can do the same with `setRowStrand(id, '-')`.
+
+With protein alignments the checkbox is disabled, and no strand buttons appear.
+
+Exports keep the source orientation, whatever the view shows. To export reverse-complemented FASTA, open **Export > FASTA options…** and set **Orientation** to **Reverse complement**. This applies to FASTA exports, the consensus export and Ctrl/Cmd+C, adds ` (reverse complement)` to each header and does not affect other formats. On a protein alignment the option is ignored and the select is disabled. Row strand flags never change copy, FASTA or Stockholm exports: they always write the stored residues, reverse-complemented only when **Orientation** says so. Sorting by residue, identity, gaps or length compares the stored residues, not the displayed ones, in both the reverse-complement view and flagged rows.
+
+Links carry `rc=1` for the whole view and `strand=id1,id2` for flagged rows. **Export > View state · JSON** stores the same two settings.
 
 ## Show and hide interface elements
 
