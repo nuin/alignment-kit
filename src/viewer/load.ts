@@ -4,6 +4,7 @@ import { readAlignmentInput } from '../parsers';
 import { colorSchemes } from '../colors';
 import { $ } from '../controls';
 import { type Core, type Carry } from './core';
+import { syncWarnings } from './warnings';
 export async function loadInput(v:Core, input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {
   v.assertAlive();v.parser.cancel();v.request?.abort();const token=++v.loadRevision;v.loading=true;
   v.message('Reading alignment…');
@@ -45,7 +46,7 @@ export async function replace(v:Core, alignment:Alignment,carry?:Carry):Promise<
   v.message('Calculating exact column statistics…');
   try{await v.updateStats();}catch(error){if(v.revision===revision)v.loading=false;throw error;}
   if(!v.disposed&&v.revision===revision&&v.a===alignment){
-    v.message('');v.emit('ready',alignment);
+    v.message('');syncWarnings(v);v.emit('ready',alignment);
     v.loading=false;const link=v.pendingLink;v.pendingLink=undefined;if(link)await v.applyViewLink(link).catch(()=>[]);
   }
 }
@@ -72,5 +73,5 @@ export function clear(v:Core):void {
   v.a=undefined;v.detected=undefined;v.stats=undefined;v.fullStats=undefined;v.rows=[];v.filteredRows=[];v.selection=null;v.dropSearch();v.selectedRows.clear();v.annotationFilter={};v.hidden.clear();v.manualHidden=[];v.colMap=undefined;v.manualOrder=null;v.collapsed.clear();v.groupMap=null;v.groupList=[];v.tree=undefined;v.treeHits=[];v.rowPos=new Int32Array(0);if(v.sort==='tree'||v.sort==='manual'){v.sort='input';$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value='input';}
   v.rebuildAnnotations();v.labels.replaceChildren();v.inspector.replaceChildren();
   for(const canvas of v.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
-  $(v.root,'.ak-reference-label').textContent='Reference';$(v.root,'.ak-overview-window').style.width='0';$(v.root,'.ak-status-main').textContent='No alignment loaded';$(v.root,'.ak-status-detail').textContent='';$(v.root,'.ak-empty').textContent='Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).';v.message('');v.layout();v.emit('selection',null);
+  $(v.root,'.ak-reference-label').textContent='Reference';$(v.root,'.ak-overview-window').style.width='0';$(v.root,'.ak-status-main').textContent='No alignment loaded';$(v.root,'.ak-status-detail').textContent='';$(v.root,'.ak-empty').textContent='Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).';v.message('');syncWarnings(v,false);v.layout();v.emit('selection',null);
 }

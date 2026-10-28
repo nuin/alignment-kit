@@ -3,7 +3,7 @@ import type { Alphabet, ViewerVisibility } from './types';
 /** Every presentation switch defaults on, except the frequency logo and the entropy and quality tracks. */
 export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.freeze({
   toolbar:true, tools:true, overview:true, overviewTitle:true, tracks:true, alignment:true,
-  inspector:true, inspectorTabs:true, status:true, statusSummary:true, statusDetails:true,
+  inspector:true, inspectorTabs:true, status:true, statusSummary:true, statusDetails:true, warnings:true,
   open:true, search:true, colorScheme:true, zoom:true, fit:true, theme:true,
   inspectorToggle:true, fullscreen:true, export:true, goTo:true, motif:true,
   order:true, colorMode:true, logoToggle:true, matchDots:true, statisticsScope:true, alphabet:true,
@@ -18,7 +18,7 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
   toolbar:'.ak-toolbar',tools:'.ak-tools',overview:'.ak-overview-wrap',overviewTitle:'.ak-overview-title',alignment:'.ak-grid',
-  inspector:'.ak-inspector',inspectorTabs:'.ak-tabs',status:'.ak-status',statusSummary:'.ak-status-main',statusDetails:'.ak-status-detail',
+  inspector:'.ak-inspector',inspectorTabs:'.ak-tabs',status:'.ak-status',statusSummary:'.ak-status-main',statusDetails:'.ak-status-detail',warnings:'.ak-warnings',
   open:'[data-action="open"],.ak-toolbar-divider',search:'.ak-search',colorScheme:'.ak-scheme-label',zoom:'.ak-zoom',fit:'[data-action="fit"]',
   theme:'[data-action="theme"]',inspectorToggle:'[data-action="inspect"]',fullscreen:'[data-action="fullscreen"]',export:'select[aria-label="Export alignment"]',
   goTo:'[aria-label="Go to alignment column"]',motif:'.ak-motif',order:'select[aria-label="Sequence order"]',colorMode:'select[aria-label="Residues to color"]',

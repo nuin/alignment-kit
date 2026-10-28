@@ -8,8 +8,11 @@ export interface Annotation {
   color?: string; mapping: 'mapped' | 'unmapped'; metadata?: Record<string, unknown>;
 }
 export interface Provenance { url?: string; retrieved?: string; sha256?: string; description?: string }
+/** `duplicate-id` (name renamed with a numeric suffix), `name-truncated` (strict PHYLIP name field), `invalid-residue` (character replaced by N or X), `unequal-length` (row padded with gaps, only with `padShort`), `unknown-stockholm-tag` (tag kept in metadata). `line` is one-based; `rowId` is the ID the row has in the alignment. */
+export type ParseWarningCode = 'duplicate-id'|'name-truncated'|'invalid-residue'|'unequal-length'|'unknown-stockholm-tag';
+export interface ParseWarning { code:ParseWarningCode; message:string; line?:number; rowId?:string }
 export interface AlignmentMetadata {
-  format?: string; source?: Provenance; headers?: string[];
+  format?: string; warnings?: ParseWarning[]; source?: Provenance; headers?: string[];
   stockholm?: { GF: Record<string,string[]>; GS: Record<string,Record<string,string[]>>; GC: Record<string,string>; GR: Record<string,Record<string,string>> };
   [key:string]: unknown;
 }
@@ -17,7 +20,8 @@ export interface Alignment {
   id: string; name: string; alphabet: Alphabet; width: number; rows: Sequence[];
   codes: Uint8Array; annotations: Annotation[]; metadata: AlignmentMetadata;
 }
-export interface ParseOptions { name?: string; alphabet?: Alphabet; format?: 'fasta'|'stockholm'|'clustal'|'phylip'|'nexus'|'msf'|'pir'; source?: Provenance }
+/** `padShort` pads shorter rows of FASTA, PIR and MSF input with trailing gaps (one `unequal-length` warning per row) instead of rejecting the file. */
+export interface ParseOptions { padShort?: boolean; name?: string; alphabet?: Alphabet; format?: 'fasta'|'stockholm'|'clustal'|'phylip'|'nexus'|'msf'|'pir'; source?: Provenance }
 /** `entropy` and `information` are in bits (NaN for all-gap columns); `quality` is 0 to 1, protein only (NaN otherwise and for columns with fewer than two scored residues). */
 export interface AlignmentStats { width:number; total:number; counts:Uint32Array; gaps:Uint32Array; consensus:Uint8Array; frequency:Float32Array; support:Float32Array; entropy:Float32Array; information:Float32Array; quality:Float32Array }
 export interface ColumnDetail { column:number; total:number; gapCount:number; gapFraction:number|null; consensus:string|null; tied:boolean; frequency:number|null; support:number|null; entropy:number|null; information:number|null; quality:number|null; counts:{residue:string;count:number}[] }
@@ -45,6 +49,7 @@ export interface ViewerVisibility {
   status?:boolean;
   statusSummary?:boolean;
   statusDetails?:boolean;
+  warnings?:boolean;
   open?:boolean;
   search?:boolean;
   colorScheme?:boolean;
@@ -151,7 +156,7 @@ export interface ViewState {
   hiddenRowIds?:string[]; manualOrder?:string[]|null; collapsedGroups?:string[];
 }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
-export interface ViewerEvents { selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }
+export interface ViewerEvents { selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState; warnings:ParseWarning[] }
 export type ViewerEvent = keyof ViewerEvents;
 export type EventHandler<K extends ViewerEvent> = (event:ViewerEvents[K])=>void;
 /** FASTA output settings shared by export and copy. Defaults: keep gaps, original case, 80 columns, name header. */

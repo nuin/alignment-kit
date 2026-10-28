@@ -1,5 +1,5 @@
 import { defaultVisibility } from './visibility';
-import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack } from './types';
+import { type Alphabet, type ViewerVisibility, type Alignment, type AlignmentStats, type ViewerOptions, type ViewerEvents, type ViewerEvent, type EventHandler, type ViewState, type Selection, type AnnotationFilter, type ParseOptions, type ExportRegion, type Annotation, type AnnotationImportOptions, type AnnotationImportResult, type Hit, type SearchOptions, type SearchResult, type CustomTrack, type ParseWarning } from './types';
 import { AnnotationIndex, filterAnnotations } from './annotations';
 import { ThemedSelects } from './selects';
 import { Renderer, type RenderView, type GroupInfo, type TreeHit } from './renderer';
@@ -24,6 +24,8 @@ import * as modFind from './viewer/find';
 import * as modOutput from './viewer/output';
 import * as modActions from './viewer/actions';
 import * as modBind from './viewer/bind';
+import * as modData from './viewer/data';
+import * as modWarnings from './viewer/warnings';
 import type { Core, Carry, BoundTree, SearchState, ViewerSettings } from './viewer/core';
 
 export class AlignmentViewer {
@@ -108,6 +110,22 @@ export class AlignmentViewer {
   private requestAlphabet(next:Alphabet):void {modLoad.requestAlphabet(this.core, next);}
   private applyAlphabet(next:Alphabet):void {modLoad.applyAlphabet(this.core, next);}
   getStatistics():AlignmentStats|undefined{return this.stats;}
+  /** Warnings the parser recorded for the loaded alignment (copies); empty when none or nothing is loaded. */
+  getWarnings():ParseWarning[] {this.assertAlive();return modWarnings.warningsOf(this.core);}
+  /** Residue letter (upper case) at a one-based alignment column, or null for a gap, an unknown row ID or a column outside the alignment. */
+  getResidue(rowId:string,column:number):string|null {return modData.getResidue(this.core, rowId, column);}
+  /** Every row's symbol in one one-based alignment column, in input order, with `-` for gaps. Empty for a column outside the alignment. */
+  getColumn(column:number):{rowId:string;residue:string}[] {return modData.getColumn(this.core, column);}
+  /** Sequences of the checked rows (display order), else of the selected row, cut to the selected columns, else full width. Empty when nothing is selected. Hidden-column masking is ignored; `gaps: 'remove'` drops - and . characters. */
+  getSelectionSequences(options:{gaps?:'keep'|'remove'}={}):{id:string;name:string;sequence:string}[] {return modData.getSelectionSequences(this.core, options);}
+  /** IDs of the rows shown in the grid, in display order: the pinned reference first (unless hidden), then the rows that are neither hidden, filtered out nor inside a collapsed group. Not limited to the scrolled viewport. */
+  getVisibleRows():string[] {return modData.getVisibleRows(this.core);}
+  /** One-based original columns at the left and right edge of the viewport; `{start:0,end:0}` before a load. */
+  getVisibleColumns():{start:number;end:number} {return modData.getVisibleColumns(this.core);}
+  /** Scroll so the row is the first in the grid. Returns false for an unknown ID or a row that is hidden, filtered out or collapsed; true for the pinned reference without scrolling. The selection does not change. */
+  scrollToRow(rowId:string):boolean {return modData.scrollToRow(this.core, rowId);}
+  /** Scroll so the one-based column is at the left edge. Returns false for a column outside the alignment or a hidden column. The selection does not change. */
+  scrollToColumn(column:number):boolean {return modData.scrollToColumn(this.core, column);}
   getSelectedRowIds():string[]{return [...this.selectedRows];}
   load(input:string|Blob|ArrayBuffer,options:ParseOptions={}):Promise<void> {return this.loadInput(input,options);}
   private loadInput(input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {return modLoad.loadInput(this.core, input, options, source);}
@@ -166,7 +184,7 @@ export class AlignmentViewer {
   private render():void {modDraw.render(this.core);}
   private message(message:string,isError=false) {
     if(this.pendingAlphabet){this.pendingAlphabet=undefined;if(this.a)$<HTMLSelectElement>(this.root,'[aria-label="Sequence alphabet"]').value=this.a.alphabet;this.menus.sync();}
-    const target=$(this.root,'.ak-message');target.hidden=!message||!this.visibility.messages;target.textContent=message;target.dataset.error=String(isError);}
+    const target=$(this.root,'.ak-message');target.hidden=!message||!this.visibility.messages;target.textContent=message;target.dataset.error=String(isError);target.dataset.list='false';}
   private zoom(value:number):void {modOptions.zoom(this.core, value);}
   private itemAt(event:MouseEvent):number|undefined {return modSelection.itemAt(this.core, event);}
   private eventAt(event:MouseEvent):Selection|null {return modSelection.eventAt(this.core, event);}

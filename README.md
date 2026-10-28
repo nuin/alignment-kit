@@ -152,7 +152,7 @@ The Svelte component accepts `class`, `style` and `id`. It supports SSR and only
 }}></div>
 ```
 
-Both framework integrations accept `alignment`, `options`, `onReady`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick`, `onSearch` and `onError`. `onSearch` receives a copy of `{ hits, truncated }` when each search finishes, or `null` when the search is cleared. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
+Both framework integrations accept `alignment`, `options`, `onReady`, `onWarnings`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick`, `onSearch` and `onError`. `onSearch` receives a copy of `{ hits, truncated }` when each search finishes, or `null` when the search is cleared. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
 
 ## Configure the interface
 
@@ -191,7 +191,7 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
-| Feedback | `statusSummary`, `statusDetails`, `messages`, `emptyState` |
+| Feedback | `statusSummary`, `statusDetails`, `warnings`, `messages`, `emptyState` |
 
 `toolbar` controls the main toolbar; `tools` controls the secondary row. `alignment` controls the scrolling matrix. `logoToggle` hides only its checkbox, while `logo` controls the actual frequency track. `reference: false` (or `tracks: false`) returns the reference sequence to the scrolling rows under the current filter/order; it remains the comparison reference. No sequence is dropped from the alignment or statistics. `labels: false` reclaims the gutter width and keeps canvas hit testing aligned.
 
@@ -330,6 +330,20 @@ Statistics default to all loaded rows. Scrolling, pinning a reference and visual
 
 Ambiguity symbols are counted separately and never fractionally distributed. All-gap modal frequency/consensus and identity with zero comparable positions are unavailable. Pairwise identity excludes gaps, ambiguity and stops; it includes matched and compared-position counts. Its matrix is calculated only for selected rows, capped at 200, in a cancellable worker. Selecting **Identity to reference** computes and sorts reference identities; selecting a row then shows its identity and compared-position count.
 
+## Parser warnings
+
+Recoverable problems no longer fail a load. The parser repairs them and lists them in `alignment.metadata.warnings` (absent when there are none). Each warning is `{ code, message, line?, rowId? }`; `line` is one-based and `rowId` is the ID the row has in the alignment.
+
+| Code | Case | Repair |
+|---|---|---|
+| `duplicate-id` | FASTA, PHYLIP or PIR rows with the same name | Later rows get `_2`, `_3` and so on (next free number) |
+| `invalid-residue` | FASTA, PHYLIP, PIR, MSF or NEXUS characters other than letters, `*`, `-` and `.` | Replaced by `N` for nucleotide input, `X` otherwise (the `alphabet` option decides when given); one warning per row |
+| `unequal-length` | Rows of different length, only with the `padShort` parse option (FASTA, PIR, MSF) | Short rows padded with trailing gaps; without `padShort` the load still fails |
+| `name-truncated` | PHYLIP read with 10-character name fields whose field is full | Name kept as read; the warning says it may have been cut |
+| `unknown-stockholm-tag` | A `#=GF`, `#=GS`, `#=GR` or `#=GC` tag outside the Stockholm standard set, or a `#=` line of another kind | Kept in `metadata.stockholm` (or `metadata.headers`); one warning per tag |
+
+The viewer shows a warnings badge in the status bar (`visibility.warnings`). Clicking it lists the warnings in the message area, so `visibility.messages` must be on. The `warnings` event fires after each load with the same list, and `getWarnings()` returns it. Stockholm export writes back comments and every `#=GF`, `#=GS`, `#=GR` and `#=GC` line, cut to the exported rows and columns.
+
 ## Hide columns
 
 Column masking hides columns without changing the alignment. Hidden columns leave the grid, the tracks and the overview; the remaining columns close up. Coordinates stay original: selections, `getState().selection`, search hits, annotations, go-to, the Position tab, `hit.start`/`hit.end` and the ruler all use alignment columns (or reference residues in reference mode). Statistics and the consensus are still computed over all columns.
@@ -454,10 +468,17 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `getViewLink()` / `applyViewLink(link)` | Encode the view as URL parameters / apply a link, skipping settings that do not fit |
 | `goToResidue(rowId, position)` | Select residue `position` of the row with that ID (numbered as in the ruler); returns `false` and shows a message if the row or residue does not exist |
 | `addTrack(track)` / `removeTrack(id)` / `getTracks()` | Register, remove and list custom tracks (see Tracks) |
+| `getWarnings()` | Copies of the parser warnings of the loaded alignment (see Parser warnings) |
+| `getResidue(rowId, column)` | Upper-case residue at a one-based column; `null` for a gap, an unknown row or a column outside the alignment |
+| `getColumn(column)` | `{ rowId, residue }[]` for every row in input order (`-` for gaps); `[]` outside the alignment |
+| `getSelectionSequences({ gaps? })` | `{ id, name, sequence }[]` for the checked rows (display order), else the selected row, cut to the selected columns; `gaps: 'remove'` drops gap characters; `[]` with no selection |
+| `getVisibleRows()` | Row IDs shown in the grid in display order: the pinned reference first, then rows that are not hidden, filtered out or collapsed |
+| `getVisibleColumns()` | `{ start, end }`, the one-based original columns at the viewport edges |
+| `scrollToRow(rowId)` / `scrollToColumn(column)` | Scroll the row to the top or the column to the left edge without changing the selection; `false` for unknown, hidden, filtered, collapsed or out-of-range targets |
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
-Events: `ready`, `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
+Events: `ready`, `warnings` (the parser warnings of each loaded alignment, an empty array when there are none), `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
 Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 

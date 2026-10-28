@@ -34,11 +34,23 @@ AC-GT
 ACTGT
 ```
 
-The viewer preserves duplicate FASTA display names as separate rows. Explicit IDs supplied by an embedding application must be unique. Interleaved Stockholm and CLUSTAL blocks must be separated by blank lines and retain consistent row membership and chunk widths.
+The viewer keeps rows whose FASTA names repeat as separate rows and renames the later ones with a numeric suffix (see Check parser warnings). Explicit IDs supplied by an embedding application must be unique. Interleaved Stockholm and CLUSTAL blocks must be separated by blank lines and retain consistent row membership and chunk widths.
 
 The viewer does not align raw sequences, infer homology or repair ragged inputs. Align the sequences first using your chosen alignment tool. A3M insertion notation is unsupported: convert it to a rectangular alignment first. Known `.a3m` files and URLs are rejected; anonymous text cannot reliably distinguish insertion notation from lowercase aligned FASTA.
 
 Remote URL loading is available through the JavaScript API, not a separate URL field in the Explorer. If the source server blocks browser CORS requests, download the file and open it locally.
+
+## Check parser warnings
+
+A file with fixable problems still opens. A **N warnings** button appears at the right of the status bar. Click it to list each warning in the message area with its code, the row and the line number; **Close** dismisses the list.
+
+- `duplicate-id`: two FASTA, PHYLIP or PIR rows had the same name. The later ones were renamed with `_2`, `_3`.
+- `invalid-residue`: a character such as `?` or a digit was replaced by `N` (nucleotides) or `X` (protein).
+- `unequal-length`: rows were padded with gaps. This happens only when the page that embeds the viewer asks for it.
+- `name-truncated`: a 10-character PHYLIP name may have been cut.
+- `unknown-stockholm-tag`: a `#=GF`, `#=GS`, `#=GR` or `#=GC` tag this viewer does not know was kept. Stockholm export writes it back.
+
+The badge is hidden when there are no warnings. Embedding applications can turn it off with `visibility.warnings`.
 
 ## Choose Protein, DNA or RNA
 
@@ -110,6 +122,10 @@ To hide columns by hand, select them (click, then Shift+click, or Shift+arrows) 
 Selections, search hits, features, Go to and the Position tab keep using original columns. A selection that crosses a boundary still includes the hidden columns inside it. Go to a hidden column shows a message instead of moving. A search hit inside hidden columns is still selected, and the status line says it is hidden. Gap-based hiding is not saved in links or view state. Arrow keys skip hidden columns. Statistics and the consensus still use all columns.
 
 To export only what you see, choose **Export > Visible columns · FASTA**, or set **FASTA options > Columns** to **Visible columns only** so that FASTA exports, the consensus export and Ctrl/Cmd+C leave hidden columns out. The default exports always include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
+
+## Read data from the API
+
+Embedding code can read the loaded data without parsing exports: `getResidue(rowId, column)`, `getColumn(column)`, `getSelectionSequences({ gaps })`, `getVisibleRows()` and `getVisibleColumns()`. `scrollToRow(rowId)` and `scrollToColumn(column)` move the view without selecting. Columns are one-based alignment columns. Gaps read as `null` from `getResidue` and `-` from `getColumn`. See the API table in the README for exact return values.
 
 ## Find sequences and motifs
 
