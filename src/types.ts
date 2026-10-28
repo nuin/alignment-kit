@@ -51,6 +51,7 @@ export interface ViewerVisibility {
   order?:boolean;
   colorMode?:boolean;
   logoToggle?:boolean;
+  matchDots?:boolean;
   statisticsScope?:boolean;
   alphabet?:boolean;
   ruler?:boolean;
@@ -87,7 +88,7 @@ export interface ViewerVisibility {
 export interface ViewerOptions {
   visibility?:ViewerVisibility;
   alignment?: Alignment; height?:number; theme?:'light'|'dark';
-  colorScheme?:string; colorMode?:ColorMode; cellWidth?:number; rowHeight?:number;
+  colorScheme?:string; colorMode?:ColorMode; /** 'dot' draws residues identical to the comparison residue (consensus for consensus-* color modes, else the pinned reference row) as '.'. Default 'letter'. */ matchDisplay?:'letter'|'dot'; cellWidth?:number; rowHeight?:number;
   labelWidth?:number; showLogo?:boolean; showInspector?:boolean; showToolbar?:boolean;
   statisticsScope?:'all'|'filtered'; workerUrl?:string|URL; worker?:boolean;
   /** 0 to 1. Consensus columns whose modal frequency (non-gap rows) is below this become X (protein) or N (DNA/RNA). Default 0. */
@@ -101,7 +102,7 @@ export interface ViewState {
   visibility?:ViewerVisibility;
   version:1; alignmentId:string; referenceId:string|null; query:string; sort:'input'|'name'|'identity';
   start:number; rowOffset:number; cellWidth:number; selection:Selection|null;
-  colorScheme:string; colorMode:ColorMode; statisticsScope:'all'|'filtered'; annotationFilter:AnnotationFilter;
+  colorScheme:string; colorMode:ColorMode; matchDisplay?:'letter'|'dot'; statisticsScope:'all'|'filtered'; annotationFilter:AnnotationFilter;
 }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
 export interface ViewerEvents { selection:Selection|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }

@@ -17,7 +17,7 @@ const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number
 export class AlignmentViewer {
   readonly element:HTMLElement;
   private root:HTMLElement;private scroll:HTMLElement;private labels:HTMLElement;private inspector:HTMLElement;
-  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'>>;
+  private options:Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'fasta'>>;
   private a?:Alignment; private stats?:AlignmentStats;private fullStats?:AlignmentStats;
   private reference=0;private filteredRows:number[]=[];private rows:number[]=[];private query='';private sort:ViewState['sort']='input';private identities?:number[];private identityDetails?:import('./types').Identity[];
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
@@ -29,6 +29,7 @@ export class AlignmentViewer {
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
   private visibility:Required<ViewerVisibility>={...defaultVisibility};
   private get gutter(){return this.visibility.labels?this.options.labelWidth:0;}
+  private get matchDots(){return this.options.matchDisplay==='dot'&&(this.options.colorMode.startsWith('consensus')||this.pinned||this.filteredRows.includes(this.reference));}
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
@@ -36,7 +37,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,...options,fasta:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,...options,fasta:{}};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -123,6 +124,7 @@ export class AlignmentViewer {
     $<HTMLSelectElement>(this.root,'[aria-label="Residues to color"]').value=this.options.colorMode;
     $<HTMLSelectElement>(this.root,'[aria-label="Statistics scope"]').value=this.options.statisticsScope;
     $<HTMLInputElement>(this.root,'[aria-label="Show frequency logo"]').checked=this.options.showLogo;
+    $<HTMLInputElement>(this.root,'[aria-label="Dots for matches"]').checked=this.options.matchDisplay==='dot';
     const f=this.options.fasta,width=$<HTMLSelectElement>(this.root,'[aria-label="FASTA line width"]'),lineWidth=String(f.lineWidth??80);
     if(![...width.options].some(o=>o.value===lineWidth))width.add(new Option(lineWidth,lineWidth));
     width.value=lineWidth;$<HTMLSelectElement>(this.root,'[aria-label="FASTA gaps"]').value=f.gaps??'keep';
@@ -179,14 +181,14 @@ export class AlignmentViewer {
   }
   setAnnotationFilter(filter:AnnotationFilter) {this.assertAlive();this.annotationFilter={...filter};this.featurePage=0;this.rebuildAnnotations();this.inspectorDirty=true;this.schedule();}
   private rebuildAnnotations() {this.filteredAnnotations=filterAnnotations(this.a?.annotations??[],this.annotationFilter);this.annotationIndex=new AnnotationIndex(this.filteredAnnotations.visible);}
-  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,statisticsScope:this.options.statisticsScope,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility()};}
+  getState():ViewState {return {version:1,alignmentId:this.a?.id??'',referenceId:this.a?.rows[this.reference]?.id??null,query:this.query,sort:this.sort,start:Math.floor(this.scroll.scrollLeft/this.options.cellWidth)+1,rowOffset:Math.floor(this.scroll.scrollTop/this.options.rowHeight),cellWidth:this.options.cellWidth,selection:this.selection?{...this.selection}:null,colorScheme:this.options.colorScheme,colorMode:this.options.colorMode,matchDisplay:this.options.matchDisplay,statisticsScope:this.options.statisticsScope,annotationFilter:structuredClone(this.annotationFilter),visibility:this.getVisibility()};}
   async setState(state:ViewState) {
     if(!this.a||state.version!==1||state.alignmentId!==this.a.id)throw new Error('View state belongs to a different alignment or unsupported version.');
     if(!Number.isFinite(state.start)||!Number.isFinite(state.rowOffset))throw new Error('Invalid view state.');
-    this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,statisticsScope:state.statisticsScope,visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
+    this.setOptions({cellWidth:state.cellWidth,colorScheme:state.colorScheme,colorMode:state.colorMode,matchDisplay:state.matchDisplay??'letter',statisticsScope:state.statisticsScope,visibility:state.visibility});this.setFilter(state.query);if(state.referenceId)this.setReference(state.referenceId);await this.setSort(state.sort);this.setAnnotationFilter(state.annotationFilter);this.setSelection(state.selection,false);
     this.scroll.scrollLeft=(state.start-1)*this.options.cellWidth;this.scroll.scrollTop=state.rowOffset*this.options.rowHeight;this.schedule();
   }
-  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold};}
+  private view():RenderView {return {a:this.a!,stats:this.stats,rows:this.rows,reference:this.reference,x:this.scroll.scrollLeft,y:this.scroll.scrollTop,cw:this.options.cellWidth,rh:this.options.rowHeight,gutter:this.gutter,scheme:this.options.colorScheme,mode:this.options.colorMode,matchDots:this.matchDots,dark:this.options.theme==='dark',selection:this.selection,annotations:this.annotationIndex,logo:this.options.showLogo,visibility:this.visibility,threshold:this.options.consensusThreshold};}
   private layout() {
     if(this.disposed)return;const rh=this.options.rowHeight,gutter=this.gutter;
     const tracks=trackLayout(this.visibility,rh);
@@ -264,7 +266,7 @@ export class AlignmentViewer {
   async applyViewLink(input:ViewLink|string):Promise<string[]> {
     this.assertAlive();if(!this.a)throw new Error('Load an alignment before applying a view link.');
     const link=typeof input==='string'?decodeViewLink(input):input,a=this.a,skipped=[...(link.ignored??[])];
-    const options:ViewerOptions={colorMode:link.colorMode??'all',statisticsScope:link.statisticsScope??'all'};
+    const options:ViewerOptions={colorMode:link.colorMode??'all',matchDisplay:link.matchDisplay??'letter',statisticsScope:link.statisticsScope??'all'};
     if(link.cellWidth!==undefined)options.cellWidth=link.cellWidth;
     if(link.colorScheme){if(colorSchemes(a.alphabet).some(s=>s.id===link.colorScheme))options.colorScheme=link.colorScheme;else skipped.push('scheme');}
     this.setOptions(options);this.setFilter(link.query??'');
@@ -355,8 +357,8 @@ export class AlignmentViewer {
       if(['svg','png','tsv','consensus'].includes(kind)&&!this.stats)throw new Error('Wait for column statistics to finish before exporting.');
       if(kind==='consensus')download(this.consensusFasta(region.start!,region.end!),'consensus.fasta');
       if(kind==='tsv')download(exportStatistics(this.stats!),'column-statistics.tsv','text/tab-separated-values');
-      if(kind==='svg')download(exportSvg({...this.a,annotations:this.filteredAnnotations.visible},this.stats!,region,this.options.colorScheme,{colorMode:this.options.colorMode,referenceId:this.a.rows[this.reference].id}),'alignment.svg','image/svg+xml');
-      if(kind==='png')download(await exportPng({...this.a,annotations:this.filteredAnnotations.visible},this.stats!,region,this.options.colorScheme,{colorMode:this.options.colorMode,referenceId:this.a.rows[this.reference].id}),'alignment.png');
+      if(kind==='svg')download(exportSvg({...this.a,annotations:this.filteredAnnotations.visible},this.stats!,region,this.options.colorScheme,{colorMode:this.options.colorMode,matchDisplay:this.options.matchDisplay,referenceId:this.a.rows[this.reference].id}),'alignment.svg','image/svg+xml');
+      if(kind==='png')download(await exportPng({...this.a,annotations:this.filteredAnnotations.visible},this.stats!,region,this.options.colorScheme,{colorMode:this.options.colorMode,matchDisplay:this.options.matchDisplay,referenceId:this.a.rows[this.reference].id}),'alignment.png');
     }catch(error){this.error(error);}
   }
   private bind() {
@@ -378,6 +380,7 @@ export class AlignmentViewer {
       if(aria==='Color scheme')this.setOptions({colorScheme:target.value});
       if(aria==='Residues to color')this.setOptions({colorMode:target.value as ColorMode});
       if(aria==='Statistics scope')this.setOptions({statisticsScope:target.value as 'all'|'filtered'});
+      if(aria==='Dots for matches')this.setOptions({matchDisplay:target.checked?'dot':'letter'});
       if(aria==='Show frequency logo')this.setOptions({showLogo:target.checked});
       if(aria==='Sequence order')void this.setSort(target.value as ViewState['sort']);
       if(aria==='Export alignment'){if(target.value==='fasta-options')this.fastaPanel(true);else void this.export(target.value);target.value='';}

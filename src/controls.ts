@@ -22,6 +22,7 @@ export function buildShell(root:HTMLElement) {
     <label>Order <select aria-label="Sequence order"><option value="input">As loaded</option><option value="name">Name</option><option value="identity">Identity to reference</option></select></label>
     <select aria-label="Residues to color"><option value="all">All residues</option><option value="reference-differences">Differences to reference</option><option value="reference-matches">Matches to reference</option><option value="consensus-differences">Differences to consensus</option><option value="consensus-matches">Matches to consensus</option></select>
     <label><input type="checkbox" aria-label="Show frequency logo"> Frequency logo</label>
+    <label><input type="checkbox" aria-label="Dots for matches"> Dots for matches</label>
     <label>Stats <select aria-label="Statistics scope"><option value="all">All sequences</option><option value="filtered">Filtered sequences</option></select></label>
     <label>Type <select aria-label="Sequence alphabet"><option value="protein">Protein</option><option value="dna">DNA</option><option value="rna">RNA</option></select></label>
   </div>

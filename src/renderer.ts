@@ -4,10 +4,11 @@ import type { Alignment, AlignmentStats, ColorMode, Selection } from './types';
 import { getColorScheme, residueColor, textColor } from './colors';
 import { AnnotationIndex } from './annotations';
 import { STRIDE, SYMBOLS, consensusSymbol } from './analysis';
+import { isGap } from './model';
 export interface RenderView {
   a:Alignment; stats?:AlignmentStats; rows:number[]; reference:number; x:number; y:number;
   cw:number; rh:number; gutter:number; scheme:string; mode:ColorMode; dark:boolean;
-  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number;
+  selection:Selection|null; annotations:AnnotationIndex; logo:boolean; visibility?:Required<ViewerVisibility>; threshold?:number; matchDots?:boolean;
 }
 export function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
   const dpr=Math.min(window.devicePixelRatio||1,3);
@@ -22,13 +23,15 @@ export class Renderer {
     const dpr=Math.min(window.devicePixelRatio||1,3),key=[v.cw,v.rh,v.scheme,dpr,v.visibility?.residueLetters].join(':');
     if(key===this.key && this.atlas)return this.atlas;
     this.key=key;const canvas=document.createElement('canvas');
-    const cw=v.cw,rh=v.rh;canvas.width=Math.ceil(128*cw*dpr);canvas.height=Math.ceil(rh*dpr);
+    const cw=v.cw,rh=v.rh;canvas.width=Math.ceil(128*cw*dpr);canvas.height=Math.ceil(rh*2*dpr);
     const ctx=canvas.getContext('2d')!;ctx.scale(dpr,dpr);const scheme=getColorScheme(v.scheme);
     ctx.font=`500 ${Math.min(14,Math.max(9,cw-3))}px "Alignment Mono", ui-monospace, monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
     for(let code=0;code<128;code++) {
       const residue=String.fromCharCode(code),color=residueColor(residue,scheme);
       ctx.fillStyle=color;ctx.fillRect(code*cw,0,cw,v.rh-1);
       if(cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=code===45?'#9caab7':textColor(color);ctx.fillText(code===45?'·':residue,code*cw+cw/2,rh/2+0.5);}
+      ctx.fillStyle=color;ctx.fillRect(code*cw,rh,cw,v.rh-1);
+      if(cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=textColor(color);ctx.fillText('.',code*cw+cw/2,rh+rh/2+0.5);}
     }
     this.atlas=canvas;this.atlasRatio=dpr;return canvas;
   }
@@ -37,13 +40,14 @@ export class Renderer {
     const atlas=this.tile(v),ratio=this.atlasRatio,scheme=getColorScheme(v.scheme);
     for(let c=start;c<end;c++) {
       const code=v.a.codes[row*v.a.width+c],x=v.gutter+c*v.cw-v.x;
-      const compare=v.mode.startsWith('reference')?v.a.codes[v.reference*v.a.width+c]:v.stats?.consensus[c];
+      const compare=!v.mode.startsWith('consensus')?v.a.codes[v.reference*v.a.width+c]:v.stats?.consensus[c];
       const same=compare===code&&compare!==45&&compare!==63;
+      const dot=!!v.matchDots&&same&&row!==v.reference&&!isGap(code);
       const faded=v.mode!=='all'&&compare!==undefined&&(v.mode.endsWith('differences')?same:!same);
       if(v.scheme==='conservation') {
         const color=residueColor(String.fromCharCode(code),scheme,v.stats?.support[c]);ctx.fillStyle=color;ctx.globalAlpha=faded?0.22:1;ctx.fillRect(x,y,v.cw,v.rh-1);
-        if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(code===45?'·':String.fromCharCode(code),x+v.cw/2,y+v.rh/2);}
-      } else {ctx.globalAlpha=faded?0.22:1;ctx.drawImage(atlas,code*v.cw*ratio,0,v.cw*ratio,v.rh*ratio,x,y,v.cw,v.rh);}
+        if(v.cw>=9&&v.visibility?.residueLetters!==false){ctx.fillStyle=textColor(color);ctx.font=`500 ${Math.min(14,v.cw-3)}px "Alignment Mono", monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dot?'.':code===45?'·':String.fromCharCode(code),x+v.cw/2,y+v.rh/2);}
+      } else {ctx.globalAlpha=faded?0.22:1;ctx.drawImage(atlas,code*v.cw*ratio,dot?v.rh*ratio:0,v.cw*ratio,v.rh*ratio,x,y,v.cw,v.rh);}
       ctx.globalAlpha=1;
     }
     if(v.visibility?.annotationMarks===false)return;

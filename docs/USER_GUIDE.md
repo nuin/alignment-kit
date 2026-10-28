@@ -199,9 +199,12 @@ Figures preserve the palette, match/difference emphasis and annotation filters. 
 
 FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button; see **Share a view** for links.
 
+## Show dots for matches
+Tick **Dots for matches** in the second toolbar row to draw each residue that equals the comparison residue as a dot. The comparison is the consensus when **Residues to color** is set to a consensus option, and the pinned reference row otherwise. The reference row keeps its letters, so you can read the sequence the dots refer to. Cells keep their colors, and gaps and differences keep their letters. Dots need a zoom of 9 px or more, the same as letters. SVG and PNG exports use dots when the box is ticked. FASTA export and copy always contain the real residues. The setting is part of shared links (`dots=1`). If the reference row is hidden or removed by the name filter, residues show as letters again, because the dots would refer to a row you cannot see.
+
 ## Share a view
 
-In the demo, the address bar always holds the current view: selected columns and row, reference, colors, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view. A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view. A link to a file you opened from your computer restores the view only; the recipient must open the same file.
 
 If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
 

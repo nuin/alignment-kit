@@ -191,3 +191,26 @@ it('applies FASTA options from the export panel to copy, consensus included',asy
   viewer.setOptions({fasta:{lineWidth:120}});expect(el.querySelector<HTMLSelectElement>('select[aria-label="FASTA line width"]')!.value).toBe('120');
   expect(()=>viewer.setOptions({fasta:{lineWidth:5}})).toThrow('line width');
 });
+it('toggles dots for matches through the checkbox, options, state and link',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());await viewer.setAlignment(data());
+  const box=el.querySelector<HTMLInputElement>('input[aria-label="Dots for matches"]')!;
+  expect([viewer.getState().matchDisplay,box.checked,(viewer as any).view().matchDots]).toEqual(['letter',false,false]);
+  box.checked=true;box.dispatchEvent(new Event('change',{bubbles:true}));
+  expect([viewer.getState().matchDisplay,(viewer as any).view().matchDots,viewer.getViewLink()]).toEqual(['dot',true,expect.stringContaining('dots=1')]);
+  const state=viewer.getState();viewer.setOptions({matchDisplay:'letter'});expect(box.checked).toBe(false);
+  await viewer.setState(state);expect(box.checked).toBe(true);
+  await viewer.applyViewLink('dots=0');expect(viewer.getState().matchDisplay).toBe('letter');
+  await viewer.applyViewLink('dots=1');expect(viewer.getState().matchDisplay).toBe('dot');
+  await viewer.applyViewLink('zoom=16');expect(viewer.getState().matchDisplay).toBe('letter');
+  viewer.setOptions({visibility:{matchDots:false}});expect(box.closest('label')!.hidden).toBe(true);
+  expect(viewer.getAlignment()!.rows.map(r=>r.sequence).join('')).toContain('ATCG');
+});
+it('uses letters instead of dots when the reference row is neither pinned nor filtered in',async()=>{
+  const el=host(),viewer=createViewer(el,{worker:false,matchDisplay:'dot'});disposers.push(()=>viewer.destroy());await viewer.setAlignment(data());
+  const v=viewer as any,name=viewer.getAlignment()!.rows[1].name;
+  expect(v.view().matchDots).toBe(true);
+  viewer.setOptions({visibility:{reference:false}});viewer.setFilter(name);
+  expect(v.view().matchDots).toBe(false);
+  viewer.setOptions({colorMode:'consensus-matches'});expect(v.view().matchDots).toBe(true);
+  viewer.setOptions({colorMode:'all'});viewer.setFilter('');expect(v.view().matchDots).toBe(true);
+});

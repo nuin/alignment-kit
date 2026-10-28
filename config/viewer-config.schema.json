@@ -32,6 +32,12 @@
         "consensus-matches"
       ]
     },
+    "matchDisplay": {
+      "enum": [
+        "letter",
+        "dot"
+      ]
+    },
     "cellWidth": {
       "type": "number",
       "minimum": 3,
@@ -134,6 +140,9 @@
           "type": "boolean"
         },
         "logoToggle": {
+          "type": "boolean"
+        },
+        "matchDots": {
           "type": "boolean"
         },
         "statisticsScope": {
