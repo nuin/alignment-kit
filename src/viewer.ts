@@ -10,6 +10,7 @@ import { buildShell, $, download } from './controls';
 import { renderInspector } from './inspector';
 import { exportFasta, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
 import { WorkerTask } from './worker-client';
+import { encodeViewLink, decodeViewLink, type ViewLink } from './link';
 
 const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 export class AlignmentViewer {
@@ -31,12 +32,17 @@ export class AlignmentViewer {
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
   private motifCursor={query:'',row:0,start:0};
+  private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
     this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',...options};
     this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
+    if(options.urlSync&&typeof location!=='undefined'){
+      this.urlSync=true;if(location.hash.length>1)this.pendingLink=decodeViewLink(location.hash);
+      window.addEventListener('hashchange',()=>{if(location.hash===this.lastHash)return;const link=decodeViewLink(location.hash);if(this.a)void this.applyViewLink(link).catch(()=>{});else this.pendingLink=link;},{signal:this.controller.signal});
+    }
     this.bind();this.resize=new ResizeObserver(()=>{this.overviewDirty=true;this.layout();});this.resize.observe(this.root);
     this.setOptions(options);this.layout();
     if(options.alignment) void this.setAlignment(options.alignment).catch(()=>{});
@@ -44,13 +50,14 @@ export class AlignmentViewer {
   on<K extends ViewerEvent>(event:K,handler:EventHandler<K>):()=>void {
     if(!this.listeners.has(event))this.listeners.set(event,new Set());this.listeners.get(event)!.add(handler);return ()=>this.listeners.get(event)?.delete(handler);
   }
-  private emit<K extends ViewerEvent>(event:K,value:ViewerEvents[K]) {for(const handler of this.listeners.get(event)??[])handler(value);}
+  private emit<K extends ViewerEvent>(event:K,value:ViewerEvents[K]) {if(event==='state'||event==='viewport')this.scheduleLink();for(const handler of this.listeners.get(event)??[])handler(value);}
   private error(error:unknown) {const err=error instanceof Error?error:new Error(String(error));if(err.name!=='AbortError'&&!this.disposed){this.message(err.message,true);this.emit('error',err);}return err;}
   private assertAlive(){if(this.disposed)throw new Error('This viewer has been destroyed.');}
   getAlignment(){return this.a;}
   getStatistics(){return this.stats;}
   getSelectedRowIds(){return [...this.selectedRows];}
-  async load(input:string|Blob|ArrayBuffer,options:ParseOptions={}):Promise<void> {
+  load(input:string|Blob|ArrayBuffer,options:ParseOptions={}):Promise<void> {return this.loadInput(input,options);}
+  private async loadInput(input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {
     this.assertAlive();this.parser.cancel();this.request?.abort();const token=++this.loadRevision;
     this.message('Reading alignment…');
     try {
@@ -59,7 +66,7 @@ export class AlignmentViewer {
       if(this.disposed||token!==this.loadRevision)return;
       const alignment=await this.parser.parse(text,options);
       if(this.disposed||token!==this.loadRevision)return;
-      await this.setAlignment(alignment);
+      this.nextSource=source;await this.setAlignment(alignment);
     } catch(error){if(token===this.loadRevision) this.error(error);if((error as Error).name!=='AbortError')throw error;}
   }
   async loadUrl(url:string,options:ParseOptions={}):Promise<void> {
@@ -70,12 +77,13 @@ export class AlignmentViewer {
       const response=await fetch(parsed,{signal:request.signal});if(!response.ok)throw new Error(`HTTP ${response.status}`);
       const bytes=await response.arrayBuffer();if(token!==this.loadRevision||this.disposed)return;
       this.request=undefined;
-      await this.load(bytes,{...options,source:options.source??{url:parsed.href,retrieved:new Date().toISOString()}});
+      await this.loadInput(bytes,{...options,source:options.source??{url:parsed.href,retrieved:new Date().toISOString()}},parsed.href);
     }catch(error){if((error as Error).name==='AbortError')return;const err=new Error(`Could not load this URL: ${(error as Error).message}. The server must allow browser CORS requests. Download the file and use Open alignment instead.`);if(token===this.loadRevision)this.error(err);throw err;}
   }
   async setAlignment(alignment:Alignment):Promise<void> {
     this.assertAlive();++this.loadRevision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();const revision=++this.revision;
     if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw this.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
+    this.sourceUrl=this.nextSource;this.nextSource=undefined;
     this.a=alignment;this.stats=undefined;this.fullStats=undefined;this.reference=0;this.selection=null;this.selectedRows.clear();this.query='';this.sort='input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter={};this.featurePage=0;
     this.menus.close();const schemes=colorSchemes(alignment.alphabet);
     if(!schemes.some(s=>s.id===this.options.colorScheme))this.options.colorScheme=alignment.alphabet==='protein'?'soft':'soft-nucleotide';
@@ -87,7 +95,10 @@ export class AlignmentViewer {
     this.rebuildAnnotations();this.rebuildRows();this.inspectorDirty=true;this.overviewDirty=true;this.layout();
     this.message('Calculating exact column statistics…');
     await this.updateStats();
-    if(!this.disposed&&this.revision===revision&&this.a===alignment){this.message('');this.emit('ready',alignment);}
+    if(!this.disposed&&this.revision===revision&&this.a===alignment){
+      this.message('');this.emit('ready',alignment);
+      const link=this.pendingLink;this.pendingLink=undefined;if(link)await this.applyViewLink(link).catch(()=>[]);
+    }
   }
   setOptions(options:ViewerOptions) {
     this.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
@@ -239,6 +250,34 @@ export class AlignmentViewer {
       if(action==='motif')this.findMotif($<HTMLInputElement>(this.root,'[aria-label="Find literal motif"]').value);
     }catch(error){this.error(error);}
   }
+  /** Readable URL parameters for the current view, including `src` when the alignment came from loadUrl. */
+  getViewLink():string {this.assertAlive();return encodeViewLink(this.getState(),this.sourceUrl);}
+  /** Apply a link leniently: settings that do not fit this alignment are skipped and returned by name. Missing fields reset to defaults. */
+  async applyViewLink(input:ViewLink|string):Promise<string[]> {
+    this.assertAlive();if(!this.a)throw new Error('Load an alignment before applying a view link.');
+    const link=typeof input==='string'?decodeViewLink(input):input,a=this.a,skipped=[...(link.ignored??[])];
+    const options:ViewerOptions={colorMode:link.colorMode??'all',statisticsScope:link.statisticsScope??'all'};
+    if(link.cellWidth!==undefined)options.cellWidth=link.cellWidth;
+    if(link.colorScheme){if(colorSchemes(a.alphabet).some(s=>s.id===link.colorScheme))options.colorScheme=link.colorScheme;else skipped.push('scheme');}
+    this.setOptions(options);this.setFilter(link.query??'');
+    if(link.referenceId){if(a.rows.some(r=>r.id===link.referenceId))this.setReference(link.referenceId);else skipped.push('ref');}
+    await this.setSort(link.sort??'input');
+    if(this.disposed||this.a!==a)return skipped;
+    const s=link.selection;
+    if(s&&(s.end>a.width||(s.rowId&&!a.rows.some(r=>r.id===s.rowId)))){skipped.push('sel');this.setSelection(null,false);}
+    else this.setSelection(s??null,link.start===undefined);
+    if(link.start!==undefined){if(link.start<=a.width)this.scroll.scrollLeft=(link.start-1)*this.options.cellWidth;else skipped.push('x');}
+    if(link.rowOffset!==undefined){if(link.rowOffset<Math.max(1,this.rows.length))this.scroll.scrollTop=link.rowOffset*this.options.rowHeight;else skipped.push('y');}
+    this.schedule();
+    const notes=[link.alignmentId&&link.alignmentId!==a.id?'This link was made for a different version of this alignment.':'',skipped.length?`Skipped link settings: ${skipped.join(', ')}.`:''].filter(Boolean);
+    if(notes.length)this.message(notes.join(' '));
+    return skipped;
+  }
+  private scheduleLink() {
+    if(!this.urlSync||this.pendingLink||!this.a||this.disposed)return;
+    clearTimeout(this.linkTimer);
+    this.linkTimer=setTimeout(()=>{if(this.disposed||!this.a||this.pendingLink)return;const hash='#'+this.getViewLink();if(hash!==location.hash){this.lastHash=hash;history.replaceState(history.state,'',location.pathname+location.search+hash);}},250);
+  }
   findMotif(motif:string) {
     if(!this.a)return;const query=motif.trim().toUpperCase();if(!/^[A-Z*]+$/.test(query)) {this.message('Enter a literal, ungapped residue motif (letters or *).');return;}
     if(this.motifCursor.query!==query)this.motifCursor={query,row:0,start:0};
@@ -352,6 +391,6 @@ export class AlignmentViewer {
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
     $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an aligned FASTA, Stockholm or CLUSTAL file.';this.message('');this.layout();this.emit('selection',null);
   }
-  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);this.listeners.clear();this.root.remove();}
+  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);clearTimeout(this.linkTimer);this.listeners.clear();this.root.remove();}
 }
 export const createViewer=(element:HTMLElement,options:ViewerOptions={})=>new AlignmentViewer(element,options);

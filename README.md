@@ -303,11 +303,12 @@ Ambiguity symbols are counted separately and never fractionally distributed. All
 | `getAlignment()` / `getStatistics()` | Read model / current exact statistics (may be pending) |
 | `getSelectedRowIds()` | Read checked sequence IDs |
 | `copySelection()` / `getSelectionText()` | Copy the selection to the clipboard as gapped FASTA / return that text |
+| `getViewLink()` / `applyViewLink(link)` | Encode the view as URL parameters / apply a link, skipping settings that do not fit |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
 Events: `ready`, `selection`, `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
-Options: `height`, `theme`, `colorScheme`, `colorMode`, `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `workerUrl`, `worker`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+Options: `height`, `theme`, `colorScheme`, `colorMode`, `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
 
@@ -330,6 +331,23 @@ The toolbar exports all rows as FASTA, or a selected region as FASTA/SVG/PNG. Ch
 The standalone `exportFasta`, `exportStatistics`, `exportSvg` and `exportPng` functions are also exported. SVG/PNG figures are capped at **200,000 cells**; PNG additionally caps raster dimensions/area. Use a smaller region or SVG when raster dimensions are excessive. TSV exports define denominators in column headers. JSON view state contains navigation/filter/selection settings, not alignment data or hosted sharing URLs.
 
 Ctrl/Cmd+C on the focused matrix copies gapped FASTA for the selected columns (or the visible columns). Rows are the checked rows in display order, with checked rows hidden by the filter appended; else the clicked row; else the export rows. Copy requires a secure context (HTTPS or localhost); otherwise the viewer reports an error.
+
+## Shareable links
+
+`getViewLink()` returns readable parameters such as `src=…&aln=…&sel=50-60&row=seq-3&ref=seq-1&scheme=soft&zoom=16&q=human&x=41`. `src` appears only when the alignment came from `loadUrl`; links to local files carry the view without the data. Annotation filters and visibility are not part of links.
+
+`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing fields reset to defaults. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
+
+With `urlSync: true` the viewer keeps `location.hash` in sync (via `history.replaceState`) and applies a hash link after the next load. The viewer never fetches `src` itself; the host decides what to load:
+
+```ts
+import { createViewer, decodeViewLink } from '@alignment-kit/viewer';
+const viewer = createViewer(element, { urlSync: true });
+const { source } = decodeViewLink(location.hash);
+await viewer.loadUrl(source && isTrusted(source) ? source : defaultUrl);
+```
+
+`encodeViewLink(state, source?)` and `decodeViewLink(text)` are also exported as pure functions.
 
 ## Workers and bundlers
 
