@@ -1,6 +1,7 @@
 import { type Alignment, type ExportRegion, type FastaOptions } from '../types';
 import { $, download } from '../controls';
 import { exportFasta, exportClustal, exportStockholm, exportPhylip, exportNexus, formatFastaRecord, exportStatistics, exportVariableColumns, exportSvg, exportPng, resolveRegion } from '../export';
+import { exportAnnotationsGff3, exportAnnotationsTsv, exportAnnotationsJson } from '../annotation-export';
 import { consensusSequence } from '../analysis';
 import { reverseComplementSequence } from '../strand';
 import { type Core } from './core';
@@ -63,6 +64,11 @@ export async function exportKind(v:Core, kind:string):Promise<void> {
     if(kind==='fasta-visible')download(exportFasta(v.a,v.fastaRegion({},true),fastaOf(v)),'visible-columns.fasta');
     const text=textExports[kind.replace(/-all$/,'')];
     if(text)download(text.write(v.a,kind.endsWith('-all')?{}:region),`${kind.endsWith('-all')?'alignment':'selection'}.${text.ext}`);
+    if(kind.startsWith('annotations-')){const warnings:string[]=[],options={annotations:v.filteredAnnotations.visible,warnings},k=kind.slice(12),total=options.annotations.length;
+      if(k==='gff3')download(exportAnnotationsGff3(v.a,options),'annotations.gff3');
+      if(k==='tsv')download(exportAnnotationsTsv(v.a,options),'annotations.tsv','text/tab-separated-values');
+      if(k==='json')download(exportAnnotationsJson(v.a,options),'annotations.json','application/json');
+      v.message(`Exported ${total-warnings.length} of ${total} visible annotations.${warnings.length?` ${warnings.length} skipped: ${warnings.slice(0,3).join(' ')}`:''}`);}
     if(kind==='state')download(JSON.stringify(v.getState(),null,2),'alignment-view.json','application/json');
     if(['svg','png','tsv','consensus'].includes(kind)&&!v.stats)throw new Error('Wait for column statistics to finish before exporting.');
     if(kind==='consensus')download(v.consensusFasta(region.start!,region.end!,v.options.fasta.columns==='visible'),'consensus.fasta');

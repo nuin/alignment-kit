@@ -1,6 +1,7 @@
 import { type Alphabet, type Alignment, type ParseOptions } from '../types';
 import { createAlignment, detectAlphabet } from '../model';
 import { readAlignmentInput } from '../parsers';
+import { isUniProtJson } from '../annotation-import';
 import { colorSchemes } from '../colors';
 import { $ } from '../controls';
 import { type Core, type Carry } from './core';
@@ -65,6 +66,14 @@ export function applyAlphabet(v:Core, next:Alphabet):void {const old=v.a!;void v
 export async function openFile(v:Core, file:File):Promise<void> {
   if(v.a&&/\.(?:gff3?|bed|gb|gbk|genbank|embl)(?:\.gz)?$/i.test(file.name)){
     try{v.importAnnotations(await readAlignmentInput(file));}catch(error){v.error(error);}
+    return;
+  }
+  if(v.a&&/\.json(?:\.gz)?$/i.test(file.name)){
+    try{
+      const text=await readAlignmentInput(file);
+      if(!isUniProtJson(text))throw new Error(`${file.name} is JSON but not UniProt annotations (no features array). Open a FASTA, CLUSTAL, Stockholm, PHYLIP or NEXUS alignment, or a GFF3, BED, GenBank, EMBL or UniProt JSON annotation file.`);
+      v.importAnnotations(text,{format:'uniprot'});
+    }catch(error){v.error(error);}
     return;
   }
   await v.load(file,{name:file.name}).catch(()=>{});
