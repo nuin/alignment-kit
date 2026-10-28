@@ -165,3 +165,13 @@ it('includes src only for alignments loaded from a URL',async()=>{
   await viewer.setAlignment(data());expect(viewer.getViewLink()).not.toContain('src=');
   vi.stubGlobal('fetch',original);
 });
+it('ignores in-page anchors and resets missing scroll fields when applying a link',async()=>{
+  history.replaceState(null,'','/');
+  const el=host(),viewer=createViewer(el,{worker:false,urlSync:true});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(data());viewer.setSelection({start:2,end:2,rowId:'seq-2'});
+  history.replaceState(null,'','/#viewer');window.dispatchEvent(new HashChangeEvent('hashchange'));
+  expect(viewer.getState().selection).toEqual({start:2,end:2,rowId:'seq-2'});
+  const scroll=el.querySelector<HTMLElement>('.ak-scroll')!;Object.defineProperty(scroll,'scrollLeft',{value:96,writable:true});
+  await viewer.applyViewLink('sel=1');expect(scroll.scrollLeft).toBe(0);
+  history.replaceState(null,'','/');
+});

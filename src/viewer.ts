@@ -10,7 +10,7 @@ import { buildShell, $, download } from './controls';
 import { renderInspector } from './inspector';
 import { exportFasta, exportStatistics, exportSvg, exportPng, resolveRegion, escapeXml as e } from './export';
 import { WorkerTask } from './worker-client';
-import { encodeViewLink, decodeViewLink, type ViewLink } from './link';
+import { encodeViewLink, decodeViewLink, isViewLink, type ViewLink } from './link';
 
 const bounded=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 export class AlignmentViewer {
@@ -32,7 +32,7 @@ export class AlignmentViewer {
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private ensureTab(){if(!this.visibility[inspectorTabs[this.tab as keyof typeof inspectorTabs]])this.tab=Object.keys(inspectorTabs).find(key=>this.visibility[inspectorTabs[key as keyof typeof inspectorTabs]])??'';}
   private motifCursor={query:'',row:0,start:0};
-  private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';
+  private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
     this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',...options};
@@ -40,8 +40,9 @@ export class AlignmentViewer {
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
     if(options.urlSync&&typeof location!=='undefined'){
-      this.urlSync=true;if(location.hash.length>1)this.pendingLink=decodeViewLink(location.hash);
-      window.addEventListener('hashchange',()=>{if(location.hash===this.lastHash)return;const link=decodeViewLink(location.hash);if(this.a)void this.applyViewLink(link).catch(()=>{});else this.pendingLink=link;},{signal:this.controller.signal});
+      this.urlSync=true;if(isViewLink(location.hash))this.pendingLink=decodeViewLink(location.hash);
+      // In-page anchors such as #viewer are left alone; a link arriving mid-load waits for that load.
+      window.addEventListener('hashchange',()=>{if(location.hash===this.lastHash||!isViewLink(location.hash))return;const link=decodeViewLink(location.hash);if(this.a&&!this.loading){this.pendingLink=undefined;void this.applyViewLink(link).catch(()=>{});}else this.pendingLink=link;},{signal:this.controller.signal});
     }
     this.bind();this.resize=new ResizeObserver(()=>{this.overviewDirty=true;this.layout();});this.resize.observe(this.root);
     this.setOptions(options);this.layout();
@@ -58,7 +59,7 @@ export class AlignmentViewer {
   getSelectedRowIds(){return [...this.selectedRows];}
   load(input:string|Blob|ArrayBuffer,options:ParseOptions={}):Promise<void> {return this.loadInput(input,options);}
   private async loadInput(input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {
-    this.assertAlive();this.parser.cancel();this.request?.abort();const token=++this.loadRevision;
+    this.assertAlive();this.parser.cancel();this.request?.abort();const token=++this.loadRevision;this.loading=true;
     this.message('Reading alignment…');
     try {
       if(input instanceof File&&/\.a3m(?:\.gz)?$/i.test(input.name))throw new Error('A3M insertion notation is not aligned FASTA. Convert it to a rectangular alignment first.');
@@ -67,7 +68,7 @@ export class AlignmentViewer {
       const alignment=await this.parser.parse(text,options);
       if(this.disposed||token!==this.loadRevision)return;
       this.nextSource=source;await this.setAlignment(alignment);
-    } catch(error){if(token===this.loadRevision) this.error(error);if((error as Error).name!=='AbortError')throw error;}
+    } catch(error){if(token===this.loadRevision){this.loading=false;this.error(error);}if((error as Error).name!=='AbortError')throw error;}
   }
   async loadUrl(url:string,options:ParseOptions={}):Promise<void> {
     this.assertAlive();this.request?.abort();this.parser.cancel();const request=new AbortController();this.request=request;const token=++this.loadRevision;
@@ -83,7 +84,7 @@ export class AlignmentViewer {
   async setAlignment(alignment:Alignment):Promise<void> {
     this.assertAlive();++this.loadRevision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();const revision=++this.revision;
     if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw this.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
-    this.sourceUrl=this.nextSource;this.nextSource=undefined;
+    this.sourceUrl=this.nextSource;this.nextSource=undefined;this.loading=true;
     this.a=alignment;this.stats=undefined;this.fullStats=undefined;this.reference=0;this.selection=null;this.selectedRows.clear();this.query='';this.sort='input';this.identities=undefined;this.identityDetails=undefined;this.annotationFilter={};this.featurePage=0;
     this.menus.close();const schemes=colorSchemes(alignment.alphabet);
     if(!schemes.some(s=>s.id===this.options.colorScheme))this.options.colorScheme=alignment.alphabet==='protein'?'soft':'soft-nucleotide';
@@ -94,10 +95,10 @@ export class AlignmentViewer {
     $<HTMLSelectElement>(this.root,'[aria-label="Sequence order"]').value='input';
     this.rebuildAnnotations();this.rebuildRows();this.inspectorDirty=true;this.overviewDirty=true;this.layout();
     this.message('Calculating exact column statistics…');
-    await this.updateStats();
+    try{await this.updateStats();}catch(error){if(this.revision===revision)this.loading=false;throw error;}
     if(!this.disposed&&this.revision===revision&&this.a===alignment){
       this.message('');this.emit('ready',alignment);
-      const link=this.pendingLink;this.pendingLink=undefined;if(link)await this.applyViewLink(link).catch(()=>[]);
+      this.loading=false;const link=this.pendingLink;this.pendingLink=undefined;if(link)await this.applyViewLink(link).catch(()=>[]);
     }
   }
   setOptions(options:ViewerOptions) {
@@ -266,8 +267,8 @@ export class AlignmentViewer {
     const s=link.selection;
     if(s&&(s.end>a.width||(s.rowId&&!a.rows.some(r=>r.id===s.rowId)))){skipped.push('sel');this.setSelection(null,false);}
     else this.setSelection(s??null,link.start===undefined);
-    if(link.start!==undefined){if(link.start<=a.width)this.scroll.scrollLeft=(link.start-1)*this.options.cellWidth;else skipped.push('x');}
-    if(link.rowOffset!==undefined){if(link.rowOffset<Math.max(1,this.rows.length))this.scroll.scrollTop=link.rowOffset*this.options.rowHeight;else skipped.push('y');}
+    if((link.start??1)<=a.width)this.scroll.scrollLeft=((link.start??1)-1)*this.options.cellWidth;else skipped.push('x');
+    if((link.rowOffset??0)<Math.max(1,this.rows.length))this.scroll.scrollTop=(link.rowOffset??0)*this.options.rowHeight;else skipped.push('y');
     this.schedule();
     const notes=[link.alignmentId&&link.alignmentId!==a.id?'This link was made for a different version of this alignment.':'',skipped.length?`Skipped link settings: ${skipped.join(', ')}.`:''].filter(Boolean);
     if(notes.length)this.message(notes.join(' '));
@@ -276,7 +277,10 @@ export class AlignmentViewer {
   private scheduleLink() {
     if(!this.urlSync||this.pendingLink||!this.a||this.disposed)return;
     clearTimeout(this.linkTimer);
-    this.linkTimer=setTimeout(()=>{if(this.disposed||!this.a||this.pendingLink)return;const hash='#'+this.getViewLink();if(hash!==location.hash){this.lastHash=hash;history.replaceState(history.state,'',location.pathname+location.search+hash);}},250);
+    this.linkTimer=setTimeout(()=>{if(this.disposed||!this.a||this.pendingLink)return;const hash='#'+this.getViewLink();if(hash===location.hash)return;
+      try{history.replaceState(history.state,'',location.pathname+location.search+hash);this.lastHash=hash;}
+      catch(error){this.urlSync=false;this.error(new Error(`URL sync stopped: ${(error as Error).message}`));}
+    },250);
   }
   findMotif(motif:string) {
     if(!this.a)return;const query=motif.trim().toUpperCase();if(!/^[A-Z*]+$/.test(query)) {this.message('Enter a literal, ungapped residue motif (letters or *).');return;}
@@ -387,6 +391,7 @@ export class AlignmentViewer {
   }
   clear() {
     this.assertAlive();++this.loadRevision;++this.statsRevision;++this.revision;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();
+    this.loading=false;this.pendingLink=undefined;
     this.a=undefined;this.stats=undefined;this.fullStats=undefined;this.rows=[];this.filteredRows=[];this.selection=null;this.selectedRows.clear();this.annotationFilter={};this.rebuildAnnotations();this.labels.replaceChildren();this.inspector.replaceChildren();
     for(const canvas of this.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
     $(this.root,'.ak-reference-label').textContent='Reference';$(this.root,'.ak-overview-window').style.width='0';$(this.root,'.ak-status-main').textContent='No alignment loaded';$(this.root,'.ak-status-detail').textContent='';$(this.root,'.ak-empty').textContent='Open an aligned FASTA, Stockholm or CLUSTAL file.';this.message('');this.layout();this.emit('selection',null);
