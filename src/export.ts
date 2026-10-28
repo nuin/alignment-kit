@@ -39,7 +39,7 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
       const faded=mode!=='all'&&(mode.endsWith('differences')?same:!same);
       chunks.push(`<g opacity="${faded?'0.22':'1'}"><rect x="${x}" y="${y}" width="${cw}" height="${rh-1}" fill="${color}"/><text x="${x+cw/2}" y="${y+15}" text-anchor="middle" fill="${textColor(color)}">${residue==='-'?'·':escapeXml(residue)}</text></g>`);
     }
-    for(const annotation of a.annotations)if(annotation.mapping==='mapped'&&(!annotation.rowId||annotation.rowId===a.rows[r].id)&&annotation.start!<=end&&annotation.end!>=start){const left=Math.max(start,annotation.start!),right=Math.min(end,annotation.end!);chunks.push(`<rect x="${gutter+(left-start)*cw+1}" y="${y+1}" width="${(right-left+1)*cw-2}" height="${rh-3}" fill="none" stroke="#a63d59" stroke-width="2"><title>${escapeXml(annotation.label)}</title></rect>`);}
+    for(const annotation of a.annotations)if(annotation.mapping==='mapped'&&(!annotation.rowId||annotation.rowId===a.rows[r].id)&&annotation.start!<=end&&annotation.end!>=start){const left=Math.max(start,annotation.start!),right=Math.min(end,annotation.end!);chunks.push(`<rect x="${gutter+(left-start)*cw+1}" y="${y+1}" width="${(right-left+1)*cw-2}" height="${rh-3}" fill="none" stroke="${annotation.color&&/^#[0-9a-f]{6}$/i.test(annotation.color)?annotation.color:'#a63d59'}" stroke-width="2"><title>${escapeXml(annotation.label)}</title></rect>`);}
   }
   const y=top+rows.length*rh+24;
   chunks.push(`<text x="16" y="${y}">${escapeXml(scheme.label)} · statistics: ${s.total} rows · gaps retained</text>`);

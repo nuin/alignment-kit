@@ -42,7 +42,7 @@ export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {
   // Avoid decorative empty rows and action containers when every child is hidden.
   for(const parent of root.querySelectorAll<HTMLElement>('.ak-toolbar,.ak-tools,.ak-inspector-actions,.ak-checks')) {
     const children=[...parent.children].filter(child=>!child.matches('input.ak-file,.ak-toolbar-divider,select')) as HTMLElement[];
-    const enabled=parent.matches('.ak-toolbar')?v.toolbar:parent.matches('.ak-tools')?v.tools:parent.matches('.ak-feature-pagination')?v.featurePagination:true;
+    const enabled=parent.matches('.ak-toolbar')?v.toolbar:parent.matches('.ak-tools')?v.tools:true;
     parent.hidden=!enabled||!children.some(child=>!child.hidden);
   }
   for(const button of root.querySelectorAll<HTMLElement>('[data-row]'))button.hidden=!v.rowNames&&!v.rowSpecies;

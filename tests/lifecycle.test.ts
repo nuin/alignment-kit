@@ -98,3 +98,17 @@ it('collapses disabled track heights and supports legacy aliases and integration
   expect(el.querySelector<HTMLElement>('.ak-inspector')!.hidden).toBe(true);
   expect(controller.viewer.getVisibility().logo).toBe(false);
 });
+it('lists every export choice in the toolbar menu',()=>{
+  const el=host(),viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
+  const exportMenu=el.querySelector<HTMLSelectElement>('select[aria-label="Export alignment"]')!;
+  expect([...exportMenu.options].map(o=>o.value)).toEqual(['','fasta-all','fasta','svg','png','tsv','state']);
+});
+it('keeps identity ordering when a pairwise comparison starts during the sort',async()=>{
+  const viewer=createViewer(host(),{worker:false});disposers.push(()=>viewer.destroy());const internal=viewer as any;
+  await viewer.setAlignment(parseAlignment('>a\nACGT\n>b\nTTTT\n>c\nACGA',{alphabet:'dna'}));
+  internal.selectedRows.add('seq-1');internal.selectedRows.add('seq-2');internal.tab='compare';
+  const sorted=viewer.setSort('identity'),compared=internal.action('compare');internal.tab='position';
+  await Promise.all([sorted,compared]);
+  expect(internal.rows.map((i:number)=>viewer.getAlignment()!.rows[i].name)).toEqual(['c','b']);
+  expect(document.querySelector('.ak-message')!.textContent).toBe('');
+});
