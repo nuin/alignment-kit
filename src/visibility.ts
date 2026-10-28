@@ -13,7 +13,7 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   positionTab:true, featuresTab:true, compareTab:true, colorsTab:true, hitsTab:true,
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
-  messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true,
+  messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true, tooltip:true,
 });
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {

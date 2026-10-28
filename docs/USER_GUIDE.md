@@ -230,6 +230,12 @@ Each pair excludes columns where either sequence has a gap, an ambiguity symbol 
 
 The matrix is limited to **200 explicitly selected rows**. It is not automatically calculated for the whole alignment. Use identity-to-reference ordering for large families.
 
+## Hover cards
+
+Rest the mouse on a residue for about 0.3 s. A card shows the sequence name, the residue, the alignment column, the residue number in that sequence (a gap has none) and, when the ruler uses reference numbering, the reference residue number. The card disappears when you move off the grid, scroll, press a key or start dragging. Touch screens show no hover cards.
+
+On a residue that carries an annotation the card also gives its label, type, consequence, disease or phenotype evidence, evidence codes, source and PubMed IDs when the data supplies them. Click the residue to keep the card open. Press Escape or the close button to dismiss it. IDs become links only when the embedding application supplies `annotationLinks`; otherwise they are plain text and nothing is fetched. Turn the cards off with `tooltips: false` or `visibility.tooltip`.
+
 ## Inspect supplied annotations
 
 The **Features** tab displays annotations supplied by the embedding application or the synthetic annotated demo. A FASTA file alone does not fetch variants, domains or disease evidence. Stockholm `#=GC` and `#=GR` lines are drawn as tracks (see Stockholm tracks below); other Stockholm metadata is retained but not plotted.

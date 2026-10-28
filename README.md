@@ -189,6 +189,7 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 | Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize` |
 | Column masking | `columnMasking` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
+| Hover cards | `tooltip` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
 | Feedback | `statusSummary`, `statusDetails`, `messages`, `emptyState` |
@@ -457,15 +458,30 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
 | `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
-Events: `ready`, `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
+Events: `ready`, `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `hover` (`{ rowId, column, residue, position }`, or `null` when the pointer leaves a cell), `cellclick` (the same plus `shiftKey`), `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
 
 Options: `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `workerUrl`, `worker`, `urlSync`. Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
 
-Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Clicking a residue selects its column and row; clicking the same cell again, without Shift, while it is the whole selection clears the selection. The same applies to a track column. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off.
+Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Clicking a residue selects its column and row; clicking the same cell again, without Shift, while it is the whole selection clears the selection. The same applies to a track column. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off. No hover card shows while panning.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. Canvas is accompanied by labeled controls, visible focus, live selection announcements and textual position inspection; a full screen-reader grid audit is still outstanding.
 
 Alphabet guard: the viewer detects the alphabet from the residues on load (`getDetectedAlphabet()`). Nucleotide means at least 90% of non-gap residues are A, C, G, T, U or N. When the **Type** select is changed across the protein/nucleotide line from the detected alphabet, the message area asks first, for example `This alignment looks like protein (83.3% of residues are not A, C, G, T/U, N). Treat it as DNA?`, with **Switch** and **Cancel** buttons. Switch reloads the alignment with the new alphabet; Cancel restores the select. DNA to RNA and back switch without asking. The prompt shows even when `visibility.messages` is off. Programmatic alphabets (`load`, `parseAlignment` or `createAlignment` with `alphabet`, then `setAlignment`) are not gated. The Color select lists only schemes for the current alphabet (`colorSchemes(alphabet)`), and a scheme that no longer fits falls back to `soft` (protein) or `soft-nucleotide` (DNA/RNA).
+
+## Tooltips
+
+Hovering a residue for about 300 ms shows a card with the row name, residue, alignment column, residue number in the row (offset by `metadata.start`, "gap" in a gap) and, when `rulerCoordinates` is `reference`, the reference residue number. The card hides on leave, scroll, key press or while a drag-to-pan is active. Touch input has no hover cards.
+
+Over an annotation mark the card also lists, for up to 3 annotations, the label, kind, consequence, disease and phenotype flags, and `metadata.evidence` (evidence codes), `metadata.source` and `metadata.pubmed` or `metadata.pmid` (PubMed IDs). Clicking a residue under an annotation pins the card (up to 10 annotations) until Escape or its close button. All text is inserted as text, never HTML.
+
+- `tooltips` (default `true`) and `visibility.tooltip` turn the cards off. The `hover` and `cellclick` events still fire. `hover` skips touch; `cellclick` fires for every non-drag click on a residue.
+- `annotationLinks` maps a key to a URL template with `{id}`: `pubmed` (or `pmid`) for PubMed IDs, `evidence` (or `eco`) for evidence codes, or a source name (matched case-insensitively, `{id}` is the annotation `id`). There are no default links, so the viewer makes no network request. Only `http` and `https` templates are accepted; anything else throws. Links open with `rel="noopener noreferrer"`.
+- React and Svelte forward `onHover` and `onCellClick`.
+
+```js
+createViewer(el, { annotationLinks: { pubmed: 'https://pubmed.ncbi.nlm.nih.gov/{id}/' } });
+viewer.on('hover', cell => cell && console.log(cell.rowId, cell.column, cell.residue, cell.position));
+```
 
 ## Dots for matches
 

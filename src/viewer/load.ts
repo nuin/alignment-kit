@@ -28,7 +28,7 @@ export async function loadUrl(v:Core, url:string,options:ParseOptions={}):Promis
   }catch(error){if((error as Error).name==='AbortError')return;const err=new Error(`Could not load this URL: ${(error as Error).message}. The server must allow browser CORS requests. Download the file and use Open alignment instead.`);if(token===v.loadRevision)v.error(err);throw err;}
 }
 export async function replace(v:Core, alignment:Alignment,carry?:Carry):Promise<void> {
-  v.assertAlive();++v.loadRevision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();const revision=++v.revision;
+  v.assertAlive();v.tip?.hide();++v.loadRevision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();const revision=++v.revision;
   if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw v.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
   v.sourceUrl=v.nextSource;v.nextSource=undefined;v.loading=true;
   const index=new Map(alignment.rows.map((r,i)=>[r.id,i])),known=(id:string)=>index.has(id);
@@ -67,7 +67,7 @@ export async function openFile(v:Core, file:File):Promise<void> {
   await v.load(file,{name:file.name}).catch(()=>{});
 }
 export function clear(v:Core):void {
-  v.assertAlive();++v.loadRevision;++v.statsRevision;++v.revision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();
+  v.assertAlive();v.tip?.hide();++v.loadRevision;++v.statsRevision;++v.revision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();
   v.loading=false;v.pendingLink=undefined;
   v.a=undefined;v.detected=undefined;v.stats=undefined;v.fullStats=undefined;v.rows=[];v.filteredRows=[];v.selection=null;v.dropSearch();v.selectedRows.clear();v.annotationFilter={};v.hidden.clear();v.manualHidden=[];v.colMap=undefined;v.manualOrder=null;v.collapsed.clear();v.groupMap=null;v.groupList=[];v.tree=undefined;v.treeHits=[];v.rowPos=new Int32Array(0);if(v.sort==='tree'||v.sort==='manual'){v.sort='input';$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value='input';}
   v.rebuildAnnotations();v.labels.replaceChildren();v.inspector.replaceChildren();

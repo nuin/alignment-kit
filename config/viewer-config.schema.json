@@ -274,6 +274,9 @@
         },
         "columnMasking": {
           "type": "boolean"
+        },
+        "tooltip": {
+          "type": "boolean"
         }
       }
     },
@@ -448,6 +451,18 @@
     "hideAllGapColumns": {
       "type": "boolean",
       "description": "Hide columns that are gaps in every row."
+    },
+    "tooltips": {
+      "type": "boolean",
+      "description": "Show hover cards for residues and annotation marks and pin annotation cards on click. Default true."
+    },
+    "annotationLinks": {
+      "type": "object",
+      "description": "URL templates keyed by source or id type (pubmed, evidence, or a source name). Each must be an http or https URL containing {id}.",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^https?://.*\\{id\\}"
+      }
     }
   }
 }

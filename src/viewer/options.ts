@@ -3,6 +3,7 @@ import { getColorScheme, colorSchemes } from '../colors';
 import { $ } from '../controls';
 import { validateFastaOptions } from '../export';
 import { validateTracks } from '../tracks';
+import { validateAnnotationLinks } from '../tooltip';
 import { type Core, bounded } from './core';
 export function setOptions(v:Core, options:ViewerOptions):void {
   v.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
@@ -13,7 +14,8 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   const maskSig=()=>`${v.options.hideGapColumns}|${v.options.hideAllGapColumns}`,maskBefore=maskSig(),anchor=v.a?v.firstColumn():0;
   const oldScope=v.options.statisticsScope;
   const wasPinned=v.pinned;
-  const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,groupBy,...visual}=options;
+  const {alignment:_,worker:__,workerUrl:___,visibility,fasta,tracks,groupBy,annotationLinks,...visual}=options;
+  if(annotationLinks!==undefined){try{v.options.annotationLinks=validateAnnotationLinks(annotationLinks);}catch(error){throw v.error(error);}}
   if(visual.logoMode!==undefined&&visual.logoMode!=='frequency'&&visual.logoMode!=='bits')throw v.error(new Error('logoMode must be "frequency" or "bits".'));
   let validTracks:CustomTrack[]|undefined;
   if(tracks!==undefined){try{validTracks=validateTracks(tracks);}catch(error){throw v.error(error);}}
@@ -30,6 +32,7 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   v.options.cellWidth=bounded(v.options.cellWidth,3,32);v.options.rowHeight=bounded(v.options.rowHeight,18,48);v.options.labelWidth=bounded(v.options.labelWidth,100,420);v.options.height=bounded(v.options.height,360,2000);v.options.consensusThreshold=bounded(v.options.consensusThreshold,0,1);{const w=Math.round(bounded(v.options.conservationWindow,1,51));v.options.conservationWindow=w%2?w:w-1;}v.options.treeWidth=bounded(v.options.treeWidth,0,400);
   const masked=maskSig()!==maskBefore;if(masked)v.colMap=undefined;
   const regroup=groupBy!==undefined&&groupBy!==v.groupBy;if(regroup)v.groupBy=groupBy!;
+  if(!v.options.tooltips||!v.visibility.tooltip)v.tip?.hide();
   v.root.style.height=v.options.height+'px';v.root.dataset.theme=v.options.theme;v.root.dataset.inspector=String(v.options.showInspector);v.root.dataset.dragPan=String(v.options.dragToPan);
   if(wasPinned!==v.pinned||regroup)v.rebuildRows();
   $<HTMLSelectElement>(v.root,'[aria-label="Color scheme"]').value=v.options.colorScheme;
