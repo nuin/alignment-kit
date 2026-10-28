@@ -111,6 +111,17 @@ Selections, search hits, features, Go to and the Position tab keep using origina
 
 To export only what you see, choose **Export > Visible columns · FASTA**, or set **FASTA options > Columns** to **Visible columns only** so that FASTA exports, the consensus export and Ctrl/Cmd+C leave hidden columns out. The default exports always include every column. Shared links carry the manual ranges as `hide=10-20,30-35`.
 
+## Mark columns
+
+Marks flag columns you want to come back to. A marked column gets a purple outline box across all rows and a purple bar in the ruler.
+
+- Hold Alt (Option on a Mac) and click a residue or the ruler to mark that column. Alt-click it again to remove the mark. The selection does not change.
+- Select columns, open the **Position** tab and press **Mark column**. The button reads **Unmark column** when every selected column is already marked.
+- Marks stay on their original column when you hide columns. A mark across hidden columns is drawn over the columns you can see, and a mark on hidden columns reappears when they come back.
+- Shared links carry marks as `marks=10-12,40`. Marks are cleared when you open another alignment.
+
+Developers can use `markColumns(ranges, color?)`, `unmarkColumns(ranges?)` and `getColumnMarks()`; see the README.
+
 ## Find sequences and motifs
 
 **Find a sequence** filters names and supplied species labels, ignoring case. It changes the visible rows, not the underlying alignment. The pinned reference remains visible even if it does not match the filter.
@@ -176,6 +187,17 @@ Open **Color** to choose a scheme, then open the inspector's **Colors** tab for 
 The new four-base schemes give mixed ambiguity symbols a neutral background. Group schemes color an ambiguity symbol only when every possible base belongs to the same group: S means G/C; W means A/T; R means A/G; Y means C/T. Symbols spanning both groups remain neutral. The color choice does not change statistics, search semantics or pairwise identity exclusions.
 
 <!-- nucleotide-palette-preview -->
+
+### Colorblind-safe and high-contrast schemes
+
+| Scheme | Alphabet | Colorblind-safe | Notes |
+|---|---|---|---|
+| Residue classes · colorblind-safe | Protein | Yes | Seven classes: aliphatic, aromatic, polar, positive, negative, glycine and proline, cysteine. |
+| Nucleotide · colorblind-safe | DNA, RNA | Yes | Okabe-Ito based: A sky blue, C yellow, G dark blue, T/U vermillion. |
+| Residue classes · high contrast | Protein | Yes | Same classes with strong fills; letters keep at least 7:1 contrast. |
+| Nucleotide · high contrast | DNA, RNA | Yes | A mint, C yellow, G navy, T/U brown; letters keep at least 7:1 contrast. |
+
+"Colorblind-safe" here means every pair of class colors stays at least 25 apart in CIELAB under simulated deuteranopia and protanopia, checked by an automated test. Classes differ in lightness as well as hue, and the letters never depend on color. The Colors tab shows the classes of the chosen scheme. All other schemes are not checked, and several (Clustal, Zappo, Cinema, the Nightingale nucleotide palette) separate groups mostly by red and green.
 
 For protein alignments, **Residue classes** is the muted default. Fixed schemes include Clustal/Clustal2, Taylor, Zappo, Lesk, Cinema, MAE, hydrophobicity, buried index and secondary-structure propensities. These color residue identities or properties; they do not predict function or structure. Clustal2 is a fixed mapping, not column-dependent ClustalX coloring.
 
@@ -282,7 +304,7 @@ Tick **Dots for matches** in the second toolbar row to draw each residue that eq
 
 ## Share a view
 
-In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
+In the demo, the address bar always holds the current view: selected columns and row, reference, colors, dots for matches, zoom, name filter, order and scroll position. Copy the address to share it. Opening the link loads the same alignment and restores that view, including manually hidden columns (`hide=10-20`) and column marks (`marks=10-12,40`). A link to a file you opened from your computer restores the view only; the recipient must open the same file.
 
 If the alignment has changed since the link was made, the viewer applies what still fits and lists skipped settings above the alignment. Feature filters and shown/hidden interface elements are not part of links; use **Export > View state · JSON** for those.
 

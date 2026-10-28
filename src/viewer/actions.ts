@@ -31,6 +31,7 @@ export async function action(v:Core, action:string):Promise<void> {
     if(action==='show-hidden')v.showRows();
     if(action==='hide-columns'){const sel=v.selection;if(!sel){v.message('Select columns first, then hide them.');return;}v.hideColumns(sel.start,sel.end);v.setSelection(null,false);}
     if(action==='show-columns')v.showColumns();
+    if(action==='mark-columns'&&v.selection)v.toggleColumnMarks(v.selection.start,v.selection.end);
     if(action==='clear-rows'){v.selectedRows.clear();v.labelKey='';v.inspectorDirty=true;v.schedule();}
     if(action==='compare'&&v.a){const ids=new Map(v.a.rows.map((r,i)=>[r.id,i])),rows=[...v.selectedRows].map(id=>ids.get(id)!);const a=v.a,revision=v.revision,selectionKey=[...v.selectedRows].join(',');v.message('Calculating pairwise identity…');const matrix=await v.comparison.pairwise(a,rows);if(v.disposed||v.revision!==revision)return;v.message('');if(v.tab!=='compare'||selectionKey!==[...v.selectedRows].join(','))return;const target=$(v.inspector,'.ak-identity-result');target.replaceChildren(identityMatrix(a,rows,matrix));}
     if(action==='motif'||action==='motif-prev'){

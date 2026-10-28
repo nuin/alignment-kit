@@ -24,11 +24,12 @@ export function bindPointer(v:Core,on:On):void {
   });
   const endPan=(event:PointerEvent)=>{if(!pan||event.pointerId!==pan.id)return;panned=pan.moved;pan=undefined;delete v.root.dataset.panning;};
   on(v.scroll,'pointerup',endPan);on(v.scroll,'pointercancel',endPan);
-  on(v.scroll,'click',(event:MouseEvent)=>{if(panned){panned=false;return;}const item=v.itemAt(event);if(item!==undefined&&item<0){v.toggleGroup(v.groupList[-item-1].name);return;}pick(v.eventAt(event),event.shiftKey);});
+  on(v.scroll,'click',(event:MouseEvent)=>{if(panned){panned=false;return;}if(event.altKey){const s=v.visibility.columnMarks?v.eventAt(event):null;if(s)v.toggleColumnMarks(s.start,s.start);return;}const item=v.itemAt(event);if(item!==undefined&&item<0){v.toggleGroup(v.groupList[-item-1].name);return;}pick(v.eventAt(event),event.shiftKey);});
   on($(v.root,'.ak-tracks'),'click',(event:MouseEvent)=>{
     if(!v.a||(event.target as HTMLElement).closest('button,[data-action]'))return;
     const tracks=$(v.root,'.ak-tracks'),rect=tracks.getBoundingClientRect(),y=event.clientY-rect.top+tracks.scrollTop,x=event.clientX-rect.left-v.gutter,d=Math.floor((x+v.scroll.scrollLeft)/v.options.cellWidth);
     if(x<0||d<0||d>=v.columns.count)return;const column=v.columns.cols[d]+1;
+    if(event.altKey){if(v.visibility.columnMarks)v.toggleColumnMarks(column,column);return;}
     const ref=trackLayout(v.visibility,v.options.rowHeight,v.drawnTracks().map(t=>({height:trackHeight(t)})),v.a.alphabet).offsets.reference,onRef=ref!==null&&y>=ref&&y<ref+v.options.rowHeight;
     pick({start:column,end:column,...(onRef?{rowId:v.a.rows[v.reference].id}:{})},event.shiftKey);
   });

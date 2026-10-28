@@ -101,6 +101,7 @@ export interface ViewerVisibility {
   rowReordering?:boolean;
   tree?:boolean;
   columnMasking?:boolean;
+  columnMarks?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
 export interface TrackRenderInfo { start:number; end:number; cellWidth:number; offsetX:number; top:number; height:number; alignment:Alignment }
@@ -149,7 +150,11 @@ export interface ViewState {
   /** Manually hidden columns as merged one-based inclusive [start, end] ranges. Gap-based hiding comes from options. */
   hiddenColumns?:[number,number][];
   hiddenRowIds?:string[]; manualOrder?:string[]|null; collapsedGroups?:string[];
+  /** User column marks as merged ranges with their colors; omitted in older states, which mean none. */
+  columnMarks?:ColumnMark[];
 }
+/** A user mark on alignment columns `start` to `end` (one-based, inclusive, original coordinates) drawn in `color`. */
+export interface ColumnMark { start:number; end:number; color:string }
 export interface Viewport { start:number; end:number; firstRow:number; lastRow:number; visibleRows:number; totalRows:number }
 export interface ViewerEvents { selection:Selection|null; search:SearchResult|null; viewport:Viewport; annotation:Annotation; error:Error; ready:Alignment; state:ViewState }
 export type ViewerEvent = keyof ViewerEvents;

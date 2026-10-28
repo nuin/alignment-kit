@@ -1,17 +1,18 @@
 import type { Alignment, AlignmentStats, Selection, Annotation, AnnotationFilter, Identity, Hit } from './types';
 import { columnDetail } from './analysis';
 import { columnToResidue } from './model';
-import { getColorScheme, residueColor, textColor } from './colors';
+import { getColorScheme, residueColor, textColor, type ColorScheme } from './colors';
 import { escapeXml as e } from './export';
 import { hitCount } from './search';
-export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number }
+export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;marked?:boolean;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number }
 export const HIT_LIST_LIMIT=200;
+const legendClasses=(scheme:ColorScheme)=>scheme.classes?`<ul class="ak-class-legend">${scheme.classes.map(c=>`<li><span style="background:${c.color};color:${textColor(c.color)}">${e(c.residues.slice(0,5))}</span>${e(c.label)}</li>`).join('')}</ul>${scheme.cvdSafe?'<p>Colorblind-safe: checked under simulated deuteranopia and protanopia.</p>':''}${scheme.highContrast?'<p>High contrast: letters keep at least 7:1 contrast against their fill.</p>':''}`:'';
 const bits=(n:number|null)=>n===null?'Unavailable':`${n.toFixed(2)} bits`;
 const percent=(n:number|null)=>n===null?'Unavailable':`${(n*100).toFixed(1)}%`;
 export function renderInspector(target:HTMLElement,v:InspectorInput) {
   if(v.tab==='legend') {
     const scheme=getColorScheme(v.scheme);
-    target.innerHTML=`<h3>${e(scheme.label)}</h3><p>${e(scheme.description)}</p><div class="ak-residue-legend">${[...(v.a.alphabet==='protein'?'ACDEFGHIKLMNPQRSTVWYBXZ*':'ACGTUNRYKMSWBDHV')].map(r=>{const color=residueColor(r,scheme,1);return `<span style="background:${color};color:${textColor(color)}">${r}</span>`;}).join('')}</div><p>Letters remain visible at residue zoom. Dots mark alignment gaps.</p><h4>Coordinate systems</h4><p>Alignment columns include gaps. Sequence positions count only residues and are shown for the selected row.</p>`;return;
+    target.innerHTML=`<h3>${e(scheme.label)}</h3><p>${e(scheme.description)}</p><div class="ak-residue-legend">${[...(v.a.alphabet==='protein'?'ACDEFGHIKLMNPQRSTVWYBXZ*':'ACGTUNRYKMSWBDHV')].map(r=>{const color=residueColor(r,scheme,1);return `<span style="background:${color};color:${textColor(color)}">${r}</span>`;}).join('')}</div>${legendClasses(scheme)}<p>Letters remain visible at residue zoom. Dots mark alignment gaps.</p><h4>Coordinate systems</h4><p>Alignment columns include gaps. Sequence positions count only residues and are shown for the selected row.</p>`;return;
   }
   if(v.tab==='hits') {
     const shown=v.hits.slice(0,HIT_LIST_LIMIT);
@@ -29,6 +30,7 @@ export function renderInspector(target:HTMLElement,v:InspectorInput) {
   const col=v.selection.start,row=v.selection.rowId?v.a.rows.findIndex(r=>r.id===v.selection!.rowId):v.reference;
   const position=row>=0?columnToResidue(v.a,row,col):null,ref=columnToResidue(v.a,v.reference,col),residue=row>=0?String.fromCharCode(v.a.codes[row*v.a.width+col-1]):null;
   let html=`<div class="ak-position-heading"><span>Alignment position</span><h2>Column ${col}</h2>${v.selection.end!==col?`<p>Selected range ${col}–${v.selection.end}</p>`:''}<p class="ak-reference-position">Reference ${e(v.a.rows[v.reference].name)}: ${ref===null?'gap':`residue ${ref}`}</p></div>`;
+  html+=`<div class="ak-inspector-actions"><button type="button" data-action="mark-columns" aria-pressed="${!!v.marked}">${v.marked?'Unmark':'Mark'} column${v.selection.end!==col?'s':''}</button></div>`;
   if(row>=0)html+=`<div class="ak-selected-residue"><b>${e(residue==='-'?'—':residue)}</b><div><strong>${e(v.a.rows[row].name)}</strong><span>${position===null?'Alignment gap':`Sequence position ${position}`}</span>${v.a.rows[row].species?`<small>${e(v.a.rows[row].species)}</small>`:''}</div></div><div class="ak-inspector-actions"><button type="button" data-action="pin-selected">Pin reference</button><button type="button" data-action="toggle-row-features">${v.annotationFilter.hiddenRowIds?.includes(v.a.rows[row].id)?'Show':'Hide'} row features</button></div>`;
   if(v.identity)html+=`<p>Identity to reference: <strong>${percent(v.identity.identity)}</strong><br>${v.identity.matches.toLocaleString()} matches / ${v.identity.compared.toLocaleString()} canonical positions compared</p>`;
   if(!v.stats){target.innerHTML=html+'<p>Calculating exact column statistics…</p>';return;}

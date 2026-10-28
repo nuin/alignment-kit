@@ -274,6 +274,9 @@
         },
         "columnMasking": {
           "type": "boolean"
+        },
+        "columnMarks": {
+          "type": "boolean"
         }
       }
     },

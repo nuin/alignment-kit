@@ -187,7 +187,7 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 | Secondary toolbar | `goTo`, `motif`, `order`, `colorMode`, `logoToggle`, `matchDots`, `statisticsScope`, `rulerCoordinates`, `alphabet` |
 | Individual tracks | `ruler`, `modalFrequency`, `gapFraction`, `entropy`, `quality`, `consensus`, `logo`, `reference`, `stockholmTracks` |
 | Labels and row actions | `labels`, `rowNames`, `rowSpecies`, `rowSelection`, `rowPinning`, `rowHiding`, `rowReordering`, `labelResize` |
-| Column masking | `columnMasking` |
+| Column masking and marks | `columnMasking`, `columnMarks` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
@@ -357,6 +357,25 @@ Export: default exports contain every column. **Export > Visible columns · FAST
 
 The link parameter is `hide=10-20,30-35` (manual ranges only). A link without `hide` shows all manually hidden columns again; a range beyond the alignment width is skipped and reported as `hide`. The helpers `computeColumnMask(alignment, { gapFraction, allGap, hidden })`, `mergeColumnRanges` and `buildColumnMap` are exported for use outside the viewer.
 
+## Mark columns
+
+Marks flag columns of interest with a persistent coloured outline box across all rows and a marker bar in the ruler.
+
+```ts
+viewer.markColumns([10, [12, 14]]);          // a column or an inclusive one-based [start, end] range each
+viewer.markColumns([[40, 42]], '#d62728');   // hex color, default #7b2cbf
+viewer.unmarkColumns([[13, 13]]);            // remove part of a mark
+viewer.unmarkColumns();                      // remove every mark
+viewer.getColumnMarks();                     // [{ start: 10, end: 10, color }, ...] sorted, non-overlapping
+```
+
+- Alt-click (Option-click on macOS) a cell or the ruler toggles a mark on that column. The click does not change the selection.
+- The Position tab has **Mark column** (**Unmark column**; plural for a range). It marks the selected columns, or unmarks them when all are already marked. Columns that already carry a colour keep it. `visibility.columnMarks` hides the button and turns off Alt-click; the API keeps working.
+- Ranges outside 1 to the alignment width throw. Adjacent ranges of one colour merge. Marking a marked column replaces its colour.
+- Marks use original column numbers. Column masking does not move or drop them: a mark spanning hidden columns draws over its visible columns, and a mark whose columns are all hidden is kept but not drawn until they return.
+- `getState().columnMarks` holds `{ start, end, color }` ranges; `setState` restores them and rejects ranges beyond the width. `removeRows` keeps marks; loading another alignment clears them.
+- Links carry `marks=10-12,40` (ranges only, no colours). Applying a link replaces the marks with the link's ranges; columns already marked keep their colour, others get the default. A range beyond the width is skipped and reported as `marks`. A link without `marks` clears them.
+
 ## Search motifs
 
 The motif box and `search()` accept three syntaxes. Auto mode picks one from the text:
@@ -434,6 +453,7 @@ Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (de
 | `setSort('input' \| 'name' \| 'identity' \| 'manual' \| 'tree')` | Stable ordering; identity calculation is asynchronous; `tree` needs `setTree` first |
 | `hideRows(ids)` / `showRows(ids?)` | Hide rows from the grid / restore some or all hidden rows |
 | `hideColumns(start, end)` / `showColumns(start?, end?)` | Hide columns by one-based range / show a range, or everything when called with no arguments (see Hide columns) |
+| `markColumns(ranges, color?)` / `unmarkColumns(ranges?)` / `getColumnMarks()` | Mark columns, remove marks (all when called with no argument), read the marks (see Mark columns) |
 | `getColumnMask()` | `Uint8Array` with 1 for each visible column and 0 for each hidden one |
 | `moveRow(id, index)` / `getRowOrder()` | Move a row to a zero-based position and switch to manual order / read all row IDs in the current order |
 | `removeRows(ids)` | Delete rows from a copy of the alignment and recompute statistics |
@@ -505,6 +525,8 @@ viewer.setTree(null);
 
 Protein alignments default to **Residue classes** (`soft`); DNA/RNA default to **Nucleotide · muted** (`soft-nucleotide`), with A green, C gold, G rose and T/U blue. Ambiguity symbols have a neutral background. The original vivid mapping remains **Nucleotide · classic** (`nucleotide`). The Color menu lists schemes compatible with the loaded alphabet; changing Type or loading a different alphabet replaces an incompatible scheme with its default. Type changes interpretation, not the underlying sequence letters—it does not translate proteins or convert T to U.
 
+Colorblind-safe and high-contrast schemes: `cvd-protein` (**Residue classes · colorblind-safe**), `cvd-nucleotide` (**Nucleotide · colorblind-safe**, Okabe-Ito based), `hc-protein` and `hc-nucleotide` (**… · high contrast**). The protein schemes use seven classes (aliphatic AVLIM, aromatic FWY, polar STNQ, positive KRH, negative DE, glycine and proline GP, cysteine C); the nucleotide schemes color A, C, G and T/U. All four keep every pair of class colors at a CIELAB distance of 25 or more under normal vision and under simulated deuteranopia and protanopia (Machado 2009 matrices, checked in `tests/palettes.test.ts`). The high-contrast schemes also give every letter at least 7:1 contrast against its fill. The nucleotide schemes are limited to DNA and RNA, the protein schemes to protein. The Colors tab lists each class with its residues. `ColorScheme` has the optional fields `classes`, `cvdSafe` and `highContrast`. No other built-in scheme is claimed to be colorblind-safe; the Nightingale schemes, Clustal, Zappo and the muted defaults rely on red-green or similar hue differences.
+
 Additional DNA/RNA options are `nucleotide-blue-orange`, `nucleotide-contrast` (strong), `nucleotide-grayscale`, `nucleotide-gc` (GC vs AT/U), and `nucleotide-purine` (muted purines vs pyrimidines). Group schemes handle unambiguous group membership explicitly: GC colors S with G/C and W with A/T/U; purine coloring groups R with A/G and Y with C/T/U. Other mixed ambiguity codes stay neutral. These are qualitative encodings, not GC percentages or evidence of biological function. The user guide includes descriptions and base-by-base previews.
 
 All dropdowns use viewer-themed menus with keyboard navigation (arrows, Home/End, typeahead, Enter, Escape), following the viewer theme rather than the OS theme. Nightingale fixed palettes include Clustal/Clustal2, Taylor, Zappo, Lesk, Cinema, MAE, nucleotide, hydrophobicity, buried index, helix/strand/turn propensity and property highlights. Clustal2 here is a fixed residue mapping, not column-dependent ClustalX. The consensus-support scheme is calculated from the explicitly selected statistics scope.
@@ -531,7 +553,7 @@ Consensus sequence: the modal non-gap residue per column. With a `consensusThres
 
 `getViewLink()` returns readable parameters such as `src=…&aln=…&sel=50-60&row=seq-3&ref=seq-1&scheme=soft&zoom=16&q=human&x=41`. `src` appears only when the alignment came from `loadUrl`; links to local files carry the view without the data. `src` is the full URL passed to `loadUrl`, query string included; with `urlSync` it lands in the address bar, so do not use it with signed or token-bearing URLs. Hash changes without link parameters, such as in-page anchors, are ignored. If `history.replaceState` is blocked (for example in a sandboxed iframe), sync stops and an `error` event reports it. Annotation filters and visibility are not part of links.
 
-`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `hide`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
+`applyViewLink(link)` restores a link leniently. Settings that do not fit the loaded alignment (unknown rows, out-of-range columns, a scheme for another alphabet) are skipped, returned by name and reported in the message area. Missing `sel`, `q`, `sort`, `mode`, `dots`, `scope`, `ruler`, `hide`, `marks`, `x` and `y` reset to defaults; missing `ref`, `scheme` and `zoom` keep their current values. A different `aln` fingerprint adds a warning and still applies what fits. `setState()` remains strict.
 
 With `urlSync: true` the viewer keeps `location.hash` in sync (via `history.replaceState`) and applies a hash link after the next load. The viewer never fetches `src` itself; the host decides what to load:
 

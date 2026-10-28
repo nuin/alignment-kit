@@ -88,3 +88,5 @@
 .ak-group-count{color:var(--ak-muted);font-weight:400;font-size:11px}
 .ak-viewer .ak-row-label .ak-hide{flex:0 0 22px;padding:0;text-align:center;font-size:15px;color:var(--ak-muted);opacity:.5}
 .ak-row-label:hover .ak-hide,.ak-viewer .ak-row-label .ak-hide:focus-visible{opacity:1}
+
+.ak-class-legend{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:6px}.ak-inspector .ak-class-legend{padding-left:0;line-height:1.4}.ak-class-legend li{display:flex;align-items:center;gap:8px;font-size:11px}.ak-class-legend span{font:12px ui-monospace,monospace;min-width:54px;padding:4px 6px;border-radius:3px;text-align:center}
