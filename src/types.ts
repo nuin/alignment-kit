@@ -17,7 +17,7 @@ export interface Alignment {
   id: string; name: string; alphabet: Alphabet; width: number; rows: Sequence[];
   codes: Uint8Array; annotations: Annotation[]; metadata: AlignmentMetadata;
 }
-export interface ParseOptions { name?: string; alphabet?: Alphabet; format?: 'fasta'|'stockholm'|'clustal'; source?: Provenance }
+export interface ParseOptions { name?: string; alphabet?: Alphabet; format?: 'fasta'|'stockholm'|'clustal'|'phylip'|'nexus'|'msf'|'pir'; source?: Provenance }
 export interface AlignmentStats { width:number; total:number; counts:Uint32Array; gaps:Uint32Array; consensus:Uint8Array; frequency:Float32Array; support:Float32Array }
 export interface ColumnDetail { column:number; total:number; gapCount:number; gapFraction:number|null; consensus:string|null; tied:boolean; frequency:number|null; support:number|null; counts:{residue:string;count:number}[] }
 export interface Identity { matches:number; compared:number; identity:number|null }

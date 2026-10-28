@@ -5,7 +5,7 @@ export function buildShell(root:HTMLElement) {
   root.innerHTML=`
   <div class="ak-toolbar">
     <button type="button" data-action="open" class="ak-open"><span aria-hidden="true">＋</span> Open alignment</button>
-    <input class="ak-file" type="file" accept=".fa,.fasta,.faa,.fna,.aln,.sto,.stockholm,.gz,.txt" hidden aria-label="Alignment file">
+    <input class="ak-file" type="file" accept=".fa,.fasta,.faa,.fna,.aln,.sto,.stockholm,.phy,.phylip,.nex,.nexus,.nxs,.msf,.pir,.gz,.txt" hidden aria-label="Alignment file">
     <span class="ak-toolbar-divider"></span>
     <label class="ak-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Find a sequence…" aria-label="Filter sequences"></label>
     <label class="ak-scheme-label">Color <select aria-label="Color scheme">${colorSchemes().map(s=>`<option value="${escapeXml(s.id)}">${escapeXml(s.label)}</option>`).join('')}</select></label>
@@ -14,7 +14,7 @@ export function buildShell(root:HTMLElement) {
     <button type="button" data-action="theme" aria-label="Toggle theme" title="Toggle light and dark theme">◐</button>
     <button type="button" data-action="inspect" aria-label="Toggle inspector" title="Show or hide inspector">Inspect</button>
     <button type="button" data-action="fullscreen" aria-label="Full screen">⛶</button>
-    <select aria-label="Export alignment"><option value="">Export…</option><option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="consensus">Consensus · FASTA</option><option value="tsv">Column statistics · TSV</option><option value="state">View state · JSON</option><option value="fasta-options">FASTA options…</option></select>
+    <select aria-label="Export alignment"><option value="">Export…</option><option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="clustal-all">All rows · CLUSTAL</option><option value="clustal">Selection · CLUSTAL</option><option value="stockholm-all">All rows · Stockholm</option><option value="stockholm">Selection · Stockholm</option><option value="phylip-all">All rows · PHYLIP</option><option value="phylip">Selection · PHYLIP</option><option value="nexus-all">All rows · NEXUS</option><option value="nexus">Selection · NEXUS</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="consensus">Consensus · FASTA</option><option value="tsv">Column statistics · TSV</option><option value="state">View state · JSON</option><option value="fasta-options">FASTA options…</option></select>
   </div>
   <div class="ak-tools">
     <label>Go to <input type="number" min="1" value="1" aria-label="Go to alignment column"></label>
@@ -36,7 +36,7 @@ export function buildShell(root:HTMLElement) {
   <div class="ak-workspace">
     <div class="ak-main">
       <div class="ak-tracks"><canvas aria-hidden="true"></canvas><div class="ak-track-labels"><span>Alignment position</span><span title="Most common non-gap symbol / non-gap rows">Modal frequency</span><span title="Gap count / rows">Gap fraction</span><span>Consensus</span><span class="ak-logo-label" hidden>Frequency logo · non-gap</span><button type="button" class="ak-reference-label" data-action="reference-info">Reference</button></div></div>
-      <div class="ak-grid"><div class="ak-scroll" tabindex="0" role="grid" aria-label="Alignment residues. Use arrow keys to inspect, Shift and arrows to select, plus and minus to zoom."><div class="ak-spacer"></div></div><canvas class="ak-body-canvas" aria-hidden="true"></canvas><div class="ak-labels"></div><div class="ak-gutter-resize" role="separator" aria-label="Resize sequence labels" aria-orientation="vertical" tabindex="0"></div><div class="ak-empty">Open an aligned FASTA, Stockholm or CLUSTAL file.</div></div>
+      <div class="ak-grid"><div class="ak-scroll" tabindex="0" role="grid" aria-label="Alignment residues. Use arrow keys to inspect, Shift and arrows to select, plus and minus to zoom."><div class="ak-spacer"></div></div><canvas class="ak-body-canvas" aria-hidden="true"></canvas><div class="ak-labels"></div><div class="ak-gutter-resize" role="separator" aria-label="Resize sequence labels" aria-orientation="vertical" tabindex="0"></div><div class="ak-empty">Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).</div></div>
     </div>
     <aside class="ak-inspector" aria-label="Alignment inspector"><div class="ak-tabs"><button type="button" data-tab="position" aria-pressed="true">Position</button><button type="button" data-tab="annotations">Features</button><button type="button" data-tab="compare">Compare</button><button type="button" data-tab="legend">Colors</button></div><div class="ak-inspector-content"></div></aside>
   </div>

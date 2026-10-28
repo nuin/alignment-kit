@@ -21,7 +21,9 @@ The annotated example and large benchmark buttons are explicitly synthetic. Thei
 
 ## Open your own file
 
-Choose **Open alignment**, or drop a file onto the viewer. Supported formats are aligned FASTA, Stockholm and CLUSTAL, including gzip-compressed files. A filename ending in `.gz` is convenient; gzip detection uses the file bytes.
+Choose **Open alignment**, or drop a file onto the viewer. Supported formats are aligned FASTA, Stockholm, CLUSTAL, PHYLIP (`.phy`, `.phylip`), NEXUS (`.nex`, `.nexus`, `.nxs`), MSF (`.msf`) and PIR/NBRF (`.pir`), including gzip-compressed files. The format is detected from the content.
+
+To load text without a file, click the viewer and press **Ctrl+V** (**Cmd+V** on macOS). The viewer reads the clipboard text and loads it like a file. Pasting into the search boxes or other form fields does nothing special. A parse error appears in the status message. A filename ending in `.gz` is convenient; gzip detection uses the file bytes.
 
 Every sequence must have the same aligned length. Use `-` or `.` for a gap. A minimal DNA alignment is:
 
@@ -184,6 +186,8 @@ Use the **Export** menu:
 |---|---|
 | All rows · FASTA | Every original row, full aligned width, in input order. |
 | Selection · FASTA | Selected/visible columns and checked/visible rows, retaining gaps. |
+| All rows · CLUSTAL / Stockholm / PHYLIP / NEXUS | Every row, full width, in input order. CLUSTAL uses 60-column blocks and a `*` line for identical non-gap columns. PHYLIP is the relaxed variant, one line per sequence. NEXUS writes a DATA block with `gap=-` and `missing=?`. |
+| Selection · CLUSTAL / Stockholm / PHYLIP / NEXUS | The same formats for the selected/visible columns and checked/visible rows. |
 | Selection · SVG | Vector figure with palette, coordinate scope, legend, supplied provenance and visible annotations. |
 | Selection · PNG | Raster version of the selected figure. |
 | Consensus · FASTA | Consensus of the selected/visible columns from the current statistics scope, with the scope, row count and threshold in the header. |
@@ -197,7 +201,7 @@ For selection exports, a selected column range takes precedence over the horizon
 
 Figures preserve the palette, match/difference emphasis and annotation filters. They use their own fixed figure layout, not a screenshot of the entire application. SVG/PNG exports are limited to **200,000 cells** (rows × selected columns). PNG also limits dimensions to 16,384px per side and total area to 32 million pixels. Narrow the region when an export exceeds a limit.
 
-FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button; see **Share a view** for links.
+Names containing whitespace are written with `_` in CLUSTAL, Stockholm and PHYLIP; NEXUS quotes them. The API also offers strict PHYLIP (`exportPhylip(a, region, { variant: 'strict' })`). FASTA exports carry names and aligned letters; they do not serialize all annotation metadata. View state can be restored with the API's `setState` against the same alignment ID. The current Explorer has no JSON-state upload button; see **Share a view** for links.
 
 ## Share a view
 
@@ -252,7 +256,7 @@ Controls have accessible names and focus indicators, and selections have textual
 |---|---|
 | Unequal-length error | Supply an existing rectangular alignment; do not mix raw and aligned sequences. |
 | Stockholm/CLUSTAL block error | Check blank-line block separation, row membership, per-block widths and annotation lengths. |
-| File is not recognized | Use aligned FASTA, Stockholm or CLUSTAL. A3M, FASTQ, VCF and tree files are not alignment inputs here. |
+| File is not recognized | Use aligned FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR. A3M, FASTQ, VCF and tree files are not alignment inputs here. |
 | Colors look wrong | Check Type, Color and the Colors legend. Type changes interpretation, not letters. |
 | A palette disappeared | The Color menu filters schemes by alphabet. |
 | No motif found | Search is literal, ignores gaps and searches filtered rows. Ambiguity letters are not wildcards. |

@@ -3,7 +3,7 @@ export { createAlignment, alignmentToSequence, sequenceToAlignment } from './mod
 export { parseAlignment, readAlignmentInput } from './parsers';
 export { calculateStats, columnDetail, pairwiseIdentity, pairwiseMatrix, consensusSequence } from './analysis';
 export { registerColorScheme, getColorScheme, colorSchemes } from './colors';
-export { exportFasta, formatFastaRecord, exportStatistics, exportSvg, exportPng } from './export';
+export { exportFasta, formatFastaRecord, exportClustal, exportStockholm, exportPhylip, exportNexus, exportStatistics, exportSvg, exportPng } from './export';
 export { AnnotationIndex, filterAnnotations } from './annotations';
 export type * from './types';
 export type { ColorScheme } from './colors';
