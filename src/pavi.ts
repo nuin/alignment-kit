@@ -1,5 +1,6 @@
 import { parseAlignment } from './parsers';
-import type { Alignment, Annotation } from './types';
+import type { Alignment } from './types';
+import { mapVariants, type VariantInput } from './variants';
 export interface PaviVariant {
   variant_id:string; alignment_start_pos?:number; alignment_end_pos?:number;
   seq_start_pos?:number; seq_end_pos?:number; seq_substitution_type?:string;
@@ -13,12 +14,9 @@ export function fromPavi(text:string,info:Record<string,PaviSequenceInfo>,annota
     if(!seqInfo) continue;
     row.species=seqInfo.species;
     row.metadata={sourceId,...seqInfo};
-    for(const [index,v] of [...(seqInfo.embedded_variants??[]),...(seqInfo.non_coding_variants??[])].entries()) {
-      const mapped=Number.isInteger(v.alignment_start_pos)&&Number.isInteger(v.alignment_end_pos)&&v.alignment_start_pos!>=1&&v.alignment_end_pos!>=v.alignment_start_pos!&&v.alignment_end_pos!<=a.width;
-      const annotation:Annotation={id:`${row.id}:${v.variant_id}:${index}`,rowId:row.id,label:v.hgvs_protein||v.variant_id,mapping:mapped?'mapped':'unmapped',kind:v.seq_substitution_type??'variant',consequence:v.molecular_consequences,disease:annotationInfo[v.variant_id]?.hasDisease,phenotype:annotationInfo[v.variant_id]?.hasPhenotype,metadata:{...v,sourceId}};
-      if(mapped) {annotation.start=v.alignment_start_pos;annotation.end=v.alignment_end_pos;}
-      a.annotations.push(annotation);
-    }
+    const list=[...(seqInfo.embedded_variants??[]),...(seqInfo.non_coding_variants??[])];
+    const inputs=list.map((v,index):VariantInput=>{const mapped=Number.isInteger(v.alignment_start_pos)&&Number.isInteger(v.alignment_end_pos);return {id:`${row.id}:${v.variant_id}:${index}`,rowId:row.id,...(mapped?{position:v.alignment_start_pos,end:v.alignment_end_pos}:{}),type:v.seq_substitution_type??'variant',...(v.molecular_consequences?{consequence:v.molecular_consequences}:{}),...(v.hgvs_protein?{hgvs:v.hgvs_protein}:{}),label:v.hgvs_protein||v.variant_id,disease:annotationInfo[v.variant_id]?.hasDisease,phenotype:annotationInfo[v.variant_id]?.hasPhenotype,metadata:{...v,sourceId}};});
+    a.annotations.push(...mapVariants(a,inputs,{coordinates:'alignment',hgvsPosition:false}).annotations);
   }
   return a;
 }

@@ -26,3 +26,5 @@ export type { ViewLink } from './link';
 export { compilePattern, findHits } from './search';
 export { summarizeColumns, variableColumns, MAX_VARIABLE_COLUMNS } from './summary';
 export { exportVariableColumns } from './export';
+export { isVariant, parseHgvsProtein, variantsToAnnotations, consequenceClass, variantColors, variantClassLabels, assignLanes } from './variants';
+export type { VariantClass, VariantType, VariantInfo, VariantInput, VariantOptions, VariantResult, HgvsProtein } from './variants';
