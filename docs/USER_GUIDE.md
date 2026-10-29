@@ -310,6 +310,16 @@ Filter features by type or consequence. Disease and phenotype checkboxes select 
 
 Click a mapped feature to select its alignment range. Unmapped features remain inspectable without an invented protein position. **Hide row features** in the Position inspector affects that row's annotations. Annotation filters do not change the sequence data or column-statistics scope.
 
+### Variants
+
+Variants are annotations with a change on one sequence, such as `p.Arg175His`. The embedding application supplies them; the viewer does not fetch them.
+
+- Each variant cell is outlined in the color of its consequence: vermillion for nonsense, reddish purple for frameshift, blue for missense, orange for in-frame insertions and deletions, sky blue for splice, bluish green for synonymous and grey for other. The **Colors** tab lists these colors. They come from the Okabe-Ito palette, which stays distinguishable with common color vision deficiencies.
+- The **Variants** track above the reference row shows one marker per variant: a diamond for a substitution, a triangle for a deletion, a chevron for an insertion and a square for a frameshift or stop. Overlapping variants stack in up to 8 lanes; the label counts the rest as `+n`. The track follows the Features tab filters and hidden rows, and disappears when no variant passes them.
+- Hover a marker to see its card. Click it to select the variant and its sequence and keep the card open.
+- **‹ Variant** and **Variant ›** in the second toolbar, or `[` and `]` on the grid, step through the variants by column, then by row order, and wrap around. The counter shows which variant is selected out of those shown.
+- The overview strip marks each variant column with a tick in its color.
+
 ### Import annotation files
 
 With an alignment loaded, choose **Open alignment** or drop a `.gff`, `.gff3`, `.bed`, `.gb`, `.gbk`, `.genbank`, `.embl` or UniProt `.json` file. The viewer adds its features to the Features tab and keeps the alignment. Gzip-compressed files work too. Without a loaded alignment, these files are rejected as alignments.
@@ -410,6 +420,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | Home / End / matrix | Jump to the first/last alignment column. |
 | + or − / matrix | Increase/decrease cell width. |
 | Escape / matrix | Clear residue selection. |
+| ] or [ / matrix | Select the next or previous variant. |
 | Ctrl/Cmd + C / matrix | Copy the selection as gapped FASTA. |
 | Drag / matrix | Pan the view; a press that moves under 4 px is a click. |
 | Click / matrix | Select a residue; click it again to clear the selection. |
