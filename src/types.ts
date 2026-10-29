@@ -118,6 +118,10 @@ export interface ViewerVisibility {
   minIdentity?:boolean;
   minCoverage?:boolean;
   tooltip?:boolean;
+  /** Variant track above the pinned reference row; it appears only while a mapped variant passes the annotation filter. */
+  variantTrack?:boolean;
+  /** Previous variant and Next variant buttons with a k / n counter; hidden when the alignment has no mapped variants. */
+  variantNav?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
 /** `reversed` is true in the reverse-complement view: columns then run right to left, column `end` is drawn at `offsetX` and each lower column one `cellWidth` further right. */
@@ -169,6 +173,8 @@ export interface ViewerOptions {
   hideAllGapColumns?:boolean;
   /** Show the whole alignment reverse-complemented: columns run right to left and every residue is complemented. DNA and RNA only; on a protein alignment the option stays false and a message explains why. The source alignment, coordinates and statistics do not change. Default false. */
   reverseComplement?:boolean;
+  /** After each load, select and reveal the first variant. Default false. */
+  focusFirstVariant?:boolean;
 }
 export interface ViewState {
   visibility?:ViewerVisibility;

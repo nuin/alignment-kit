@@ -2,6 +2,7 @@ import type { Alignment, Identity } from '../types';
 import { $ } from '../controls';
 import { type Core } from './core';
 import { showWarnings } from './warnings';
+import { nextVariant } from './variants';
 const cell=(tag:'th'|'td',text:string,title?:string)=>{const node=document.createElement(tag);node.textContent=text;if(title)node.title=title;return node;};
 /** Pairwise identity table built from DOM nodes, so sequence names are never parsed as markup. */
 function identityMatrix(a:Alignment,rows:number[],matrix:Identity[][]):HTMLElement {
@@ -33,6 +34,7 @@ export async function action(v:Core, action:string):Promise<void> {
     if(action==='summary-prev'){v.summaryPage=Math.max(0,v.summaryPage-1);v.inspectorDirty=true;v.schedule();}
     if(action==='summary-next'){v.summaryPage++;v.inspectorDirty=true;v.schedule();}
     if(action==='export-variants')await v.export('variants');
+    if(action==='variant-next'||action==='variant-prev')nextVariant(v,action==='variant-next'?1:-1);
     if(action==='show-hidden')v.showRows();
     if(action==='hide-columns'){const sel=v.selection;if(!sel){v.message('Select columns first, then hide them.');return;}v.hideColumns(sel.start,sel.end);v.setSelection(null,false);}
     if(action==='show-columns')v.showColumns();

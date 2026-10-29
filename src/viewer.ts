@@ -30,6 +30,8 @@ import * as modActions from './viewer/actions';
 import * as modBind from './viewer/bind';
 import * as modData from './viewer/data';
 import * as modWarnings from './viewer/warnings';
+import * as modVariants from './viewer/variants';
+import type { VariantInput, VariantOptions, VariantResult } from './variants';
 import type { Core, Carry, BoundTree, SearchState, SummaryEntry, ViewerSettings } from './viewer/core';
 
 export class AlignmentViewer {
@@ -43,7 +45,7 @@ export class AlignmentViewer {
   private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;private menus:ThemedSelects;
   private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private searcher:WorkerTask;private summaryTask:()=>WorkerTask;private summaryCache=new Map<string,SummaryEntry>();private summaryPage=0;private searchRun=0;private searchBusy=false;private request?:AbortController;
   private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
-  private tip?:Core['tip'];private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
+  private tip?:Core['tip'];private variantCache?:Core['variantCache'];private variantCursor?:string;private variantLanes=0;private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
   private visibility:Required<ViewerVisibility>={...defaultVisibility};
   private get grouped(){return !!(this.groupMap||this.groupBy);}
@@ -99,7 +101,7 @@ export class AlignmentViewer {
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
-    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,colorThreshold:0,minIdentity:0,minCoverage:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,reverseComplement:false,tooltips:true,...options,annotationLinks:{},fasta:{},export:{}};
+    this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,colorThreshold:0,minIdentity:0,minCoverage:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,reverseComplement:false,tooltips:true,focusFirstVariant:false,...options,annotationLinks:{},fasta:{},export:{}};
     this.summaryTask=()=>new WorkerTask(options.workerUrl,options.worker!==false);this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
@@ -204,6 +206,10 @@ export class AlignmentViewer {
   addAnnotations(list:Annotation[]):void {modNotes.addAnnotations(this.core, list);}
   removeAnnotations(ids?:string[]):void {modNotes.removeAnnotations(this.core, ids);}
   importAnnotations(text:string,options:AnnotationImportOptions={}):AnnotationImportResult {return modNotes.importAnnotations(this.core, text, options);}
+  /** Map variant records onto rows (see variantsToAnnotations) and add them as annotations. Warnings are returned and shown in the message area. Throws like addAnnotations for a duplicate ID. */
+  addVariants(variants:readonly VariantInput[],options:VariantOptions={}):VariantResult {return modVariants.addVariants(this.core, variants, options);}
+  /** Select the next (1) or previous (-1) variant shown, ordered by start column then display row, wrapping around, and scroll it into view. Null when no variant is shown. */
+  nextVariant(direction:1|-1=1):Annotation|null {return modVariants.nextVariant(this.core, direction);}
   private openFile(file:File):Promise<void> {return modLoad.openFile(this.core, file);}
   private refreshAnnotations():void {modNotes.refreshAnnotations(this.core);}
   private rebuildAnnotations():void {modNotes.rebuildAnnotations(this.core);}

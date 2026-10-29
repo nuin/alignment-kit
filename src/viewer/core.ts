@@ -9,6 +9,7 @@ import type { ColumnMap, ColumnRange, MaskOptions } from '../mask';
 import type { TreeLayout } from '../tree';
 import type { MarkRange } from '../marks';
 import type { ColumnAnalysis } from '../summary';
+import type { VariantLayout } from './variants';
 
 export interface BoundTree { layout:TreeLayout; leafRow:Int32Array; treePos:Int32Array; note:string }
 /** View state that survives removeRows. */
@@ -16,14 +17,15 @@ export interface Carry { reference:string; selection:Selection|null; selectedRow
 export interface SummaryEntry { key:string; limit:number; task:WorkerTask; promise:Promise<ColumnAnalysis>; data?:ColumnAnalysis; error?:string }
 export type On=(target:EventTarget,event:string,handler:(event:any)=>void)=>void;
 export interface SearchState { pattern:string; options:SearchOptions; result:SearchResult; byRow:Map<number,Hit[]>; cursor:number; full?:SearchResult }
-export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'colorThreshold'|'minIdentity'|'minCoverage'|'fasta'|'export'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'|'reverseComplement'|'tooltips'|'annotationLinks'>>;
+export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'colorThreshold'|'minIdentity'|'minCoverage'|'fasta'|'export'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'|'reverseComplement'|'tooltips'|'annotationLinks'|'focusFirstVariant'>>;
 export const bounded=(n:number,min:number,max:number):number=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 
 /** The state and methods of AlignmentViewer that the modules in this folder act on. The class implements it with private members, so it is cast once in AlignmentViewer.core. */
 export interface Core {
   root:HTMLElement; scroll:HTMLElement; labels:HTMLElement; inspector:HTMLElement;
   options:ViewerSettings;
-  tip?:{hide():void;click(s:Selection|null,event:MouseEvent):void};
+  tip?:{hide():void;click(s:Selection|null,event:MouseEvent):void;variant(a:Annotation,x:number,y:number,pin:boolean):void};
+  variantCache?:{keys:unknown[];value:VariantLayout}; variantCursor?:string; variantLanes:number;
   a?:Alignment; stats?:AlignmentStats; fullStats?:AlignmentStats;
   reference:number; filteredRows:number[]; rows:number[]; query:string; sort:SortKey; sortColumn?:number; identityJob?:{a:Alignment;ref:number;promise:Promise<Identity[]>}; identityFailed?:{a:Alignment;ref:number}; identities?:number[]; identityDetails?:Identity[];
   selection:Selection|null; selectedRows:Set<string>; annotationFilter:AnnotationFilter;

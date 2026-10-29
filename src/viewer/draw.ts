@@ -6,15 +6,16 @@ import { type RenderView } from '../renderer';
 import { $ } from '../controls';
 import { trackHeight } from '../tracks';
 import { type Core } from './core';
-export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:v.options.theme==='dark',selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,marks:v.columnMarks,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
+import { variantLayout, drawnLanes, syncVariantNav } from './variants';
+export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:v.options.theme==='dark',selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,marks:v.columnMarks,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,variants:variantLayout(v),trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
 export function layout(v:Core):void {
   if(v.disposed)return;const rh=v.options.rowHeight,gutter=v.gutter;
-  const extra=v.drawnTracks(),tracks=trackLayout(v.visibility,rh,extra.map(t=>({height:trackHeight(t)})),v.a?.alphabet);
+  const extra=v.drawnTracks(),lanes=drawnLanes(v),tracks=trackLayout(v.visibility,rh,extra.map(t=>({height:trackHeight(t)})),v.a?.alphabet,lanes);v.variantLanes=lanes;
   const showColumns=$(v.root,'[data-action="show-columns"]'),hiddenColumns=v.columns.width-v.columns.count;
   showColumns.dataset.empty=String(!hiddenColumns);showColumns.textContent=`Show all columns (${hiddenColumns.toLocaleString()} hidden)`;
   const showHidden=$(v.root,'[data-action="show-hidden"]');showHidden.dataset.empty=String(!v.hidden.size);showHidden.textContent=`Show hidden (${v.hidden.size})`;
   $(v.root,'.ak-tree-canvas').dataset.empty=String(!v.treeW);$<HTMLOptionElement>(v.root,'select[aria-label="Sequence order"] option[value="tree"]').hidden=!v.tree;
-  v.menus.sync();applyVisibility(v.root,v.visibility);
+  syncVariantNav(v);v.menus.sync();applyVisibility(v.root,v.visibility);
   v.root.style.setProperty('--ak-tree',v.treeW+'px');v.root.style.setProperty('--ak-gutter',gutter+'px');v.root.style.setProperty('--ak-row-height',rh+'px');
   v.root.dataset.compactRows=String(rh<32);
   $(v.root,'.ak-tracks').style.height=tracks.height+'px';$(v.root,'.ak-tracks').hidden=tracks.height===0;
@@ -23,6 +24,7 @@ export function layout(v:Core):void {
   const rcBox=$<HTMLInputElement>(v.root,'[aria-label="Reverse complement"]'),isProtein=v.a?.alphabet==='protein';rcBox.checked=v.reversed;rcBox.disabled=isProtein;rcBox.title=isProtein?'Reverse complement needs a DNA or RNA alignment.':'Show columns right to left with every residue complemented';
   const orient=$<HTMLSelectElement>(v.root,'[aria-label="FASTA orientation"]');orient.disabled=isProtein;orient.title=isProtein?'Reverse complement needs a DNA or RNA alignment.':'';
   $(v.root,'.ak-logo-label').textContent=v.options.logoMode==='bits'?'Information logo · bits':'Frequency logo · non-gap';
+  const vl=variantLayout(v);strip.children[7].textContent=`Variants${vl.overflow?` +${vl.overflow}`:''}`;(strip.children[7] as HTMLElement).title=vl.overflow?`${vl.overflow} more variants overlap beyond ${vl.lanes} lanes`:'Variants by consequence. Hover for details, click to select.';
   [...strip.children].slice(0,trackNames.length).forEach((label,i)=>{const node=label as HTMLElement,offset=tracks.offsets[trackNames[i]];node.hidden=offset===null;node.style.top=((offset??0)+(trackNames[i]==='reference'?0:3))+'px';});
   const key=extra.map((t,i)=>`${t.id}|${t.label}|${tracks.custom[i]?.offset}`).join('\n');
   if(key!==v.trackKey){v.trackKey=key;for(const old of strip.querySelectorAll('.ak-custom-label'))old.remove();
@@ -35,8 +37,8 @@ export function layout(v:Core):void {
   v.schedule();
 }
 export function render(v:Core):void {
-  if(!v.a||v.disposed)return;const width=$(v.root,'.ak-main').clientWidth,height=v.scroll.clientHeight;if(width<1)return;
-  const rv=v.view();v.renderer.body($(v.root,'.ak-body-canvas'),rv,width,height);v.renderer.tracks($(v.root,'.ak-tracks canvas'),rv,width);
+  if(!v.a||v.disposed)return;syncVariantNav(v);const width=$(v.root,'.ak-main').clientWidth,height=v.scroll.clientHeight;if(width<1)return;
+  const rv=v.view();if(drawnLanes(v)!==v.variantLanes){v.layout();return;}v.renderer.body($(v.root,'.ak-body-canvas'),rv,width,height);v.renderer.tracks($(v.root,'.ak-tracks canvas'),rv,width);
   const overview=$(v.root,'.ak-overview');if(v.overviewDirty&&v.visibility.overview){v.renderer.overview($(overview,'canvas'),rv,overview.clientWidth);v.overviewDirty=false;}
   const win=$(overview,'.ak-overview-window');const visible=Math.max(1,(width-v.gutter)/rv.cw),count=v.columns.count,left=rv.x/rv.cw/count;
   win.style.left=Math.min(1,left)*100+'%';win.style.width=Math.min(1,visible/count)*100+'%';overview.setAttribute('aria-valuemax',String(count));overview.setAttribute('aria-valuenow',String(Math.floor(rv.x/rv.cw)+1));

@@ -2,6 +2,9 @@ import { columnToResidue } from '../model';
 import { annotationDetails, annotationLink } from '../tooltip';
 import type { Annotation, CellInfo, Selection } from '../types';
 import type { Core, On } from './core';
+import { variantOf, variantClassLabels } from '../variants';
+import { variantAt } from './variants';
+import { $ } from '../controls';
 
 const DELAY=300;
 const el=(tag:string,text?:string,cls?:string):HTMLElement=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
@@ -26,6 +29,7 @@ export function bindTooltip(v:Core,on:On):void {
     for(const n of found.slice(0,cap)){
       const box=el('div',undefined,'ak-tip-note'),d=annotationDetails(n),flags=[n.disease&&'disease',n.phenotype&&'phenotype'].filter(Boolean).join(', ');
       box.append(el('div',n.label,'ak-tip-title'));
+      const vi=variantOf(n);if(vi){if(vi.hgvs&&vi.hgvs!==n.label)line(box,'HGVS',vi.hgvs);if(vi.ref||vi.alt)line(box,'Change',`${vi.ref||'–'} → ${vi.alt||'–'}`);line(box,'Class',variantClassLabels[vi.consequenceClass]);}
       if(n.kind)line(box,'Kind',n.kind);if(n.consequence?.length)line(box,'Consequence',n.consequence.join(', '));if(flags)line(box,'Evidence of',flags);
       list(box,'Evidence codes',d.evidence.map(text=>({text,href:annotationLink(links,['evidence','eco'],text)})));
       list(box,'Source',d.source.map(text=>({text,href:annotationLink(links,[text],n.id)})));
@@ -42,6 +46,8 @@ export function bindTooltip(v:Core,on:On):void {
     c.style.left=left+'px';c.style.top=top+'px';
   };
   const show=(info:CellInfo,x:number,y:number,pin:boolean)=>{const found=annotations(info);if(pin&&!found.length)return;card?.remove();card=build(info,found,pin);pinned=pin;place(card,x,y);};
+  const variantCell=(n:Annotation):CellInfo=>cell({start:n.start!,end:n.start!,rowId:n.rowId??v.a!.rows[v.reference].id});
+  const showVariant=(n:Annotation,x:number,y:number,pin:boolean)=>{card?.remove();card=build(variantCell(n),[n],pin);pinned=pin;place(card,x,y);};
   const leave=()=>{if(key){key='';v.emit('hover',null);}if(!pinned)hideCard();};
   v.tip={
     hide,
@@ -49,7 +55,17 @@ export function bindTooltip(v:Core,on:On):void {
       if(!s?.rowId||!v.a)return;const info=cell(s);v.emit('cellclick',{...info,shiftKey:event.shiftKey});
       if(enabled()&&annotations(info).length){clearTimeout(timer);show(info,event.clientX,event.clientY,true);}
     },
+    variant(n,x,y,pin){if(!v.a||!enabled()||n.start===undefined)return;clearTimeout(timer);showVariant(n,x,y,pin);},
   };
+  // Variant track markers: hover shows the annotation card, the click handler in pointer.ts pins it.
+  let marker='';const tracks=$(v.root,'.ak-tracks');
+  on(tracks,'pointermove',(event:PointerEvent)=>{
+    if(!v.a||event.pointerType==='touch')return;const n=variantAt(v,event);
+    if(!n){if(marker){marker='';if(!pinned)hideCard();}return;}
+    if(n.id===marker)return;marker=n.id;if(pinned)return;hideCard();
+    if(enabled()){const {clientX,clientY}=event;timer=setTimeout(()=>{timer=undefined;if(v.a&&marker===n.id)showVariant(n,clientX,clientY,false);},DELAY);}
+  });
+  on(tracks,'pointerleave',()=>{marker='';if(!pinned)hideCard();});
   const track=(event:PointerEvent,prev='')=>{
     if(!v.a)return;
     const s=event.pointerType==='touch'||v.root.dataset.panning==='true'?null:v.eventAt(event);

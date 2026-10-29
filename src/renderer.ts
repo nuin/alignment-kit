@@ -8,6 +8,8 @@ import { STRIDE, SYMBOLS, consensusSymbol, movingAverage } from './analysis';
 import { treeSpans, type TreeLayout } from './tree';
 import { identityColumns, columnSpan, type ColumnMap } from './mask';
 import { complementTable } from './strand';
+import { annotationColor, type VariantShape } from './variants';
+import type { VariantLayout } from './viewer/variants';
 export interface GroupInfo { name:string; count:number; color:string; collapsed:boolean }
 export interface TreeHit { node:number; x:number; y:number }
 /** `rows` holds row indexes; a negative entry -n is the header of groups[n-1]. */
@@ -27,6 +29,8 @@ export interface RenderView {
   /** User column marks in original coordinates. */
   marks?:ColumnMark[];
   tracks?:CustomTrack[]; logoMode?:'frequency'|'bits'; window?:number; trackError?:(id:string,error:Error)=>void;
+  /** Variant markers for the variant track and the overview ticks; omitted when the track is switched off. */
+  variants?:VariantLayout;
 }
 const colMap=(v:RenderView):ColumnMap=>v.columns??identityColumns(v.a.width);
 const identityCodes=Uint8Array.from({length:128},(_,i)=>i);
@@ -97,8 +101,8 @@ export class Renderer {
     // Merge overlapping marks into pixel bins at low zoom; never draw unbounded feature DOM.
     const bins=new Set<number>();
     for(const item of items){const span=columnSpan(m,item.start!,item.end!),left=Math.max(start,span[0]),right=Math.min(end,span[1]);if(right<=left)continue;const x=v.gutter+left*v.cw-v.x;
-      if(v.cw<9){const bin=Math.floor(x/4);if(bins.has(bin))continue;bins.add(bin);ctx.fillStyle='#a63d59';ctx.fillRect(x,y,Math.max(3,(right-left)*v.cw),3);}
-      else{ctx.strokeStyle=item.color&&/^#[0-9a-f]{6}$/i.test(item.color)?item.color:'#a63d59';ctx.lineWidth=1.7;ctx.strokeRect(x+1,y+1,Math.max(1,(right-left)*v.cw-2),v.rh-3);}
+      if(v.cw<9){const bin=Math.floor(x/4);if(bins.has(bin))continue;bins.add(bin);ctx.fillStyle=annotationColor(item);ctx.fillRect(x,y,Math.max(3,(right-left)*v.cw),3);}
+      else{ctx.strokeStyle=annotationColor(item);ctx.lineWidth=1.7;ctx.strokeRect(x+1,y+1,Math.max(1,(right-left)*v.cw-2),v.rh-3);}
     }
   }
   private header(ctx:CanvasRenderingContext2D,v:RenderView,group:GroupInfo|undefined,y:number,width:number) {
@@ -158,7 +162,7 @@ export class Renderer {
     ctx.restore();
   }
   tracks(canvas:HTMLCanvasElement,v:RenderView,width:number) {
-    const extra=v.tracks??[],tracks=trackLayout(v.visibility??{...defaultVisibility,logo:v.logo},v.rh,extra.map(t=>({height:trackHeight(t)})),v.a.alphabet),offset=tracks.offsets;
+    const extra=v.tracks??[],tracks=trackLayout(v.visibility??{...defaultVisibility,logo:v.logo},v.rh,extra.map(t=>({height:trackHeight(t)})),v.a.alphabet,v.variants?.lanes??0),offset=tracks.offsets;
     const bitsMax=Math.log2(v.a.alphabet==='protein'?20:4),window=v.window??1;
     const height=tracks.height,ctx=prepareCanvas(canvas,width,height),ink=v.dark?'#b7c8d9':'#607489',line=v.dark?'#354356':'#e6ebf0';
     ctx.fillStyle=v.dark?'#172333':'#ffffff';ctx.fillRect(0,0,width,height);ctx.save();ctx.beginPath();ctx.rect(v.gutter,0,width-v.gutter,height);ctx.clip();
@@ -194,11 +198,24 @@ export class Renderer {
         for(const d of counts){const h=d.n/n*full,letter=viewSymbol(v,d.r);if(h<1)continue;ctx.save();ctx.translate(x,bottom-h);ctx.scale(v.cw/16,h/16);ctx.font='bold 18px "Alignment Mono", monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=residueColor(letter,getColorScheme(v.scheme==='blosum62'?'soft':v.scheme),1);ctx.fillText(letter,8,17);ctx.restore();bottom-=h;}
       }
     }
+    if(offset.variants!==null&&v.variants)this.variantTrack(ctx,v,m,offset.variants,start,end,width,line);
     if(offset.reference!==null&&v.reference>=0)this.row(ctx,v,v.reference,offset.reference,width);
     extra.forEach((t,i)=>tracks.custom[i]&&this.customTrack(ctx,v,m,t,tracks.custom[i],start,end,width,ink,line));
     this.edges(ctx,v,m,0,height,offset.ruler!==null,width);this.marks(ctx,v,m,0,height,offset.ruler,width);
     if(v.selection&&v.visibility?.selectionOverlay!==false){const [l,r]=columnSpan(m,v.selection.start,v.selection.end);ctx.strokeStyle='#2463a6';ctx.lineWidth=1.5;ctx.strokeRect(v.gutter+l*v.cw-v.x+.75,.75,Math.max(2,(r-l)*v.cw)-1.5,height-1.5);}
     ctx.restore();return height;
+  }
+  /** One marker per variant in its lane, filled with its consequence color; at low zoom markers merge into 4 px bins per lane. */
+  private variantTrack(ctx:CanvasRenderingContext2D,v:RenderView,m:ColumnMap,top:number,start:number,end:number,width:number,line:string) {
+    const list=v.variants!,bins=new Set<number>(),edge=v.dark?'#172333':'#ffffff';
+    ctx.fillStyle=line;ctx.fillRect(v.gutter,top,width-v.gutter,1);
+    for(const k of list.marks){
+      if(k.lane>=list.lanes)continue;const [l,r]=columnSpan(m,k.a.start!,k.a.end!);if(r<=l||r<=start||l>=end)continue;
+      const x=v.gutter+l*v.cw-v.x,w=(r-l)*v.cw,cy=top+3+k.lane*12+6;
+      if(v.cw<9){const bin=k.lane*1e7+Math.floor(x/4);if(bins.has(bin))continue;bins.add(bin);ctx.fillStyle=k.color;ctx.fillRect(x,cy-3,Math.max(3,w),6);continue;}
+      if(r-l>1){ctx.fillStyle=k.color;ctx.globalAlpha=.5;ctx.fillRect(x+1,cy-1,w-2,2);ctx.globalAlpha=1;}
+      drawShape(ctx,k.shape,x+w/2,cy,Math.min(5,v.cw/2),k.color,edge);
+    }
   }
   private customTrack(ctx:CanvasRenderingContext2D,v:RenderView,m:ColumnMap,t:CustomTrack,slot:{offset:number;height:number},start:number,end:number,width:number,ink:string,line:string) {
     const top=slot.offset,height=slot.height,[d0,d1]=t.domain??[0,1],color=t.color??'#3a7da4';
@@ -233,5 +250,15 @@ export class Renderer {
       let support=0,occupancy=0;for(let d=from;d<to;d++){const c=m.cols[d];support+=v.stats.support[c]||0;occupancy+=v.stats.total?1-v.stats.gaps[c]/v.stats.total:0;}
       const h=occupancy/(to-from)*30;const top=String.fromCharCode(v.stats.consensus[m.cols[from]]);ctx.fillStyle=v.scheme==='conservation'||!dynamicSchemes.has(v.scheme)?residueColor(viewSymbol(v,top),scheme,support/(to-from)):dynamicColor(scheme,top,v.stats,m.cols[from],v.colorThreshold??0,v.threshold??0);ctx.fillRect(px,35-h,1,h);
     }
+    // One tick per variant column below the occupancy bars.
+    if(v.variants)for(const k of v.variants.marks){const [l,r]=columnSpan(m,k.a.start!,k.a.end!);if(r<=l)continue;ctx.fillStyle=k.color;ctx.fillRect(Math.min(width-2,Math.floor(l*width/m.count)),37,Math.max(2,(r-l)*width/m.count),7);}
   }
+}
+function drawShape(ctx:CanvasRenderingContext2D,shape:VariantShape,x:number,y:number,r:number,fill:string,edge:string) {
+  ctx.beginPath();
+  if(shape==='diamond'){ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);}
+  else if(shape==='triangle'){ctx.moveTo(x-r,y-r*.8);ctx.lineTo(x+r,y-r*.8);ctx.lineTo(x,y+r);}
+  else if(shape==='chevron'){ctx.moveTo(x-r,y+r);ctx.lineTo(x,y-r);ctx.lineTo(x+r,y+r);ctx.lineTo(x,y+r*.2);}
+  else ctx.rect(x-r*.85,y-r*.85,r*1.7,r*1.7);
+  ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=edge;ctx.lineWidth=1;ctx.stroke();
 }

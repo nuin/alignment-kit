@@ -106,3 +106,5 @@
 .ak-tooltip a{color:var(--ak-accent)}
 
 .ak-toolbar .ak-export-columns{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap}.ak-toolbar .ak-export-columns input{margin:0}
+.ak-variant-nav{display:flex;align-items:center;gap:4px;flex-shrink:0}.ak-variant-nav output{font:11px ui-monospace,monospace;color:var(--ak-muted);min-width:44px;text-align:center}
+.ak-class-legend.ak-variant-legend span{min-width:14px;width:14px;height:14px;padding:0;border-radius:3px}

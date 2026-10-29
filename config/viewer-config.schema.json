@@ -304,6 +304,14 @@
         },
         "tooltip": {
           "type": "boolean"
+        },
+        "variantTrack": {
+          "type": "boolean",
+          "description": "Variant track above the pinned reference row; shown only while a mapped variant passes the annotation filter."
+        },
+        "variantNav": {
+          "type": "boolean",
+          "description": "Previous variant and Next variant buttons with a k / n counter; hidden when the alignment has no mapped variants."
         }
       }
     },
@@ -525,6 +533,10 @@
     "tooltips": {
       "type": "boolean",
       "description": "Show hover cards for residues and annotation marks and pin annotation cards on click. Default true."
+    },
+    "focusFirstVariant": {
+      "type": "boolean",
+      "description": "After each load, select and reveal the first variant. Default false."
     },
     "annotationLinks": {
       "type": "object",
