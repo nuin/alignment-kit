@@ -1,3 +1,4 @@
+import { nextVariant } from './variants';
 
 import type { Core, On } from './core';
 export function bindKeys(v:Core,on:On):void {
@@ -5,6 +6,7 @@ export function bindKeys(v:Core,on:On):void {
     if(!v.a)return;const key=event.key,start=v.selection?.start??v.firstColumn()+1;
     if(['+','=','-','_'].includes(key)){event.preventDefault();v.zoom(v.options.cellWidth+(key==='+'||key==='='?2:-2));return;}
     if(key==='Escape'){v.setSelection(null);return;}
+    if((key===']'||key==='[')&&!event.ctrlKey&&!event.metaKey&&!event.altKey){event.preventDefault();nextVariant(v,key===']'?1:-1);return;}
     if((event.ctrlKey||event.metaKey)&&!event.shiftKey&&!event.altKey&&(key.toLowerCase()==='c'||event.code==='KeyC')&&!v.root.ownerDocument.getSelection()?.toString()){event.preventDefault();void v.copySelection().catch(()=>{});return;}
     if(['ArrowLeft','ArrowRight','Home','End','ArrowUp','ArrowDown'].includes(key)){
       event.preventDefault();let column=start,rowId=v.selection?.rowId;

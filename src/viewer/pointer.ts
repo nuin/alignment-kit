@@ -3,6 +3,7 @@ import { type Selection } from '../types';
 import { type TreeHit } from '../renderer';
 import { $ } from '../controls';
 import { trackHeight } from '../tracks';
+import { variantAt, selectVariant, drawnLanes } from './variants';
 
 import { bounded, type Core, type On } from "./core";
 export function bindPointer(v:Core,on:On):void {
@@ -29,7 +30,8 @@ export function bindPointer(v:Core,on:On):void {
     const tracks=$(v.root,'.ak-tracks'),rect=tracks.getBoundingClientRect(),y=event.clientY-rect.top+tracks.scrollTop,x=event.clientX-rect.left-v.gutter,d=Math.floor((x+v.scroll.scrollLeft)/v.options.cellWidth);
     if(x<0||d<0||d>=v.columns.count)return;const column=v.columns.cols[d]+1;
     if(event.altKey){if(v.visibility.columnMarks)v.toggleColumnMarks(column,column);return;}
-    const ref=trackLayout(v.visibility,v.options.rowHeight,v.drawnTracks().map(t=>({height:trackHeight(t)})),v.a.alphabet).offsets.reference,onRef=ref!==null&&y>=ref&&y<ref+v.options.rowHeight;
+    const hit=variantAt(v,event);if(hit){selectVariant(v,hit);v.tip?.variant(hit,event.clientX,event.clientY,true);return;}
+    const ref=trackLayout(v.visibility,v.options.rowHeight,v.drawnTracks().map(t=>({height:trackHeight(t)})),v.a.alphabet,drawnLanes(v)).offsets.reference,onRef=ref!==null&&y>=ref&&y<ref+v.options.rowHeight;
     pick({start:column,end:column,...(onRef?{rowId:v.a.rows[v.reference].id}:{})},event.shiftKey);
   });
   const treeCanvas=$<HTMLCanvasElement>(v.root,'.ak-tree-canvas');

@@ -36,6 +36,7 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 | Column masking and marks | `columnMasking`, `columnMarks` |
 | Thresholds and row filters | `consensusThreshold`, `colorThreshold`, `minIdentity`, `minCoverage` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
+| Variants | `variantTrack` (track above the reference row), `variantNav` (Previous variant / Next variant buttons) |
 | Hover cards | `tooltip` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab`, `summaryTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |

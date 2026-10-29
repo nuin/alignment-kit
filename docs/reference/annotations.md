@@ -55,3 +55,54 @@ const json = exportAnnotationsJson(alignment);
 - Coordinates are 1-based inclusive. Sequence coordinates count ungapped residues from 1 at the first residue of the row; row offsets such as `seqA/51-120` are not applied, as on import. Alignment columns are always present in TSV and JSON.
 - GFF3 skips unmapped annotations, annotations without a row and annotations whose columns are all gaps in their row, with one warning each. TSV and JSON list them with empty (TSV) or null (JSON) coordinates.
 - GFF3 with `coordinates: 'sequence'` read by `importAnnotations` returns the same mapped annotations. Columns that are gaps at an annotation's edge shrink it to its first and last residue.
+
+## Variants
+
+A variant is an `Annotation` with `metadata.variant = { ref?, alt?, type, hgvs?, consequenceClass }`. `isVariant(annotation)` is true only when `metadata.variant` exists. An annotation with `kind: 'deletion'` and no `metadata.variant` stays an ordinary feature: outlined in `#a63d59`, absent from the variant track and from navigation. `fromPavi` output and `addVariants` results carry `metadata.variant`.
+
+```ts
+import { variantsToAnnotations, parseHgvsProtein } from '@nuin/msa-canvas';
+const { annotations, warnings } = viewer.addVariants([
+  { rowId: 'human', hgvs: 'NP_000537.3:p.Arg175His' },
+  { rowId: 'human', position: 248, ref: 'R', alt: 'W', consequence: 'missense_variant', disease: true },
+  { rowId: 'mouse', position: 12, end: 14, type: 'deletion' },
+], { coordinates: 'sequence' });
+// Pure form, no viewer: variantsToAnnotations(alignment, variants, options)
+parseHgvsProtein('p.Arg123ProfsTer5'); // { start: 123, end: 123, ref: 'R', alt: 'P', type: 'frameshift', consequence: 'frameshift_variant' }
+```
+
+- `VariantInput`: `rowId` (required), `id`, `position`, `end`, `ref`, `alt`, `type`, `consequence` (a string or an array of Sequence Ontology terms), `hgvs`, `label`, `disease`, `phenotype`, `color`, `metadata`. HGVS fills fields left out: position, end, ref, alt, type and consequence.
+- `coordinates` applies to an explicit `position` and `end`. `'sequence'` (default) counts ungapped residues from 1 at the first residue of the row, without row offsets, as `importAnnotations` does. `'residue'` applies the row offset (`metadata.start`, such as 51 for `seqA/51-120`), as the ruler and `goToResidue` do. `'alignment'` uses alignment columns.
+- Positions read from HGVS are protein residue numbers, so they always map as `'residue'`, with the row offset, whatever `coordinates` says. `metadata.coordinates` records the mode used.
+- An unknown `rowId`, a missing position or a position past the row gives `mapping: 'unmapped'` and a warning. The unknown row ID is kept in `metadata.rowId`.
+- A `ref` that disagrees with the row residue adds a warning and the variant still maps. A two-letter `ref` from an HGVS range is checked against the first and last residue.
+- Missing IDs become `${rowId}:${hgvs || position}:${index}`. IDs are unique within a call and do not collide with existing annotations. An explicit ID that repeats one in the call or one already on the alignment gets a `:n` suffix and a warning, so the batch is still added.
+- `addVariants` adds the annotations as `addAnnotations` does, returns `{ annotations, warnings }` and shows the count and the first warnings in the message area.
+- `fromPavi` maps PAVI variants through the same helpers: `type` comes from `seq_substitution_type`, `hgvs` from `hgvs_protein`, positions from `alignment_start_pos` and `alignment_end_pos`.
+
+`parseHgvsProtein(text)` reads protein HGVS with three-letter or one-letter residues, optional parentheses and an optional accession prefix: substitutions (`p.Arg123Trp`, `p.R123W`), stops (`p.Arg123Ter`, `p.Arg123*`, `p.R123X`), synonymous (`p.Arg123=`), frameshifts (`p.Arg123fs`, `p.Arg123ProfsTer5`, `p.Arg97ProfsTer`), deletions (`p.Arg123del`, `p.Arg123_Lys125del`), insertions (`p.Lys2_Leu3insGln`), delins (`p.Arg123delinsTrpGly`) duplications (`p.Arg123dup`), extensions (`p.Ter110GlnextTer17`, consequence `stop_lost`) and an unknown effect at one residue (`p.Met1?`, consequence `start_lost`; class `other`). It returns `{ start, end, ref, alt, type, consequence }` or `null`. Residue names are case-sensitive, so `p.arg123trp` is rejected. A whole-protein unknown (`p.?`) and nucleotide HGVS are not parsed.
+
+### Consequence classes and colors
+
+`consequenceClass(consequences, type?)` picks the most severe class from Sequence Ontology terms, case-insensitive. The type decides when no term matches: `frameshift` gives frameshift, in-frame types give inframe.
+
+| Class | Terms | Color (Okabe-Ito) |
+|---|---|---|
+| `nonsense` | `stop_gained` | vermillion `#D55E00` |
+| `frameshift` | `frameshift_variant` | reddish purple `#CC79A7` |
+| `missense` | `missense_variant` | blue `#0072B2` |
+| `inframe` | `inframe_insertion`, `inframe_deletion`, `protein_altering_variant` | orange `#E69F00` |
+| `splice` | `splice_*` | sky blue `#56B4E9` |
+| `synonymous` | `synonymous_variant`, `stop_retained_variant`, `start_retained_variant` | bluish green `#009E73` |
+| `other` | anything else | grey `#999999` |
+
+`variantColors` exports the table. A variant cell is outlined in its `color` when that is a six-digit hex color, else in its class color; other annotations keep `#a63d59`. SVG and PNG figures use the same colors. The Colors tab lists the classes when the alignment has variants.
+
+### Variant track and navigation
+
+- The `variants` track sits directly above the pinned reference row, below the other tracks. It shows one marker per mapped variant that passes the annotation filter on a shown row. Markers are diamonds (substitutions, missense, other), triangles (deletions), chevrons (insertions and duplications) and squares (frameshift and nonsense), filled with the class color.
+- Overlapping variants stack in lanes of 12 px, at most 8. Lane assignment stops at 8 lanes; the track label shows `+n` for the variants left over, which `nextVariant` still reaches. Below 9 px cell width markers merge into 4 px bins per lane. Hidden columns and the reverse-complement view apply as in the other tracks.
+- Hover a marker for its annotation card. Click it to select the variant's columns and row, scroll to the row (expanding a collapsed group) and pin the card. The overview strip shows a tick per variant in its class color while the variant track is on; `visibility.variantTrack: false` removes the ticks too.
+- `viewer.nextVariant(direction = 1)` selects the next (`1`) or previous (`-1`) shown variant, ordered by display column (left to right on screen, so in the reverse-complement view it moves to lower source columns) then display row, wrapping around, and returns the annotation or `null`. Variants whose columns are all hidden are skipped. A row inside a collapsed group ranks at its group header, so expanding the group on selection does not revisit a variant. `]` and `[` do the same on the focused grid, and the secondary toolbar has **Previous variant** and **Next variant** buttons with a `k / n` counter.
+- `focusFirstVariant: true` selects and reveals the first variant when new data loads (`load`, `loadUrl`, `setAlignment`), unless a view link sets the view. `removeRows` and a Type (alphabet) switch keep the current selection.
+- `visibility.variantTrack` and `visibility.variantNav` turn the track and the buttons off. The buttons are hidden when the alignment has no mapped variants.

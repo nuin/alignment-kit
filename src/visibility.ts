@@ -14,7 +14,7 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
   messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true, reverseComplementToggle:true, rowStrand:true, columnMarks:true,
-  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true, tooltip:true,
+  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true, tooltip:true, variantTrack:true, variantNav:true,
 });
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
@@ -28,7 +28,7 @@ const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
   positionTab:'[data-tab="position"]',featuresTab:'[data-tab="annotations"]',compareTab:'[data-tab="compare"]',colorsTab:'[data-tab="legend"]',hitsTab:'[data-tab="hits"]',summaryTab:'[data-tab="summary"]',
   pinReference:'[data-action="pin-selected"]',rowFeaturesToggle:'[data-action="toggle-row-features"]',featureType:'select[aria-label="Feature type"]',
   featureConsequence:'select[aria-label="Feature consequence"]',diseaseFilter:'[aria-label="Features with disease evidence"]',phenotypeFilter:'[aria-label="Features with phenotype evidence"]',
-  featurePagination:'.ak-feature-pagination',rowHiding:'[data-hide],[data-action="show-hidden"]',tree:'.ak-tree-canvas',columnMasking:'[data-action="hide-columns"],[data-action="show-columns"]',reverseComplementToggle:'[aria-label="Reverse complement"]',rowStrand:'[data-strand]',columnMarks:'[data-action="mark-columns"]',consensusThreshold:'[aria-label="Consensus threshold"]',colorThreshold:'[aria-label="Color threshold"]',minIdentity:'[aria-label="Minimum identity to reference"]',minCoverage:'[aria-label="Minimum coverage"]',calculateIdentity:'[data-action="compare"]',clearRows:'[data-action="clear-rows"]',
+  featurePagination:'.ak-feature-pagination',rowHiding:'[data-hide],[data-action="show-hidden"]',tree:'.ak-tree-canvas',columnMasking:'[data-action="hide-columns"],[data-action="show-columns"]',reverseComplementToggle:'[aria-label="Reverse complement"]',rowStrand:'[data-strand]',columnMarks:'[data-action="mark-columns"]',consensusThreshold:'[aria-label="Consensus threshold"]',colorThreshold:'[aria-label="Color threshold"]',minIdentity:'[aria-label="Minimum identity to reference"]',minCoverage:'[aria-label="Minimum coverage"]',calculateIdentity:'[data-action="compare"]',variantNav:'.ak-variant-nav',clearRows:'[data-action="clear-rows"]',
 };
 export const inspectorTabs = {position:'positionTab',annotations:'featuresTab',compare:'compareTab',legend:'colorsTab',hits:'hitsTab',summary:'summaryTab'} as const;
 export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {
@@ -49,17 +49,18 @@ export function applyVisibility(root:HTMLElement,v:Required<ViewerVisibility>) {
   }
   for(const button of root.querySelectorAll<HTMLElement>('[data-row]'))button.hidden=!v.rowNames&&!v.rowSpecies;
 }
-export type TrackName='ruler'|'modalFrequency'|'gapFraction'|'entropy'|'quality'|'consensus'|'logo'|'reference';
-export const trackNames:readonly TrackName[]=['ruler','modalFrequency','gapFraction','entropy','quality','consensus','logo','reference'];
-/** One geometry source for both canvas tracks and their DOM labels. Column tracks come first, then `extra` tracks in order, then the pinned reference row so it sits directly above the body. Quality needs a protein alignment. */
-export function trackLayout(v:Required<ViewerVisibility>,rowHeight:number,extra:readonly {height:number}[]=[],alphabet?:Alphabet) {
-  const offsets:Record<TrackName,number|null>={ruler:null,modalFrequency:null,gapFraction:null,entropy:null,quality:null,consensus:null,logo:null,reference:null};
+export type TrackName='ruler'|'modalFrequency'|'gapFraction'|'entropy'|'quality'|'consensus'|'logo'|'variants'|'reference';
+export const trackNames:readonly TrackName[]=['ruler','modalFrequency','gapFraction','entropy','quality','consensus','logo','variants','reference'];
+/** One geometry source for both canvas tracks and their DOM labels. Column tracks come first, then `extra` tracks in order, then the variant track (`variantLanes` lanes of 12 px plus 6 px padding, absent at 0), then the pinned reference row so it sits directly above the body. Quality needs a protein alignment. */
+export function trackLayout(v:Required<ViewerVisibility>,rowHeight:number,extra:readonly {height:number}[]=[],alphabet?:Alphabet,variantLanes=0) {
+  const offsets:Record<TrackName,number|null>={ruler:null,modalFrequency:null,gapFraction:null,entropy:null,quality:null,consensus:null,logo:null,variants:null,reference:null};
   const custom:{offset:number;height:number}[]=[];
   let height=0;
   for(const [name,size] of [['ruler',26],['modalFrequency',26],['gapFraction',26],['entropy',26],['quality',26],['consensus',36],['logo',45]] as const) {
     if(v.tracks&&v[name]&&!(name==='quality'&&alphabet&&alphabet!=='protein')){offsets[name]=height;height+=size;}
   }
   if(v.tracks)for(const t of extra){custom.push({offset:height,height:t.height});height+=t.height;}
+  if(v.tracks&&v.variantTrack&&variantLanes>0){offsets.variants=height;height+=variantLanes*12+6;}
   if(v.tracks&&v.reference){offsets.reference=height;height+=rowHeight;}
   return {offsets,custom,height};
 }
