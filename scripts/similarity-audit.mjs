@@ -107,7 +107,7 @@ const nightingale=config.find(c=>c.url==='https://github.com/ebi-webcomponents/n
 if(nightingale){
   const localPalettes=JSON.parse(await readFile('src/palettes.json','utf8')),notices=await readFile('THIRD_PARTY_NOTICES.md','utf8');
   const named={grey:'#808080',gray:'#808080',yellow:'#ffff00',red:'#ff0000',magenta:'#ff00ff',brown:'#a52a2a',blue:'#0000ff',green:'#008000',orange:'#ffa500',cyan:'#00ffff',white:'#ffffff',black:'#000000'};
-  const canonical=color=>{let v=color.trim().toLowerCase();v=named[v]??v;if(/^#[0-9a-f]{3}$/.test(v))v='#'+[...v.slice(1)].map(x=>x+x).join('');assert.match(v,/^#[0-9a-f]{6}$/);return v;};
+  const canonical=color=>{let v=color.trim().toLowerCase();v=named[v]??v;if(/^#[0-9a-f]{3}$/.test(v))v='#'+Array.from(v.slice(1),x=>x+x).join('');assert.match(v,/^#[0-9a-f]{6}$/);return v;};
   report.palettes=[];
   for(const [name,colors] of Object.entries(localPalettes)){
     const path=resolve(nightingale.root,'packages/nightingale-msa/src/colorschemes',name+'.ts'),bytes=await readFile(path);

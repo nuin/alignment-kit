@@ -90,8 +90,8 @@ const noteTag=(warnings:ParseWarning[],seen:Set<string>,kind:string,tag:string,l
 };
 /** Fix what can be fixed without failing: replace invalid residue characters, pad short rows when `padShort` is set, rename repeated names. Stockholm and CLUSTAL names are keys and never repeat. */
 function repairRows(rows:SequenceInput[],warnings:ParseWarning[],lines:number[],options:ParseOptions,format:string):void {
-  const at=(i:number)=>lines[i]?{line:lines[i]}:{},id=(i:number)=>rows[i].id??`seq-${i+1}`,bad=/[^A-Za-z*.\-]/g;
-  const nucleotide=options.alphabet?options.alphabet!=='protein':rows.every(r=>/^[ACGTUNRYKMSWBDHV.\-]*$/i.test(r.sequence.replace(bad,'')));
+  const at=(i:number)=>lines[i]?{line:lines[i]}:{},id=(i:number)=>rows[i].id??`seq-${i+1}`,bad=/[^A-Za-z*.-]/g;
+  const nucleotide=options.alphabet?options.alphabet!=='protein':rows.every(r=>/^[ACGTUNRYKMSWBDHV.-]*$/i.test(r.sequence.replace(bad,'')));
   const fill=nucleotide?'N':'X';
   rows.forEach((row,i)=>{
     const first=row.sequence.search(bad);if(first<0)return;
@@ -141,7 +141,7 @@ function parsePhylip(text:string):SequenceInput[] {
   };
   for(const [strict,interleaved] of [[false,false],[false,true],[true,false],[true,true]])try{
     return attempt(strict,interleaved);
-  }catch{}
+  }catch{ /* Try the next PHYLIP layout. */ }
   throw new Error(`Malformed PHYLIP alignment. Expected ${n} sequences of ${m} columns, with relaxed or 10-character names, sequential or interleaved.`);
 }
 function parsePir(text:string,lines:number[]):SequenceInput[] {
@@ -218,7 +218,7 @@ function parseNexus(text:string):{rows:SequenceInput[];alphabet?:Alphabet} {
     return checkRows(rows,ntax,nchar,'NEXUS matrix');
   };
   let rows:SequenceInput[]|undefined;
-  for(const wrapped of /^(yes|true|on)$/i.test(opts.interleave??'')?[false]:[false,true])try{rows=attempt(wrapped);break;}catch{}
+  for(const wrapped of /^(yes|true|on)$/i.test(opts.interleave??'')?[false]:[false,true])try{rows=attempt(wrapped);break;}catch{ /* Try the next matrix layout. */ }
   if(!rows)throw new Error(`NEXUS matrix does not contain ${ntax??'the declared number of'} sequences of ${nchar??'equal'} columns.`);
   const match=opts.matchchar,gap=opts.gap,missing=opts.missing??'?',first=rows[0].sequence;
   for(const [r,row] of rows.entries()) {

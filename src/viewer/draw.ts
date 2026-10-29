@@ -1,7 +1,6 @@
 import { buildLabels } from './labels';
 import { renderPanel } from './panel';
 import { applyVisibility, trackLayout, trackNames } from '../visibility';
-import { type Alignment } from '../types';
 import { hitCount } from '../search';
 import { type RenderView } from '../renderer';
 import { $ } from '../controls';

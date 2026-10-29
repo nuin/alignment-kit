@@ -55,7 +55,7 @@ export function residueColor(residue:string,scheme:ColorScheme,support?:number):
   return scheme.colors[residue.toUpperCase()]??'#e9edf2';
 }
 export function textColor(hex:string) {
-  const h=hex.length===4?'#'+[...hex.slice(1)].map(x=>x+x).join(''):hex;
+  const h=hex.length===4?'#'+Array.from(hex.slice(1),x=>x+x).join(''):hex;
   const rgb=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(c=>c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4);
   return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2]>0.24?'#172737':'#ffffff';
 }

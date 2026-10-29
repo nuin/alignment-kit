@@ -237,3 +237,11 @@ it('clears the search and the motif box when a new alignment loads',async()=>{
   await viewer.setAlignment(dna('ACGT'));expect(handler).toHaveBeenCalledWith(null);expect(input.value).toBe('');
   input.value='ACG';await viewer.findMotif('ACG');viewer.clear();expect(handler).toHaveBeenLastCalledWith(null);expect(handler).toHaveBeenCalledTimes(3);expect(input.value).toBe('');
 });
+it('renders hit coordinates as text even when the input contains markup',()=>{
+  const a=dna('ACGT'),target=document.createElement('div');
+  const hit={...findHits(a,'ACGT',{strands:'forward'}).hits[0],start:'<img src=x onerror=alert(1)>'};
+  const input={a,selection:null,scheme:'soft',reference:0,selectedRows:new Set<string>(),annotations:[],annotationFilter:{},unknown:0,excluded:0,tab:'hits',page:0,scope:'all',hits:[hit],truncated:false,pattern:'ACGT',hit:0};
+  renderInspector(target,input as any);
+  expect(target.querySelector('img')).toBeNull();
+  expect(target.textContent).toContain('<img src=x onerror=alert(1)>');
+});

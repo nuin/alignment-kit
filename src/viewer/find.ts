@@ -16,7 +16,9 @@ export function clearSearch(v:Core):void {
 export async function restoreSearch(v:Core, pattern:string|undefined,mode?:SearchMode,strands?:'both'|'forward'):Promise<boolean> {
   if(!pattern){if(v.searchState||v.searchBusy)v.clearSearch();return true;}
   const options={mode:mode==='auto'?undefined:mode,strands:strands==='both'?undefined:strands};
-  try{if(v.a)compilePattern(pattern,{alphabet:v.a.alphabet,mode:options.mode});}catch{v.clearSearch();return false;}
+  let valid=true;
+  try{if(v.a)compilePattern(pattern,{alphabet:v.a.alphabet,mode:options.mode});}catch(error){v.clearSearch();v.error(error);valid=false;}
+  if(!valid)return false;
   $<HTMLInputElement>(v.root,'[aria-label="Find motif"]').value=pattern;
   try{await v.runSearch(pattern,options);return true;}
   catch(error){return (error as Error).name==='AbortError';}

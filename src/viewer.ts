@@ -51,7 +51,7 @@ export class AlignmentViewer {
   private get gutter(){return this.treeW+(this.visibility.labels?this.options.labelWidth:0);}
   private get matchDots(){return this.options.matchDisplay==='dot'&&(this.options.colorMode.startsWith('consensus')||this.pinned||this.filteredRows.includes(this.reference));}
   private get pinned(){return this.visibility.tracks&&this.visibility.reference;}
-  private get core():Core{return this as unknown as Core;}
+  private get core():Core{return this as Core & this;}
   getVisibility():Required<ViewerVisibility>{return {...this.visibility};}
   private manualHidden:ColumnRange[]=[];private colMap?:ColumnMap;private rowStrands=new Set<string>();
   private get reversed():boolean {return this.options.reverseComplement&&this.a?.alphabet!=='protein';}

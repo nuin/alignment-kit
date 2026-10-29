@@ -4,8 +4,7 @@ import { type TreeHit } from '../renderer';
 import { $ } from '../controls';
 import { trackHeight } from '../tracks';
 
-import type { Core, On } from './core';
-import { bounded } from './core';
+import { bounded, type Core, type On } from "./core";
 export function bindPointer(v:Core,on:On):void {
   on(v.scroll,'scroll',()=>v.schedule());
   // A plain click on the only selected column (and the same row, if any) clears the selection.

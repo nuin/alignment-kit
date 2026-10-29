@@ -25,9 +25,13 @@ export function validateTrack(input:unknown,json=false):CustomTrack {
     if(typeof t.render!=='function')fail(id,'render must be a function.');
     if(t.type!=='custom')fail(id,'render is only used by custom tracks.');
   } else if(t.type==='custom')fail(id,'custom tracks require a render function.');
-  const copy:Record<string,unknown>={id,label:t.label,type:t.type,height:t.height,values:t.values,domain:t.domain,color:t.color,render:typeof t.render==='function'&&!Object.hasOwn(t,'render')?t.render.bind(t):t.render};
-  for(const key of Object.keys(copy))if(copy[key]===undefined)delete copy[key];
-  return copy as unknown as CustomTrack;
+  const copy:CustomTrack={id,label:t.label as string,type:t.type as TrackType};
+  if(t.height!==undefined)copy.height=t.height as number;
+  if(t.values!==undefined)copy.values=t.values as CustomTrack['values'];
+  if(t.domain!==undefined)copy.domain=t.domain as [number,number];
+  if(t.color!==undefined)copy.color=t.color as string;
+  if(typeof t.render==='function')copy.render=(Object.hasOwn(t,'render')?t.render:t.render.bind(t)) as CustomTrack['render'];
+  return copy;
 }
 /** Validate a list of definitions, rejecting duplicate ids. */
 export function validateTracks(input:unknown,json=false):CustomTrack[] {

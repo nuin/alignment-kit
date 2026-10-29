@@ -154,7 +154,6 @@ export interface ViewerOptions {
   tooltips?:boolean;
   /** URL templates with an `{id}` placeholder, keyed by source or id type (`pubmed`, `evidence`, or a source name). Only http and https templates are accepted. No default links. */
   annotationLinks?:Record<string,string>;
-  /** Registered tracks; replaces the current set. */
   tracks?:CustomTrack[];
   /** 'bits' scales each logo stack by information content. Default 'frequency'. */
   logoMode?:'frequency'|'bits';

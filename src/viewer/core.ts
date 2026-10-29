@@ -1,4 +1,4 @@
-import type { SortKey, Alphabet, ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, Annotation, AnnotationImportOptions, AnnotationImportResult, SearchOptions, SearchMode, SearchResult, Hit, CustomTrack, Identity } from '../types';
+import type { SortKey, Alphabet, ViewerVisibility, Alignment, AlignmentStats, ViewerOptions, ViewerEvents, ViewerEvent, ViewState, Selection, AnnotationFilter, ParseOptions, ExportRegion, Annotation, AnnotationImportOptions, AnnotationImportResult, SearchOptions, SearchMode, SearchResult, Hit, CustomTrack, Identity, ColumnMark } from "../types";
 import type { AnnotationIndex, filterAnnotations } from '../annotations';
 import type { ThemedSelects } from '../selects';
 import type { Renderer, RenderView, GroupInfo, TreeHit } from '../renderer';
@@ -7,7 +7,6 @@ import type { WorkerTask } from '../worker-client';
 import type { ViewLink } from '../link';
 import type { ColumnMap, ColumnRange, MaskOptions } from '../mask';
 import type { TreeLayout } from '../tree';
-import type { ColumnMark } from '../types';
 import type { MarkRange } from '../marks';
 import type { ColumnAnalysis } from '../summary';
 
