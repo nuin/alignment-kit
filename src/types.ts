@@ -173,7 +173,7 @@ export interface ViewerOptions {
   hideAllGapColumns?:boolean;
   /** Show the whole alignment reverse-complemented: columns run right to left and every residue is complemented. DNA and RNA only; on a protein alignment the option stays false and a message explains why. The source alignment, coordinates and statistics do not change. Default false. */
   reverseComplement?:boolean;
-  /** After each load, select and reveal the first variant. Default false. */
+  /** Select and reveal the first variant when new data loads (load, loadUrl, setAlignment). Not after removeRows or a Type switch. Default false. */
   focusFirstVariant?:boolean;
 }
 export interface ViewState {

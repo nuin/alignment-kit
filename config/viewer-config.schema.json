@@ -536,7 +536,7 @@
     },
     "focusFirstVariant": {
       "type": "boolean",
-      "description": "After each load, select and reveal the first variant. Default false."
+      "description": "Select and reveal the first variant when new data loads (load, loadUrl, setAlignment); not after removeRows or a Type switch. Default false."
     },
     "annotationLinks": {
       "type": "object",

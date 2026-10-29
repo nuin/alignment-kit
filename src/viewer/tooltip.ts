@@ -13,7 +13,8 @@ export function bindTooltip(v:Core,on:On):void {
   let card:HTMLElement|undefined,timer:ReturnType<typeof setTimeout>|undefined,key='',pinned=false,last:PointerEvent|null=null;
   const enabled=()=>v.options.tooltips&&v.visibility.tooltip;
   const hideCard=()=>{clearTimeout(timer);timer=undefined;card?.remove();card=undefined;pinned=false;};
-  const hide=()=>{hideCard();if(key){key='';v.emit('hover',null);}};
+  let marker='';
+  const hide=()=>{hideCard();marker='';if(key){key='';v.emit('hover',null);}};
   const cell=(s:Selection):CellInfo=>{const a=v.a!,row=a.rows.findIndex(r=>r.id===s.rowId),column=s.start;return {rowId:s.rowId!,column,residue:String.fromCharCode(a.codes[row*a.width+column-1]),position:columnToResidue(a,row,column)};};
   const annotations=(info:CellInfo):Annotation[]=>v.visibility.annotationMarks?[...v.annotationIndex.query(info.rowId,info.column,info.column),...v.annotationIndex.query('*',info.column,info.column)]:[];
   const line=(parent:HTMLElement,label:string,value:string)=>{const p=el('div',undefined,'ak-tip-line');p.append(el('span',label+' ','ak-tip-key'),el('span',value));parent.append(p);};
@@ -58,7 +59,7 @@ export function bindTooltip(v:Core,on:On):void {
     variant(n,x,y,pin){if(!v.a||!enabled()||n.start===undefined)return;clearTimeout(timer);showVariant(n,x,y,pin);},
   };
   // Variant track markers: hover shows the annotation card, the click handler in pointer.ts pins it.
-  let marker='';const tracks=$(v.root,'.ak-tracks');
+  const tracks=$(v.root,'.ak-tracks');
   on(tracks,'pointermove',(event:PointerEvent)=>{
     if(!v.a||event.pointerType==='touch')return;const n=variantAt(v,event);
     if(!n){if(marker){marker='';if(!pinned)hideCard();}return;}

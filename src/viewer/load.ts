@@ -52,7 +52,7 @@ export async function replace(v:Core, alignment:Alignment,carry?:Carry,quiet=fal
   if(!v.disposed&&v.revision===revision&&v.a===alignment){
     v.message('');syncWarnings(v,!quiet);v.emit('ready',alignment);
     v.loading=false;const link=v.pendingLink;v.pendingLink=undefined;if(link)await v.applyViewLink(link).catch(()=>[]);
-    else if(!carry&&v.options.focusFirstVariant)nextVariant(v,1);
+    else if(!carry&&!quiet&&v.options.focusFirstVariant)nextVariant(v,1);
   }
 }
 /** Type select handler: a switch across the protein/nucleotide line from the detected alphabet waits for Switch or Cancel in the message area. */

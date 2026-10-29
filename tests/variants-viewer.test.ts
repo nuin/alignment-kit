@@ -88,7 +88,8 @@ it('expands a collapsed group to reveal the selected variant',async()=>{
 
 it('selects the first variant after load with focusFirstVariant',async()=>{
   const el=document.createElement('div');document.body.append(el);const viewer=createViewer(el,{worker:false,focusFirstVariant:true});disposers.push(()=>viewer.destroy());
-  const a=alignment();a.annotations.push({id:'v',rowId:'b',start:6,end:6,label:'p.K6E',kind:'missense',mapping:'mapped'});
+  const a=alignment();a.annotations.push({id:'v',rowId:'b',start:6,end:6,label:'p.K6E',kind:'missense',mapping:'mapped',metadata:{variant:{type:'substitution',consequenceClass:'missense'}}});
+  a.annotations.push({id:'plain',rowId:'a',start:2,end:2,label:'old style',kind:'deletion',mapping:'mapped'});
   await viewer.setAlignment(a);expect(viewer.getState().selection).toEqual({start:6,end:6,rowId:'b'});
 });
 
@@ -110,4 +111,42 @@ it('shows the consequence legend in the Colors tab when variants exist',async()=
   expect(legend()).toBeNull();viewer.addVariants(variants);
   const list=legend()!;expect(list.querySelectorAll('li')).toHaveLength(7);expect(list.textContent).toContain('Frameshift');
   expect((list.querySelector('[data-variant-class="nonsense"]') as HTMLElement).style.background).toBe('rgb(213, 94, 0)');
+});
+
+it('ranks rows of a collapsed group at their header, so expanding it does not revisit a variant',async()=>{
+  const {viewer}=await make({visibility:{reference:false}});
+  viewer.addVariants([{rowId:'a',position:3},{rowId:'c',position:3}]);
+  viewer.setGroups({a:'one',b:'one',c:'two'});viewer.toggleGroup('one',true);
+  const walk=(n:number)=>Array.from({length:n},()=>viewer.nextVariant()?.rowId);
+  expect(walk(3)).toEqual(['a','c','a']);
+});
+
+it('steps rightward on screen in the reverse-complement view',async()=>{
+  const el=document.createElement('div');document.body.append(el);const viewer=createViewer(el,{worker:false});disposers.push(()=>viewer.destroy());
+  await viewer.setAlignment(createAlignment([{id:'x',name:'X',sequence:'ACGTACGT'},{id:'y',name:'Y',sequence:'ACGAACGT'}],{alphabet:'dna'}));
+  viewer.addVariants([{rowId:'y',position:2},{rowId:'y',position:4},{rowId:'y',position:7}],{coordinates:'alignment'});
+  const walk=()=>Array.from({length:3},()=>viewer.nextVariant()?.start);
+  expect(walk()).toEqual([2,4,7]);
+  viewer.setReverseComplement(true);viewer.setSelection(null);expect(walk()).toEqual([7,4,2]);
+  expect(viewer.nextVariant(-1)?.start).toBe(4);
+});
+
+it('removes the overview ticks with the variant track',async()=>{
+  const {viewer}=await make();viewer.addVariants(variants);
+  expect((viewer as any).view().variants.marks).toHaveLength(4);
+  viewer.setOptions({visibility:{variantTrack:false}});expect((viewer as any).view().variants).toBeUndefined();
+});
+
+it('shows the hover card again on the same marker after a pinned card closes',async()=>{
+  const {el,viewer}=await make({labelWidth:200,cellWidth:16});viewer.addVariants([{rowId:'b',hgvs:'p.Leu3Pro'}]);
+  vi.useFakeTimers();
+  try{
+    const top=trackLayout(viewer.getVisibility(),36,[],'protein',1).offsets.variants!,canvas=el.querySelector('.ak-tracks canvas')!;
+    const at={clientX:200+2*16+8,clientY:top+9,bubbles:true};
+    canvas.dispatchEvent(new MouseEvent('pointermove',at));canvas.dispatchEvent(new MouseEvent('click',at));
+    el.querySelector<HTMLButtonElement>('.ak-tip-close')!.click();expect(el.querySelector('.ak-tooltip')).toBeNull();
+    el.querySelector<HTMLElement>('.ak-scroll')!.scrollLeft=0;
+    canvas.dispatchEvent(new MouseEvent('pointermove',at));vi.advanceTimersByTime(400);
+    expect(el.querySelector<HTMLElement>('.ak-tooltip')?.dataset.pinned).toBe('false');
+  }finally{vi.useRealTimers();}
 });

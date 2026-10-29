@@ -20,9 +20,13 @@ describe('parseHgvsProtein',()=>{
     ['p.Arg123_Lys125del',{start:123,end:125,ref:'RK',alt:'',type:'deletion',consequence:'inframe_deletion'}],
     ['p.Lys2_Leu3insGln',{start:2,end:3,ref:'KL',alt:'Q',type:'insertion',consequence:'inframe_insertion'}],
     ['p.Arg123delinsTrpGly',{start:123,end:123,ref:'R',alt:'WG',type:'delins',consequence:'protein_altering_variant'}],
+    ['p.Met1?',{start:1,end:1,ref:'M',alt:'',type:'other',consequence:'start_lost'}],
+    ['p.Ter110GlnextTer17',{start:110,end:110,ref:'*',alt:'Q',type:'substitution',consequence:'stop_lost'}],
+    ['p.*110Qext*17',{start:110,end:110,ref:'*',alt:'Q',type:'substitution',consequence:'stop_lost'}],
+    ['p.Arg97ProfsTer',{start:97,end:97,ref:'R',alt:'P',type:'frameshift',consequence:'frameshift_variant'}],
     ['p.Arg123dup',{start:123,end:123,ref:'R',alt:'',type:'duplication',consequence:'inframe_insertion'}],
   ])('parses %s',(text,expected)=>{expect(parseHgvsProtein(text)).toEqual(expected);});
-  it.each(['','Arg123Trp','c.123A>G','p.Arg123','p.Xyz123Trp','p.Arg0Trp','p.(Arg123Trp','p.Arg123Trp)','p.Arg123_Lys125Trp','p.Lys2_Leu5insGln','p.Arg125_Lys123del','p.Arg123_Lys125fs','p.Arg123W','p.Ter12del','p.?'])('rejects %j',text=>{expect(parseHgvsProtein(text)).toBeNull();});
+  it.each(['','Arg123Trp','c.123A>G','p.Arg123','p.Xyz123Trp','p.Arg0Trp','p.(Arg123Trp','p.Arg123Trp)','p.Arg123_Lys125Trp','p.Lys2_Leu5insGln','p.Arg125_Lys123del','p.Arg123_Lys125fs','p.Arg123W','p.arg123trp','p.Arg123_Lys124?','p.Met1ext?x','p.Ter12del','p.?'])('rejects %j',text=>{expect(parseHgvsProtein(text)).toBeNull();});
 });
 
 describe('consequenceClass',()=>{
@@ -51,17 +55,20 @@ describe('consequenceClass',()=>{
     expect(new Set(Object.values(variantColors)).size).toBe(7);
     for(const c of Object.values(variantColors))expect(c).toMatch(/^#[0-9A-F]{6}$/);
     const base={id:'x',label:'x',mapping:'mapped' as const,start:1,end:1};
+    const variant={type:'substitution'};
     expect(annotationColor({...base,kind:'domain'})).toBe('#a63d59');
-    expect(annotationColor({...base,kind:'substitution',consequence:['stop_gained']})).toBe(variantColors.nonsense);
-    expect(annotationColor({...base,kind:'substitution',color:'#123456'})).toBe('#123456');
-    expect(annotationColor({...base,kind:'substitution',consequence:['missense_variant'],color:'red'})).toBe(variantColors.missense);
+    expect(annotationColor({...base,kind:'deletion'})).toBe('#a63d59');
+    expect(annotationColor({...base,kind:'substitution',consequence:['stop_gained'],metadata:{variant}})).toBe(variantColors.nonsense);
+    expect(annotationColor({...base,kind:'substitution',color:'#123456',metadata:{variant}})).toBe('#123456');
+    expect(annotationColor({...base,kind:'substitution',consequence:['missense_variant'],color:'red',metadata:{variant}})).toBe(variantColors.missense);
   });
   it('recognizes variants by metadata or kind and picks shapes',()=>{
     const base={id:'x',label:'x',mapping:'mapped' as const};
-    expect(isVariant({...base,kind:'Missense'})).toBe(true);
-    expect(isVariant({...base,kind:'domain'})).toBe(false);
+    expect(isVariant({...base,kind:'Missense'})).toBe(false);
+    expect(isVariant({...base,kind:'deletion'})).toBe(false);
+    expect(variantOf({...base,kind:'deletion'})).toBeNull();
     expect(isVariant({...base,kind:'intron',metadata:{variant:{type:'other',consequenceClass:'other'}}})).toBe(true);
-    const shape=(kind:string,consequence?:string[])=>variantShape(variantOf({...base,kind,consequence})!);
+    const shape=(kind:string,consequence?:string[])=>variantShape(variantOf({...base,kind,consequence,metadata:{variant:{type:kind}}})!);
     expect(shape('substitution',['missense_variant'])).toBe('diamond');
     expect(shape('deletion')).toBe('triangle');
     expect(shape('insertion')).toBe('chevron');
@@ -73,10 +80,15 @@ describe('consequenceClass',()=>{
 
 describe('assignLanes',()=>{
   it('stacks overlapping spans greedily',()=>{
-    expect(assignLanes([])).toEqual({lanes:[],count:0});
-    expect(assignLanes([{start:1,end:1},{start:2,end:2},{start:3,end:3}])).toEqual({lanes:[0,0,0],count:1});
-    expect(assignLanes([{start:5,end:9},{start:1,end:5},{start:6,end:6},{start:10,end:10}])).toEqual({lanes:[1,0,0,0],count:2});
-    expect(assignLanes(Array.from({length:10},()=>({start:3,end:3}))).count).toBe(10);
+    expect(assignLanes([])).toEqual({lanes:[],count:0,overflow:0});
+    expect(assignLanes([{start:1,end:1},{start:2,end:2},{start:3,end:3}])).toEqual({lanes:[0,0,0],count:1,overflow:0});
+    expect(assignLanes([{start:5,end:9},{start:1,end:5},{start:6,end:6},{start:10,end:10}])).toEqual({lanes:[1,0,0,0],count:2,overflow:0});
+    const ten=assignLanes(Array.from({length:10},()=>({start:3,end:3})));
+    expect(ten.count).toBe(8);expect(ten.overflow).toBe(2);expect(ten.lanes.slice(8)).toEqual([-1,-1]);
+  });
+  it('stops at eight lanes, so 20,000 spans on one column finish in under 50 ms',()=>{
+    const spans=Array.from({length:20000},()=>({start:7,end:7})),t=performance.now(),r=assignLanes(spans);
+    expect(performance.now()-t).toBeLessThan(50);expect(r).toMatchObject({count:8,overflow:19992});
   });
 });
 
@@ -91,12 +103,23 @@ describe('variantsToAnnotations',()=>{
     expect(annotations[1]).toMatchObject({id:'b:p.Lys3Glu:1',rowId:'b',start:4,end:4,label:'p.Lys3Glu',consequence:['missense_variant']});
     expect(annotations[1].metadata?.variant).toEqual({ref:'K',alt:'E',type:'substitution',hgvs:'p.Lys3Glu',consequenceClass:'missense'});
   });
+  it('maps HGVS positions as residue numbers with the row offset, whatever coordinates says',()=>{
+    const o=createAlignment([{id:'s',name:'S/51-56',sequence:'MK-LVRS',metadata:{start:51}}],{alphabet:'protein'});
+    for(const coordinates of ['sequence','alignment','residue'] as const){
+      const {annotations,warnings}=variantsToAnnotations(o,[{rowId:'s',hgvs:'p.Leu53Pro'}],{coordinates});
+      expect(warnings).toEqual([]);expect(annotations[0]).toMatchObject({start:4,end:4,mapping:'mapped'});
+      expect(annotations[0].metadata?.coordinates).toBe('residue');
+    }
+    expect(variantsToAnnotations(o,[{rowId:'s',position:53,ref:'L'}],{coordinates:'residue'}).annotations[0]).toMatchObject({start:4});
+    expect(variantsToAnnotations(o,[{rowId:'s',position:3,ref:'L'}]).annotations[0]).toMatchObject({start:4});
+    expect(variantsToAnnotations(o,[{rowId:'s',hgvs:'p.Met2Pro'}]).warnings[0]).toMatch(/outside the residues 51-56/);
+  });
   it('maps alignment columns as given and spans ranges',()=>{
-    const {annotations,warnings}=variantsToAnnotations(a,[{rowId:'a',position:5,end:6,type:'deletion'},{rowId:'a',hgvs:'p.Lys2_Leu3del'}],{coordinates:'alignment'});
+    const {annotations,warnings}=variantsToAnnotations(a,[{rowId:'a',position:5,end:6,type:'deletion'},{rowId:'a',hgvs:'p.Val4_Arg5del'}],{coordinates:'alignment'});
     expect(warnings).toEqual([]);
     expect(annotations[0]).toMatchObject({start:5,end:6,kind:'deletion'});
     expect(annotations[0].metadata?.variant).toMatchObject({type:'deletion',consequenceClass:'inframe'});
-    expect(annotations[1]).toMatchObject({start:2,end:3,mapping:'mapped'});
+    expect(annotations[1]).toMatchObject({start:5,end:6,mapping:'mapped'});
   });
   it('warns about a reference mismatch and still maps',()=>{
     const {annotations,warnings}=variantsToAnnotations(a,[{rowId:'a',hgvs:'p.Arg2Trp'}]);
@@ -115,8 +138,9 @@ describe('variantsToAnnotations',()=>{
   });
   it('keeps IDs unique within a call and against existing annotations',()=>{
     const b=createAlignment([{id:'a',name:'A',sequence:'MKL'}],{alphabet:'protein'});b.annotations.push({id:'a:1:0',label:'x',mapping:'unmapped'});
-    const {annotations,warnings}=variantsToAnnotations(b,[{rowId:'a',position:1},{id:'v',rowId:'a',position:2},{id:'v',rowId:'a',position:3}]);
-    expect(annotations.map(x=>x.id)).toEqual(['a:1:0:1','v','v:1']);expect(warnings[0]).toMatch(/duplicate ID/);
+    b.annotations.push({id:'old',label:'x',mapping:'unmapped'});
+    const {annotations,warnings}=variantsToAnnotations(b,[{rowId:'a',position:1},{id:'v',rowId:'a',position:2},{id:'v',rowId:'a',position:3},{id:'old',rowId:'a',position:3}]);
+    expect(annotations.map(x=>x.id)).toEqual(['a:1:0:1','v','v:1','old:1']);expect(warnings).toHaveLength(2);expect(warnings[1]).toMatch(/duplicate ID “old”/);
   });
   it('keeps explicit fields over HGVS and copies metadata, color and evidence',()=>{
     const [x]=variantsToAnnotations(a,[{rowId:'a',hgvs:'p.Lys2Ter',consequence:'splice_region_variant',label:'mine',color:'#112233',disease:true,metadata:{source:'test'}}]).annotations;

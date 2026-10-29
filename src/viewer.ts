@@ -45,7 +45,7 @@ export class AlignmentViewer {
   private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;private menus:ThemedSelects;
   private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private searcher:WorkerTask;private summaryTask:()=>WorkerTask;private summaryCache=new Map<string,SummaryEntry>();private summaryPage=0;private searchRun=0;private searchBusy=false;private request?:AbortController;
   private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
-  private tip?:Core['tip'];private variantCache?:Core['variantCache'];private variantCursor?:string;private variantLanes=0;private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
+  private tip?:Core['tip'];private variantCache?:Core['variantCache'];private variantCursor?:string;private variantLanes=0;private variantNavKey?:unknown[];private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
   private visibility:Required<ViewerVisibility>={...defaultVisibility};
   private get grouped(){return !!(this.groupMap||this.groupBy);}

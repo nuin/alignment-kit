@@ -29,7 +29,7 @@ export interface RenderView {
   /** User column marks in original coordinates. */
   marks?:ColumnMark[];
   tracks?:CustomTrack[]; logoMode?:'frequency'|'bits'; window?:number; trackError?:(id:string,error:Error)=>void;
-  /** Variant markers for the variant track and the overview ticks; omitted when the track is switched off. */
+  /** Variant markers for the variant track and the overview ticks; omitted when visibility.variantTrack is off, which also removes the ticks. */
   variants?:VariantLayout;
 }
 const colMap=(v:RenderView):ColumnMap=>v.columns??identityColumns(v.a.width);
@@ -210,7 +210,7 @@ export class Renderer {
     const list=v.variants!,bins=new Set<number>(),edge=v.dark?'#172333':'#ffffff';
     ctx.fillStyle=line;ctx.fillRect(v.gutter,top,width-v.gutter,1);
     for(const k of list.marks){
-      if(k.lane>=list.lanes)continue;const [l,r]=columnSpan(m,k.a.start!,k.a.end!);if(r<=l||r<=start||l>=end)continue;
+      if(k.lane<0)continue;const [l,r]=columnSpan(m,k.a.start!,k.a.end!);if(r<=l||r<=start||l>=end)continue;
       const x=v.gutter+l*v.cw-v.x,w=(r-l)*v.cw,cy=top+3+k.lane*12+6;
       if(v.cw<9){const bin=k.lane*1e7+Math.floor(x/4);if(bins.has(bin))continue;bins.add(bin);ctx.fillStyle=k.color;ctx.fillRect(x,cy-3,Math.max(3,w),6);continue;}
       if(r-l>1){ctx.fillStyle=k.color;ctx.globalAlpha=.5;ctx.fillRect(x+1,cy-1,w-2,2);ctx.globalAlpha=1;}

@@ -25,7 +25,7 @@ export interface Core {
   root:HTMLElement; scroll:HTMLElement; labels:HTMLElement; inspector:HTMLElement;
   options:ViewerSettings;
   tip?:{hide():void;click(s:Selection|null,event:MouseEvent):void;variant(a:Annotation,x:number,y:number,pin:boolean):void};
-  variantCache?:{keys:unknown[];value:VariantLayout}; variantCursor?:string; variantLanes:number;
+  variantCache?:{keys:unknown[];value:VariantLayout}; variantCursor?:string; variantLanes:number; variantNavKey?:unknown[];
   a?:Alignment; stats?:AlignmentStats; fullStats?:AlignmentStats;
   reference:number; filteredRows:number[]; rows:number[]; query:string; sort:SortKey; sortColumn?:number; identityJob?:{a:Alignment;ref:number;promise:Promise<Identity[]>}; identityFailed?:{a:Alignment;ref:number}; identities?:number[]; identityDetails?:Identity[];
   selection:Selection|null; selectedRows:Set<string>; annotationFilter:AnnotationFilter;

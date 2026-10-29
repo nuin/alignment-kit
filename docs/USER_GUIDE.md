@@ -318,7 +318,7 @@ Variants are annotations with a change on one sequence, such as `p.Arg175His`. T
 - The **Variants** track above the reference row shows one marker per variant: a diamond for a substitution, a triangle for a deletion, a chevron for an insertion and a square for a frameshift or stop. Overlapping variants stack in up to 8 lanes; the label counts the rest as `+n`. The track follows the Features tab filters and hidden rows, and disappears when no variant passes them.
 - Hover a marker to see its card. Click it to select the variant and its sequence and keep the card open.
 - **‹ Variant** and **Variant ›** in the second toolbar, or `[` and `]` on the grid, step through the variants by column, then by row order, and wrap around. The counter shows which variant is selected out of those shown.
-- The overview strip marks each variant column with a tick in its color.
+- The overview strip marks each variant column with a tick in its color. Turning the variant track off removes the ticks.
 
 ### Import annotation files
 
