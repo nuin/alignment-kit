@@ -45,7 +45,7 @@ Review menus in both themes, keyboard navigation, narrow layouts, protein/DNA/RN
 
 ## Package contents
 
-The package allowlist includes the distributable modules, declarations, module worker, CSS, fonts and their license; the README; user guide, screenshots and JSON configuration/schema; validation notes; and third-party notices. Synthetic/real demo alignments, benchmark scripts, audit source inventories, tests and development dependencies are not distributed as runtime assets.
+The package allowlist includes the distributable modules, declarations, module worker, CSS, fonts and their license; the README; developer reference pages (`docs/reference`); user guide, screenshots and JSON configuration/schema; validation notes; and third-party notices. Synthetic/real demo alignments, benchmark scripts, audit source inventories, tests and development dependencies are not distributed as runtime assets.
 
 Core has no runtime package dependencies. React and Svelte are optional peers. A consumer imports only the integration it uses. Source maps include implementation source; publishing the package is not a way to keep that implementation secret.
 

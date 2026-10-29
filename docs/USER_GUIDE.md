@@ -2,7 +2,7 @@
 
 Alignment Kit displays **already aligned** protein, DNA and RNA sequences. Use it to explore a family, compare residues, inspect supplied annotations and export a region. It runs in your browser; the library does not upload your alignment. Loading a remote URL requests that file from its server.
 
-This guide describes the standalone Explorer. Applications embedding the library can hide controls or supply their own data and annotations. For installation and JavaScript, React and Svelte examples, see the [developer README](../README.md).
+This guide describes the standalone Explorer. Applications embedding the library can hide controls or supply their own data and annotations. For installation and JavaScript, React and Svelte examples, see the [developer README](../README.md) and the [developer reference](reference/api.md).
 
 ## Start with a real alignment
 
@@ -124,7 +124,7 @@ To export only what you see, choose **Export > Visible columns · FASTA**, or ti
 
 ## Read data from the API
 
-Embedding code can read the loaded data without parsing exports: `getResidue(rowId, column)`, `getColumn(column)`, `getSelectionSequences({ gaps })`, `getVisibleRows()` and `getVisibleColumns()`. `scrollToRow(rowId)` and `scrollToColumn(column)` move the view without selecting. Columns are one-based alignment columns. Gaps read as `null` from `getResidue` and `-` from `getColumn`. See the API table in the README for exact return values.
+Embedding code can read the loaded data without parsing exports: `getResidue(rowId, column)`, `getColumn(column)`, `getSelectionSequences({ gaps })`, `getVisibleRows()` and `getVisibleColumns()`. `scrollToRow(rowId)` and `scrollToColumn(column)` move the view without selecting. Columns are one-based alignment columns. Gaps read as `null` from `getResidue` and `-` from `getColumn`. See the [API table](reference/api.md) for exact return values.
 
 ## Mark columns
 
@@ -135,7 +135,7 @@ Marks flag columns you want to come back to. A marked column gets a purple outli
 - Marks stay on their original column when you hide columns. A mark across hidden columns is drawn over the columns you can see, and a mark on hidden columns reappears when they come back.
 - Shared links carry marks as `marks=10-12,40`. Marks are cleared when you open another alignment.
 
-Developers can use `markColumns(ranges, color?)`, `unmarkColumns(ranges?)` and `getColumnMarks()`; see the README.
+Developers can use `markColumns(ranges, color?)`, `unmarkColumns(ranges?)` and `getColumnMarks()`; see [Mark columns](reference/display.md#mark-columns).
 
 ## Find sequences and motifs
 
@@ -266,7 +266,7 @@ Enable **Frequency logo** to add a frequency track. Ambiguity symbols keep their
 
 A Stockholm file with `#=GC` lines shows one track per line below the built-in column tracks and above the pinned reference row: secondary structure (`SS_cons`), reference annotation (`RF`), `seq_cons` and others as text, and `PP_cons` as grey shading from 0 (light) to 9 (dark). `#=GR` lines (per-sequence annotation) appear for the sequence you select, or for the pinned reference when nothing is selected, named like `SS Sequence name`, directly above the reference row. Turn them off with **Stockholm tracks** under **Customize viewer**. Click a track column to select that alignment column.
 
-Developers can add their own tracks (bars, heatmaps, text or drawn by a callback) with `addTrack`, `removeTrack` and the `tracks` option. See the Tracks section of the README. When registered tracks are taller than 45% of the viewer, the track area scrolls. #=GR tracks follow the selected row, or the pinned reference when it is shown.
+Developers can add their own tracks (bars, heatmaps, text or drawn by a callback) with `addTrack`, `removeTrack` and the `tracks` option. See [Tracks](reference/display.md#tracks). When registered tracks are taller than 45% of the viewer, the track area scrolls. #=GR tracks follow the selected row, or the pinned reference when it is shown.
 
 ## Summarize columns and list variants
 
@@ -395,7 +395,7 @@ Hiding the pinned reference returns that sequence to the scrolling matrix, subje
 
 *The same real alignment in a minimal embedding: sequence labels, ruler, consensus and reference remain visible.*
 
-Embedded applications configure these switches through `visibility` in the JavaScript, React or Svelte options. They may provide their own settings panel; the standalone Explorer's customization panel is not automatically added to an embedded viewer. The [interface configuration reference](../README.md) lists every flag, update behavior and code examples. Developers can also supply a JSON configuration file; the README includes a checked parser, an example and a JSON Schema for editor assistance.
+Embedded applications configure these switches through `visibility` in the JavaScript, React or Svelte options. They may provide their own settings panel; the standalone Explorer's customization panel is not automatically added to an embedded viewer. The [interface configuration reference](reference/configuration.md) lists every flag, update behavior and code examples. Developers can also supply a JSON configuration file; the [configuration reference](reference/configuration.md) includes a checked parser, an example and a JSON Schema for editor assistance.
 
 Visibility affects presentation only. Keyboard shortcuts, file dropping and API methods remain available. SVG/PNG exports use their own figure layout; they are not screenshots of the configured interface. Exported view-state JSON retains visibility settings.
 
@@ -441,13 +441,13 @@ Controls have accessible names and focus indicators, and selections have textual
 | No annotations appear | Sequence formats do not automatically retrieve annotations; the host must supply them. |
 | URL load fails | Check HTTP status and CORS. Download and open the file locally if needed. |
 | Empty embedded viewer | Import the stylesheet, give the host usable space and wait until it is visible. |
-| Worker fails in an embedding app | Check module-worker assets, bundler handling and the site's Content Security Policy. See the README. |
+| Worker fails in an embedding app | Check module-worker assets, bundler handling and the site's Content Security Policy. See [workers and bundlers](reference/frameworks.md#workers-and-bundlers). |
 | Export unavailable or too large | Wait for statistics and reduce selected rows/columns; SVG avoids raster size limits but retains the cell limit. |
 | Browser slows on a large file | Reduce the input size and compare selected rows instead of all pairs. Rendering is virtualized but full input and exact statistics still use memory. |
 
 ## Embedding and support
 
-The library has a framework-independent JavaScript API, a React component, and a Svelte 5 component/action. The [README](../README.md) includes working examples, event semantics, custom palettes, annotation schema, coordinate helpers, worker/CSP guidance and SSR behavior. The [release notes](RELEASE.md) describe package preparation and publication status.
+The library has a framework-independent JavaScript API, a React component, and a Svelte 5 component/action. The [README](../README.md) and the [developer reference](reference/api.md) include working examples, event semantics, custom palettes, annotation schema, coordinate helpers, worker/CSP guidance and SSR behavior. The [release notes](RELEASE.md) describe package preparation and publication status.
 
 For a reproducible issue, record the package version, browser/OS, alphabet, dimensions, palette, statistics scope, exact interaction and error text. Use a small non-sensitive alignment that demonstrates the issue. Do not include private biological data merely to report a UI problem.
 
