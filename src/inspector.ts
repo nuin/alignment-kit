@@ -4,8 +4,9 @@ import { columnToResidue } from './model';
 import { getColorScheme, residueColor, dynamicSchemes, textColor } from './colors';
 import { hitCount } from './search';
 import { displayCode } from './strand';
+import { variantColors, variantClassLabels, type VariantClass } from './variants';
 import type { ColumnAnalysis } from './summary';
-export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;marked?:boolean;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number;reverse?:boolean;strands?:Set<string>;summary?:SummaryView}
+export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;marked?:boolean;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number;reverse?:boolean;strands?:Set<string>;summary?:SummaryView;/** The alignment has variant annotations: the Colors tab adds the consequence legend. */ variants?:boolean}
 export interface SummaryView { block?:{start:number;end:number};data?:ColumnAnalysis;error?:string;page:number }
 export const SUMMARY_PAGE=20;
 export const HIT_LIST_LIMIT=200;
@@ -28,6 +29,7 @@ export function renderInspector(target:HTMLElement,v:InspectorInput) {
     if(dynamicSchemes.has(scheme.id))add(target,'p','Colors depend on the column statistics, so there are no per-letter swatches.','ak-caption');
     else {const legend=add(target,'div',undefined,'ak-residue-legend');for(const r of v.a.alphabet==='protein'?'ACDEFGHIKLMNPQRSTVWYBXZ*':'ACGTUNRYKMSWBDHV'){const color=residueColor(r,scheme,1),s=add(legend,'span',r);s.style.background=color;s.style.color=textColor(color);}}
     if(scheme.classes){const list=add(target,'ul',undefined,'ak-class-legend');for(const c of scheme.classes){const item=add(list,'li'),s=add(item,'span',c.residues.slice(0,5));s.style.background=c.color;s.style.color=textColor(c.color);item.append(doc.createTextNode(c.label));}if(scheme.cvdSafe)add(target,'p','Colorblind-safe: checked under simulated deuteranopia and protanopia.');if(scheme.highContrast)add(target,'p','High contrast: letters keep at least 7:1 contrast against their fill.');}
+    if(v.variants){add(target,'h4','Variant consequences');const list=add(target,'ul',undefined,'ak-class-legend ak-variant-legend');for(const [key,color] of Object.entries(variantColors)){const item=add(list,'li'),s=add(item,'span');s.style.background=color;s.dataset.variantClass=key;item.append(doc.createTextNode(variantClassLabels[key as VariantClass]));}add(target,'p','Okabe-Ito colors, distinguishable with the common color vision deficiencies. A variant with its own color keeps it.','ak-caption');}
     add(target,'p','Letters remain visible at residue zoom. Dots mark alignment gaps.');add(target,'h4','Coordinate systems');add(target,'p','Alignment columns include gaps. Sequence positions count only residues and are shown for the selected row.');return;
   }
   if(v.tab==='summary') {

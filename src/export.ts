@@ -3,6 +3,7 @@ import { columnDetail } from './analysis';
 import { isGap } from './model';
 import { reverseComplementSequence } from './strand';
 import { getColorScheme, residueColor, dynamicColor, dynamicSchemes, textColor } from './colors';
+import { annotationColor } from './variants';
 export const escapeXml=(s:unknown)=>String(s).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
 export function resolveRegion(a:Alignment,region:ExportRegion={}) {
   const start=region.start??1,end=region.end??a.width;
@@ -155,7 +156,7 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
       chunks.push(`<g opacity="${faded?'0.22':'1'}"><rect x="${x}" y="${y}" width="${cw}" height="${rh-1}" fill="${color}"/><text x="${x+cw/2}" y="${y+15}" text-anchor="middle" fill="${textColor(color)}">${dots&&same&&r!==ref&&!isGap(code)?'.':residue==='-'?'·':escapeXml(residue)}</text></g>`);
     }
     for(const annotation of a.annotations)if(annotation.mapping==='mapped'&&(!annotation.rowId||annotation.rowId===a.rows[r].id)&&annotation.start!<=end&&annotation.end!>=start){
-      const left=Math.max(start,annotation.start!),right=Math.min(end,annotation.end!),stroke=annotation.color&&/^#[0-9a-f]{6}$/i.test(annotation.color)?annotation.color:'#a63d59';
+      const left=Math.max(start,annotation.start!),right=Math.min(end,annotation.end!),stroke=annotationColor(annotation);
       for(const [from,to] of runs(cols,left,right))chunks.push(`<rect x="${gutter+from*cw+1}" y="${y+1}" width="${(to-from+1)*cw-2}" height="${rh-3}" fill="none" stroke="${stroke}" stroke-width="2"><title>${escapeXml(annotation.label)}</title></rect>`);
     }
   }
