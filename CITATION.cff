@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use MSA Canvas, please cite the software using the metadata below."
+type: software
+title: "MSA Canvas"
+abstract: "An annotation-aware, virtualized multiple sequence alignment viewer for JavaScript, React and Svelte."
+authors:
+  - family-names: Nuin
+    given-names: Paulo
+    orcid: "https://orcid.org/0000-0003-4915-664X"
+doi: 10.5281/zenodo.23752287
+url: "https://github.com/nuin/alignment-kit"
+license: MIT
+keywords:
+  - multiple sequence alignment
+  - bioinformatics
+  - visualization

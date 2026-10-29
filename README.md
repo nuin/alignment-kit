@@ -1,5 +1,7 @@
 # MSA Canvas
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23752287.svg)](https://doi.org/10.5281/zenodo.23752287)
+
 An embeddable multiple sequence alignment viewer for JavaScript, React and Svelte. It combines a virtualized residue matrix with a pinned reference, annotation tracks and exact column statistics. Nightingale residue palettes are included with attribution.
 
 ```sh
@@ -715,6 +717,10 @@ npm run release:check  # package preparation checks; does not publish
 ```
 
 Targeted Chromium interaction checks and actual UI screenshots are available. The full CLI browser suite, WebKit and comprehensive accessibility/performance acceptance remain outstanding. See [performance report](docs/performance.md) for measured results and the exact outstanding acceptance checks. Aligning sequences, gene retrieval, clinical interpretation, editing alignments, structure viewers and tree inference are outside this library's scope.
+
+## Citation
+
+If you use MSA Canvas in your work, please cite the software using its [Zenodo DOI](https://doi.org/10.5281/zenodo.23752287). To cite the specific 0.3.0 release, use [10.5281/zenodo.23752288](https://doi.org/10.5281/zenodo.23752288). Citation metadata is also available in [CITATION.cff](CITATION.cff).
 
 ## License
 
