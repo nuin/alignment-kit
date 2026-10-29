@@ -1,6 +1,6 @@
 {
   "name": "@nuin/msa-canvas",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "An annotation-aware, virtualized multiple sequence alignment viewer for JavaScript, React and Svelte",
   "files": [

@@ -6,7 +6,7 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 - Name: `@nuin/msa-canvas`, under the npm user scope `nuin` and the JSR scope `@nuin`.
 - License: MIT, copyright Bioinformat. Third-party MIT and OFL notices remain in `THIRD_PARTY_NOTICES.md`.
-- Versions: `0.1.0` (commit `0e1b6ef`, tag `v0.1.0`), then `0.2.0`, public, on the `latest` tag.
+- Versions: `0.1.0` (commit `0e1b6ef`, tag `v0.1.0`), then `0.2.0`, `0.3.0` and `0.4.0`, public, on the `latest` tag.
 - JSR publishes the core TypeScript source (`deno.json`). React, Svelte, PAVI and CSS stay npm-only.
 
 ## Automated release
@@ -18,7 +18,7 @@ One-time setup:
 - On npmjs.com, open `@nuin/msa-canvas` > Settings > Trusted publishing and add GitHub Actions: owner `nuin`, repository `alignment-kit`, workflow `release.yml`. npm then accepts the workflow's OIDC token, so no npm token is stored.
 - Create the `@nuin/msa-canvas` package on jsr.io and link it to `nuin/alignment-kit` in its settings. JSR then accepts the workflow's GitHub OIDC token, so no JSR secret is stored.
 
-To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, merge to master, then run `git tag -a v0.2.0 -m v0.2.0 && git push origin v0.2.0` on that merge commit.
+To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, merge to master, then run `git tag -a v0.4.0 -m v0.4.0 && git push origin v0.4.0` on that merge commit.
 - Browser acceptance checks are still outstanding. Recorded local CPU benchmarks are not browser frame-rate measurements.
 
 Authentication is checked with `npm whoami`. No credentials are stored in the repository.
