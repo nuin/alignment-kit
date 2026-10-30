@@ -52,6 +52,17 @@ Exports stay in source orientation, whatever the view shows. To export reverse-c
 
 State and links: `ViewState.reverseComplement` and `ViewState.reverseStrandRowIds`; link parameters `rc=1` and `strand=id1,id2` (IDs percent-encoded inside the list). A link without `rc` turns the view off and clears flags. `rc` on a protein alignment and unknown row IDs are skipped and listed. Config: `reverseComplement` (boolean), `fasta.orientation`, `visibility.reverseComplementToggle` and `visibility.rowStrand`.
 
+## Text view
+
+The **Text** button (or `setOptions({ textView: true })`) swaps the residue grid for selectable plain text. Each block covers 60 shown columns: a line with the first and last alignment column of the block, then one line per row with the name (cut at 30 characters), the residues and the residue number of the last residue in the block (row offset applied; blank when the block holds only gaps).
+
+```text
+                          1                                                         60
+Q9WZH4_THEMA/366-421      V--------K-S---I--------MST--------NL---------V-------VASPD- 380
+```
+
+The text follows the grid: the pinned reference first, then the row order, filters, hidden and collapsed rows, hidden columns, the reverse complement view and per-row strands. Tracks and the overview are hidden while it is shown. It writes up to 200,000 residues; rows past that are left out and a note says how many are shown. `formatTextView(alignment, { rows, columns, block, reverse, flagged, limit })` returns the same text for use outside the viewer. `visibility.textView` hides the button.
+
 ## Mark columns
 
 Marks flag columns of interest with a persistent coloured outline box across all rows and a marker bar in the ruler.

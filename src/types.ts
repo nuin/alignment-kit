@@ -122,6 +122,8 @@ export interface ViewerVisibility {
   variantTrack?:boolean;
   /** Previous variant and Next variant buttons with a k / n counter; hidden when the alignment has no mapped variants. */
   variantNav?:boolean;
+  /** Text toggle button that swaps the residue grid for plain text blocks. */
+  textView?:boolean;
 }
 export type TrackType = 'bar'|'heatmap'|'text'|'custom';
 /** `reversed` is true in the reverse-complement view: columns then run right to left, column `end` is drawn at `offsetX` and each lower column one `cellWidth` further right. */
@@ -175,6 +177,8 @@ export interface ViewerOptions {
   reverseComplement?:boolean;
   /** Select and reveal the first variant when new data loads (load, loadUrl, setAlignment). Not after removeRows or a Type switch. Default false. */
   focusFirstVariant?:boolean;
+  /** Show the alignment as plain text blocks of 60 columns in place of the residue grid, following the row order, filters, hidden rows, hidden columns and strands of the grid. Up to 200,000 residues; further rows are left out with a note. Default false. */
+  textView?:boolean;
 }
 export interface ViewState {
   visibility?:ViewerVisibility;

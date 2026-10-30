@@ -6,6 +6,8 @@ export { registerColorScheme, getColorScheme, colorSchemes } from './colors';
 export { exportFasta, formatFastaRecord, exportClustal, exportStockholm, exportPhylip, exportNexus, exportStatistics, exportSvg, exportPng } from './export';
 export { computeColumnMask, hidesEveryColumn, mergeColumnRanges, buildColumnMap, reverseColumnMap } from './mask';
 export { complementSequence, reverseComplementSequence } from './strand';
+export { formatTextView, TEXT_CELL_LIMIT } from './textview';
+export type { TextViewOptions, TextView } from './textview';
 export type { ColumnMap, ColumnRange, MaskOptions } from './mask';
 export { AnnotationIndex, filterAnnotations } from './annotations';
 export { parseGff3, parseBed, parseGenBank, parseEmbl, parseUniProtJson, importAnnotations, detectAnnotationFormat, isUniProtJson } from './annotation-import';

@@ -7,6 +7,7 @@ import { $ } from '../controls';
 import { trackHeight } from '../tracks';
 import { type Core } from './core';
 import { variantLayout, drawnLanes, syncVariantNav } from './variants';
+import { syncText } from './textview';
 export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:v.options.theme==='dark',selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,marks:v.columnMarks,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,variants:v.visibility.variantTrack?variantLayout(v):undefined,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
 export function layout(v:Core):void {
   if(v.disposed)return;const rh=v.options.rowHeight,gutter=v.gutter;
@@ -50,7 +51,7 @@ export function render(v:Core):void {
   for(const label of v.labels.children as HTMLCollectionOf<HTMLElement>)label.style.transform=`translateY(${Number(label.dataset.index)*rv.rh-rv.y}px)`;
   if(v.inspectorDirty)renderPanel(v);
   if(!v.tab)v.inspector.replaceChildren();
-  applyVisibility(v.root,v.visibility);
+  applyVisibility(v.root,v.visibility);syncText(v);
   const m=v.columns,lead=(m.cols[Math.min(m.count-1,Math.floor(rv.x/rv.cw))]??0)+1,trail=(m.cols[Math.min(m.count,Math.ceil((rv.x+width-v.gutter)/rv.cw))-1]??v.a.width-1)+1,start=Math.min(lead,trail),end=Math.max(lead,trail);
   $(v.root,'.ak-status-main').textContent=`${v.a.rows.length.toLocaleString()} sequences${v.query||v.options.minIdentity||v.options.minCoverage?` · ${v.filteredRows.length.toLocaleString()} filtered`:''}${v.hidden.size?` · ${v.hidden.size.toLocaleString()} hidden`:''} · ${v.a.width.toLocaleString()} columns${m.count<m.width?` · ${(m.width-m.count).toLocaleString()} hidden`:''}${v.searchState?` · ${hitCount(v.searchState.result)}`:''}`;
   $(v.root,'.ak-status-detail').textContent=`${v.reversed?`${end}–${start}`:`${start}–${end}`} · ${v.stats?`${v.options.statisticsScope} rows`:'statistics pending'} · ${v.a.alphabet.toUpperCase()}${v.reversed?' · reverse complement':''}`;

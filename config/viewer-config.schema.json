@@ -312,6 +312,10 @@
         "variantNav": {
           "type": "boolean",
           "description": "Previous variant and Next variant buttons with a k / n counter; hidden when the alignment has no mapped variants."
+        },
+        "textView": {
+          "type": "boolean",
+          "description": "Text button that swaps the residue grid for plain text blocks."
         }
       }
     },
@@ -545,6 +549,10 @@
         "type": "string",
         "pattern": "^https?://.*\\{id\\}"
       }
+    },
+    "textView": {
+      "type": "boolean",
+      "description": "Show the alignment as plain text blocks of 60 columns in place of the residue grid. Up to 200,000 residues. Default false."
     }
   }
 }

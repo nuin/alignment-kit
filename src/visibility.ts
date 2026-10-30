@@ -14,14 +14,14 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
   messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true, reverseComplementToggle:true, rowStrand:true, columnMarks:true,
-  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true, tooltip:true, variantTrack:true, variantNav:true,
+  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true, tooltip:true, variantTrack:true, variantNav:true, textView:true,
 });
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
   toolbar:'.ak-toolbar',tools:'.ak-tools',overview:'.ak-overview-wrap',overviewTitle:'.ak-overview-title',alignment:'.ak-grid',
   inspector:'.ak-inspector',inspectorTabs:'.ak-tabs',status:'.ak-status',statusSummary:'.ak-status-main',statusDetails:'.ak-status-detail',warnings:'.ak-warnings',
   open:'[data-action="open"],.ak-toolbar-divider',search:'.ak-search',colorScheme:'.ak-scheme-label',zoom:'.ak-zoom',fit:'[data-action="fit"]',
-  theme:'[data-action="theme"]',inspectorToggle:'[data-action="inspect"]',fullscreen:'[data-action="fullscreen"]',export:'select[aria-label="Export alignment"]',
+  theme:'[data-action="theme"]',inspectorToggle:'[data-action="inspect"]',fullscreen:'[data-action="fullscreen"]',textView:'[data-action="text-view"]',export:'select[aria-label="Export alignment"]',
   goTo:'[aria-label="Go to alignment column"]',motif:'.ak-motif',order:'select[aria-label="Sequence order"]',colorMode:'select[aria-label="Residues to color"]',
   logoToggle:'[aria-label="Show frequency logo"]',matchDots:'[aria-label="Dots for matches"]',statisticsScope:'select[aria-label="Statistics scope"]',alphabet:'select[aria-label="Sequence alphabet"]',rulerCoordinates:'select[aria-label="Ruler coordinates"]',
   labels:'.ak-labels,.ak-track-labels',rowNames:'.ak-row-name',rowSpecies:'.ak-row-species',rowSelection:'[data-select-row]',rowPinning:'[data-pin]',labelResize:'.ak-gutter-resize',
