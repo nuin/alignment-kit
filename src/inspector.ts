@@ -10,6 +10,7 @@ export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Se
 export interface SummaryView { block?:{start:number;end:number};data?:ColumnAnalysis;error?:string;page:number }
 export const SUMMARY_PAGE=20;
 export const HIT_LIST_LIMIT=200;
+const CROSSHAIR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/></svg>';
 const bits=(n:number|null)=>n===null?'Unavailable':`${n.toFixed(2)} bits`;
 const percent=(n:number|null)=>n===null?'Unavailable':`${(n*100).toFixed(1)}%`;
 
@@ -69,7 +70,7 @@ export function renderInspector(target:HTMLElement,v:InspectorInput) {
     const bar=actions();bar.classList.add('ak-feature-pagination');action(bar,'Previous','features-prev',v.page===0);add(bar,'span',`${v.page+1} / ${Math.max(1,Math.ceil(v.annotations.length/pageSize))}`);action(bar,'Next','features-next',start+pageSize>=v.annotations.length);return;
   }
   if(!v.selection) {
-    const intro=add(target,'div',undefined,'ak-inspector-intro'),symbol=add(intro,'div','⌖','ak-inspector-symbol');symbol.setAttribute('aria-hidden','true');add(intro,'h3','A closer look');add(intro,'p','Select a residue to inspect its column, sequence position and annotations.');add(target,'h4','Explore the alignment');const list=add(target,'ul');for(const text of ['Scroll to move through sequences.','Shift-click to select a range.','Pin any row as the reference.','Use + and − to change detail.'])add(list,'li',text);
+    const intro=add(target,'div',undefined,'ak-inspector-intro'),symbol=add(intro,'div',undefined,'ak-inspector-symbol');symbol.setAttribute('aria-hidden','true');symbol.innerHTML=CROSSHAIR;add(intro,'h3','A closer look');add(intro,'p','Select a residue to inspect its column, sequence position and annotations.');add(target,'h4','Explore the alignment');const list=add(target,'ul');for(const text of ['Scroll to move through sequences.','Shift-click to select a range.','Pin any row as the reference.','Use + and − to change detail.'])add(list,'li',text);
     const p=add(target,'p');p.append(`${v.a.rows.length.toLocaleString()} sequences`,el('br'),`${v.a.width.toLocaleString()} aligned columns`,el('br'),v.a.alphabet.toUpperCase());if(v.a.metadata.source){add(target,'h4','Source');add(target,'p',v.a.metadata.source.description??v.a.metadata.source.url??'Imported alignment','ak-wrap');}return;
   }
   const col=v.selection.start,row=v.selection.rowId?v.a.rows.findIndex(r=>r.id===v.selection!.rowId):v.reference;

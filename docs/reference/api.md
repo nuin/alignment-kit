@@ -67,6 +67,7 @@ Hovering a residue for about 300 ms shows a card with the row name, residue, ali
 Over an annotation mark the card also lists, for up to 3 annotations, the label, kind, consequence, disease and phenotype flags, and `metadata.evidence` (evidence codes), `metadata.source` and `metadata.pubmed` or `metadata.pmid` (PubMed IDs). Clicking a residue under an annotation pins the card (up to 10 annotations) until Escape or its close button. All text is inserted as text, never HTML.
 
 - `tooltips` (default `true`) and `visibility.tooltip` turn the cards off. The `hover` and `cellclick` events still fire. `hover` skips touch; `cellclick` fires for every non-drag click on a residue.
+- Icon-only buttons (row select, hide, pin as reference, strand, zoom, theme, full screen) carry a `data-hint` and show a short hint after 400 ms of hover or at once on keyboard focus. The hint is linked with `aria-describedby`; Escape hides it. `visibility.tooltip` turns hints off too.
 - `annotationLinks` maps a key to a URL template with `{id}`: `pubmed` (or `pmid`) for PubMed IDs, `evidence` (or `eco`) for evidence codes, or a source name (matched case-insensitively, `{id}` is the annotation `id`). There are no default links, so the viewer makes no network request. Only `http` and `https` templates are accepted; anything else throws. Links open with `rel="noopener noreferrer"`.
 - React and Svelte forward `onHover` and `onCellClick`.
 

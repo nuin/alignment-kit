@@ -9,11 +9,11 @@ export function buildShell(root:HTMLElement) {
     <span class="ak-toolbar-divider"></span>
     <label class="ak-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Find a sequence…" aria-label="Filter sequences"></label>
     <label class="ak-scheme-label">Color <select aria-label="Color scheme">${colorSchemes().map(s=>`<option value="${escapeXml(s.id)}">${escapeXml(s.label)}</option>`).join('')}</select></label>
-    <div class="ak-zoom"><button type="button" data-action="zoom-out" aria-label="Zoom out">−</button><output aria-label="Zoom level">16 px</output><button type="button" data-action="zoom-in" aria-label="Zoom in">＋</button></div>
+    <div class="ak-zoom"><button type="button" data-action="zoom-out" aria-label="Zoom out" data-hint="Zoom out">−</button><output aria-label="Zoom level">16 px</output><button type="button" data-action="zoom-in" aria-label="Zoom in" data-hint="Zoom in">＋</button></div>
     <button type="button" data-action="fit">Fit</button>
-    <button type="button" data-action="theme" aria-label="Toggle theme" title="Toggle light and dark theme">◐</button>
+    <button type="button" data-action="theme" aria-label="Toggle theme" data-hint="Light or dark theme">◐</button>
     <button type="button" data-action="inspect" aria-label="Toggle inspector" title="Show or hide inspector">Inspect</button>
-    <button type="button" data-action="fullscreen" aria-label="Full screen">⛶</button>
+    <button type="button" data-action="fullscreen" aria-label="Full screen" data-hint="Full screen">⛶</button>
     <select aria-label="Export alignment"><option value="">Export…</option><option value="fasta-all">All rows · FASTA</option><option value="fasta">Selection · FASTA</option><option value="fasta-visible">Visible columns · FASTA</option><option value="clustal-all">All rows · CLUSTAL</option><option value="clustal">Selection · CLUSTAL</option><option value="stockholm-all">All rows · Stockholm</option><option value="stockholm">Selection · Stockholm</option><option value="phylip-all">All rows · PHYLIP</option><option value="phylip">Selection · PHYLIP</option><option value="nexus-all">All rows · NEXUS</option><option value="nexus">Selection · NEXUS</option><option value="svg">Selection · SVG</option><option value="png">Selection · PNG</option><option value="consensus">Consensus · FASTA</option><option value="tsv">Column statistics · TSV</option><option value="variants">Variable columns (selected block or all) · TSV</option><option value="annotations-gff3">Annotations · GFF3</option><option value="annotations-tsv">Annotations · TSV</option><option value="annotations-json">Annotations · JSON</option><option value="state">View state · JSON</option><option value="fasta-options">FASTA options…</option></select>
     <label class="ak-export-columns" title="Applies to every export and to copy"><input type="checkbox" aria-label="Visible columns only"> Visible columns only</label>
   </div>
