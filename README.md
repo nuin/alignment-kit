@@ -56,7 +56,7 @@ If local servers are unavailable, `npm run preview:files` generates self-contain
 npm run build
 npm pack
 # In a consuming application:
-npm install /path/to/nuin-msa-canvas-0.4.0.tgz
+npm install /path/to/nuin-msa-canvas-0.5.0.tgz
 ```
 
 The core has no framework runtime dependency. React and Svelte are optional peers, imported only through their respective entry points. Build output includes module code, type declarations, a worker, CSS, fonts and the Svelte component source.
