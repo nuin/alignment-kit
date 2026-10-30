@@ -8,7 +8,7 @@ import { validateAnnotationLinks } from './tooltip';
 export type ViewerConfig = Omit<ViewerOptions, 'alignment'|'workerUrl'> & {workerUrl?:string};
 const ranges:Record<string,[number,number]>={height:[360,2000],cellWidth:[3,32],rowHeight:[18,48],labelWidth:[100,420],consensusThreshold:[0,1],colorThreshold:[0,1],minIdentity:[0,100],minCoverage:[0,100],treeWidth:[0,400]};
 const enums:Record<string,string[]>={logoMode:['frequency','bits'],theme:['light','dark'],colorMode:['all','reference-differences','reference-matches','consensus-differences','consensus-matches'],statisticsScope:['all','filtered'],matchDisplay:['letter','dot'],rulerCoordinates:['alignment','reference']};
-const bools=new Set(['worker','urlSync','showLogo','showInspector','showToolbar','hideAllGapColumns','dragToPan','reverseComplement','tooltips','focusFirstVariant']);
+const bools=new Set(['worker','urlSync','showLogo','showInspector','showToolbar','hideAllGapColumns','dragToPan','reverseComplement','tooltips','focusFirstVariant','textView']);
 const object=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value)&&(Object.getPrototypeOf(value)===Object.prototype||Object.getPrototypeOf(value)===null);
 
 /** Parse and validate JSON or an already-parsed object without modifying the input. */

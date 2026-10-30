@@ -5,6 +5,7 @@ import { bindForms } from './forms';
 import { bindLabels } from './labels';
 import { bindTooltip } from './tooltip';
 import { bindHints } from './hints';
+import { $ } from '../controls';
 
 export function bind(v:Core):void {
   const signal=v.controller.signal,on:On=(target,event,handler)=>target.addEventListener(event,handler,{signal});
@@ -27,5 +28,11 @@ export function bind(v:Core):void {
     if(button.dataset.feature){const feature=v.filteredAnnotations.visible[Number(button.dataset.feature)];if(feature){if(feature.mapping==='mapped')v.setSelection({start:feature.start!,end:feature.end!,rowId:feature.rowId});v.emit('annotation',feature);v.message(`${feature.label}: ${feature.mapping==='mapped'?`alignment columns ${feature.start}–${feature.end}`:'no protein mapping'}. ${JSON.stringify(feature.metadata??{})}`);}}
   });
   bindTooltip(v,on);bindHints(v,on);bindPointer(v,on);bindLabels(v,on);bindForms(v,on);bindKeys(v,on);
+  const full=()=>{const on=document.fullscreenElement===v.root,b=$(v.root,'[data-action="fullscreen"]');b.setAttribute('aria-pressed',String(on));b.lastElementChild!.textContent=on?'Exit full screen':'Full screen';};
+  on(document,'fullscreenchange',full);
+  on(v.root,'keydown',(event:KeyboardEvent)=>{
+    if(event.key.toLowerCase()!=='f'||event.ctrlKey||event.metaKey||event.altKey||!v.visibility.fullscreen||(event.target as HTMLElement).closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])'))return;
+    event.preventDefault();void v.action('fullscreen');
+  });
   on(v.root,'dragover',(event:DragEvent)=>event.preventDefault());on(v.root,'drop',(event:DragEvent)=>{event.preventDefault();const file=event.dataTransfer?.files[0];if(file)void v.openFile(file);});
 }

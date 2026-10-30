@@ -78,7 +78,8 @@ The matrix is a window into the full alignment. Ordinary scroll controls move th
 | Fit | Fit as much width as possible, down to the 3px minimum; very wide alignments still scroll. |
 | Label divider | Drag the divider between sequence labels and residues to change label width. |
 | Theme button | Toggle the viewer's light and dark surfaces. |
-| Full screen | Expand the viewer when the browser supports fullscreen. |
+| Text | Show the alignment as plain text blocks of 60 columns in place of the grid. Click again to return to the grid. See [Text view](reference/display.md#text-view). |
+| Full screen | Fill the screen with the viewer when the browser supports fullscreen; the button reads **Exit full screen** while active. Press F on the viewer to toggle it. |
 
 At small cell widths, letters disappear to keep rendering legible. Zoom in to read individual residues. Dots represent gaps. Sequence rows default to 36px to accommodate names and species; applications can configure density. Compact rows below 32px hide the secondary species line.
 
@@ -421,6 +422,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | + or − / matrix | Increase/decrease cell width. |
 | Escape / matrix | Clear residue selection. |
 | ] or [ / matrix | Select the next or previous variant. |
+| F / viewer | Enter or leave full screen (not while typing in a field). |
 | Ctrl/Cmd + C / matrix | Copy the selection as gapped FASTA. |
 | Drag / matrix | Pan the view; a press that moves under 4 px is a click. |
 | Click / matrix | Select a residue; click it again to clear the selection. |

@@ -17,7 +17,7 @@ export interface Carry { reference:string; selection:Selection|null; selectedRow
 export interface SummaryEntry { key:string; limit:number; task:WorkerTask; promise:Promise<ColumnAnalysis>; data?:ColumnAnalysis; error?:string }
 export type On=(target:EventTarget,event:string,handler:(event:any)=>void)=>void;
 export interface SearchState { pattern:string; options:SearchOptions; result:SearchResult; byRow:Map<number,Hit[]>; cursor:number; full?:SearchResult }
-export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'colorThreshold'|'minIdentity'|'minCoverage'|'fasta'|'export'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'|'reverseComplement'|'tooltips'|'annotationLinks'|'focusFirstVariant'>>;
+export type ViewerSettings=Required<Pick<ViewerOptions,'height'|'theme'|'colorScheme'|'colorMode'|'matchDisplay'|'cellWidth'|'rowHeight'|'labelWidth'|'showLogo'|'showInspector'|'showToolbar'|'statisticsScope'|'consensusThreshold'|'colorThreshold'|'minIdentity'|'minCoverage'|'fasta'|'export'|'rulerCoordinates'|'logoMode'|'conservationWindow'|'treeWidth'|'hideGapColumns'|'hideAllGapColumns'|'dragToPan'|'reverseComplement'|'tooltips'|'annotationLinks'|'focusFirstVariant'|'textView'>>;
 export const bounded=(n:number,min:number,max:number):number=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
 
 /** The state and methods of AlignmentViewer that the modules in this folder act on. The class implements it with private members, so it is cast once in AlignmentViewer.core. */

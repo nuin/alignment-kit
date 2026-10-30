@@ -22,7 +22,7 @@ const viewer=createViewer(document.querySelector('#viewer')!,{height:740,showIns
 const customize=document.querySelector<HTMLDetailsElement>('.demo-customize')!;
 const groups:Record<string,(keyof ViewerVisibility)[]>={
   'Layout':['toolbar','tools','overview','overviewTitle','tracks','alignment','inspector','inspectorTabs','status','statusSummary','statusDetails','warnings','messages','emptyState'],
-  'Main controls':['open','search','colorScheme','zoom','fit','theme','inspectorToggle','fullscreen','export'],
+  'Main controls':['open','search','colorScheme','zoom','fit','theme','inspectorToggle','textView','fullscreen','export'],
   'Navigation and analysis':['goTo','motif','order','colorMode','logoToggle','statisticsScope','alphabet','variantNav'],
   'Tracks and residues':['ruler','modalFrequency','gapFraction','consensus','logo','entropy','quality','stockholmTracks','variantTrack','reference','residueLetters','annotationMarks','selectionOverlay'],
   'Sequence labels':['labels','rowNames','rowSpecies','rowSelection','rowPinning','rowHiding','rowReordering','tree','labelResize'],

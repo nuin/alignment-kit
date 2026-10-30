@@ -24,6 +24,7 @@ export async function action(v:Core, action:string):Promise<void> {
     if(action==='zoom-out')v.zoom(v.options.cellWidth-2);
     if(action==='fit'&&v.a)v.zoom(Math.max(3,Math.floor((v.scroll.clientWidth-v.gutter)/v.columns.count)));
     if(action==='theme')v.setOptions({theme:v.options.theme==='light'?'dark':'light'});
+    if(action==='text-view')v.setOptions({textView:!v.options.textView});
     if(action==='inspect')v.setOptions({showInspector:!v.options.showInspector});
     if(action==='fullscreen'){if(document.fullscreenElement)await document.exitFullscreen();else if(v.root.requestFullscreen)await v.root.requestFullscreen();else v.message('Full screen is unavailable in this browser.');}
     if(action==='reference-info'&&v.a)v.setSelection({start:v.selection?.start??1,end:v.selection?.end??1,rowId:v.a.rows[v.reference].id},false);
