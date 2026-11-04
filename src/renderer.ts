@@ -214,7 +214,7 @@ export class Renderer {
       const x=v.gutter+l*v.cw-v.x,w=(r-l)*v.cw,cy=top+3+k.lane*12+6;
       if(v.cw<9){const bin=k.lane*1e7+Math.floor(x/4);if(bins.has(bin))continue;bins.add(bin);ctx.fillStyle=k.color;ctx.fillRect(x,cy-3,Math.max(3,w),6);continue;}
       if(r-l>1){ctx.fillStyle=k.color;ctx.globalAlpha=.5;ctx.fillRect(x+1,cy-1,w-2,2);ctx.globalAlpha=1;}
-      drawShape(ctx,k.shape,x+w/2,cy,Math.min(5,v.cw/2),k.color,edge);
+      drawShape(ctx,{shape:k.shape,x:x+w/2,y:cy,r:Math.min(5,v.cw/2),fill:k.color,edge});
     }
   }
   private customTrack(ctx:CanvasRenderingContext2D,v:RenderView,m:ColumnMap,t:CustomTrack,slot:{offset:number;height:number},start:number,end:number,width:number,ink:string,line:string) {
@@ -254,7 +254,7 @@ export class Renderer {
     if(v.variants)for(const k of v.variants.marks){const [l,r]=columnSpan(m,k.a.start!,k.a.end!);if(r<=l)continue;ctx.fillStyle=k.color;ctx.fillRect(Math.min(width-2,Math.floor(l*width/m.count)),37,Math.max(2,(r-l)*width/m.count),7);}
   }
 }
-function drawShape(ctx:CanvasRenderingContext2D,shape:VariantShape,x:number,y:number,r:number,fill:string,edge:string) {
+function drawShape(ctx:CanvasRenderingContext2D,{shape,x,y,r,fill,edge}:{shape:VariantShape;x:number;y:number;r:number;fill:string;edge:string}) {
   ctx.beginPath();
   if(shape==='diamond'){ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);}
   else if(shape==='triangle'){ctx.moveTo(x-r,y-r*.8);ctx.lineTo(x+r,y-r*.8);ctx.lineTo(x,y+r);}

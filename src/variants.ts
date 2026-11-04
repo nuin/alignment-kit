@@ -87,7 +87,7 @@ export function variantShape(v:VariantInfo):VariantShape {
 export const MAX_LANES=8;
 /** Greedy lanes: spans sorted by start go into the first of at most `max` lanes whose last span ends before them. A span that fits no lane gets -1 and counts in `overflow`. */
 export function assignLanes(spans:readonly {start:number;end:number}[],max=MAX_LANES):{lanes:number[];count:number;overflow:number} {
-  const order=spans.map((_,i)=>i).sort((x,y)=>spans[x].start-spans[y].start||spans[x].end-spans[y].end||x-y),ends:number[]=[],lanes=new Array<number>(spans.length);let overflow=0;
+  const order=spans.map((_,i)=>i).sort((x,y)=>spans[x].start-spans[y].start||spans[x].end-spans[y].end||x-y),ends:number[]=[],lanes=Array.from({length:spans.length},()=>-1);let overflow=0;
   for(const i of order){
     let lane=-1;for(let k=0;k<ends.length;k++)if(ends[k]<spans[i].start){lane=k;break;}
     if(lane<0&&ends.length<max)lane=ends.push(0)-1;
