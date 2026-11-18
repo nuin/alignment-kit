@@ -18,6 +18,9 @@ jobs:
       - run: npm run release:check
       - run: npm run check:quality
       - run: deno publish --dry-run
+      - name: Use Ubuntu HTTPS archives for browser dependencies
+        run: |
+          printf 'https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttps://security.ubuntu.com/ubuntu/\tpriority:2\n' | sudo tee /etc/apt/apt-mirrors.txt
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:browser
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
