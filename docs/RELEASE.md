@@ -13,6 +13,8 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 `.github/workflows/release.yml` runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `deno.json`. It runs `release:check`, Knip/Aislop and the Chromium/WebKit suite before `npm publish` (trusted publishing, with provenance), `deno publish` and `gh release create --generate-notes`. Pull-request CI runs the same package, quality and browser checks plus `deno publish --dry-run`, and retains browser reports, failure screenshots and traces for 14 days.
 
+Both workflows use Ubuntu 24.04, which is supported by the locked Playwright version. Update the runner image and browser tooling together; the Ubuntu 26.04 image behind `ubuntu-latest` cannot install this version's browser dependencies.
+
 One-time setup:
 
 - On npmjs.com, open `@nuin/msa-canvas` > Settings > Trusted publishing and add GitHub Actions: owner `nuin`, repository `alignment-kit`, workflow `release.yml`. npm then accepts the workflow's OIDC token, so no npm token is stored.
