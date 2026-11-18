@@ -15,6 +15,8 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 Both workflows use Ubuntu 24.04, which is supported by the locked Playwright version. Update the runner image and browser tooling together; the Ubuntu 26.04 image behind `ubuntu-latest` cannot install this version's browser dependencies.
 
+Before installing browser dependencies, both workflows select Ubuntu's official HTTPS archive and security mirror in the runner's APT mirror list. The runner's regional AWS mirror repeatedly downloaded packages at only tens of kilobytes per second during the 0.5.1 release. This override follows the [runner image's APT mirror configuration](https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt-sources.sh) and retains signed-package verification.
+
 One-time setup:
 
 - On npmjs.com, open `@nuin/msa-canvas` > Settings > Trusted publishing and add GitHub Actions: owner `nuin`, repository `alignment-kit`, workflow `release.yml`. npm then accepts the workflow's OIDC token, so no npm token is stored.

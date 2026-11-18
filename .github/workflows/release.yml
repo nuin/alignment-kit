@@ -22,6 +22,9 @@ jobs:
       - run: npm ci
       - run: npm run release:check
       - run: npm run check:quality
+      - name: Use Ubuntu HTTPS archives for browser dependencies
+        run: |
+          printf 'https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttps://security.ubuntu.com/ubuntu/\tpriority:2\n' | sudo tee /etc/apt/apt-mirrors.txt
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:browser
       - name: npm 11.5.1 or later for trusted publishing
