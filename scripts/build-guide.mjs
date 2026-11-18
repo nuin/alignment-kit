@@ -22,9 +22,10 @@ const referencePages=await Promise.all(reference.map(async f=>[`docs/reference/$
 for(const [file,name,title]of [['README.md','developer','Developer API'],...referencePages,['docs/RELEASE.md','release','Release preparation'],['docs/performance.md','performance','Validation and performance'],['THIRD_PARTY_NOTICES.md','notices','Third-party notices']]){
   let html=await marked.parse(await readFile(file,'utf8'));
   html=html.replace(/href="(?:docs\/reference\/)?([a-z-]+)\.md(#[^"]*)?"/g,(m,page,hash='')=>reference.includes(`${page}.md`)?`href="./${page}.html${hash}"`:m).replaceAll('href="../../config/','href="./config/').replaceAll('href="../../THIRD_PARTY_NOTICES.md"','href="./notices.html"').replaceAll('href="config/viewer-config.example.json"','href="./config/viewer-config.example.json"').replaceAll('href="config/viewer-config.schema.json"','href="./config/viewer-config.schema.json"').replaceAll('src="docs/screenshots/','src="./screenshots/').replaceAll('href="docs/USER_GUIDE.md"','href="./index.html"').replaceAll('href="docs/RELEASE.md"','href="./release.html"').replaceAll('href="docs/performance.md"','href="./performance.html"').replaceAll('href="performance.md"','href="./performance.html"').replaceAll('href="THIRD_PARTY_NOTICES.md"','href="./notices.html"').replaceAll('href="benchmark-results.json"','href="./benchmark-results.json"');
+  html=html.replaceAll('href="../performance.md"','href="./performance.html"');
   await writeFile(`demo/public/guide/${name}.html`,shell(title,html,'<a href="/guide/index.html">← User guide</a>'));
 }
 await cp('docs/screenshots','demo/public/guide/screenshots',{recursive:true});
 await cp('config','demo/public/guide/config',{recursive:true});
-await writeFile('demo/public/guide/benchmark-results.json',await readFile('docs/benchmark-results.json'));
+for(const file of ['benchmark-results.json','browser-benchmark-results.json'])await writeFile(`demo/public/guide/${file}`,await readFile(`docs/${file}`));
 console.log(`Built user guide (${toc.length} topics), palette previews, developer API (${reference.length} reference pages) and release pages.`);

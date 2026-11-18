@@ -7,9 +7,9 @@ import { displayCode } from './strand';
 import { variantColors, variantClassLabels, type VariantClass } from './variants';
 import type { ColumnAnalysis } from './summary';
 export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;marked?:boolean;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number;reverse?:boolean;strands?:Set<string>;summary?:SummaryView;/** The alignment has variant annotations: the Colors tab adds the consequence legend. */ variants?:boolean}
-export interface SummaryView { block?:{start:number;end:number};data?:ColumnAnalysis;error?:string;page:number }
-export const SUMMARY_PAGE=20;
-export const HIT_LIST_LIMIT=200;
+interface SummaryView { block?:{start:number;end:number};data?:ColumnAnalysis;error?:string;page:number }
+const SUMMARY_PAGE=20;
+const HIT_LIST_LIMIT=200;
 function createCrosshair(doc:Document):SVGSVGElement {
   const ns='http://www.w3.org/2000/svg',svg=doc.createElementNS(ns,'svg'),circle=doc.createElementNS(ns,'circle'),path=doc.createElementNS(ns,'path');
   svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.6');svg.setAttribute('stroke-linecap','round');

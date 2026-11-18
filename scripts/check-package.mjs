@@ -33,3 +33,4 @@ await writeFile(join(tmp,'ssr.ts'),`import {render} from 'svelte/server';import 
 await esbuild({absWorkingDir:tmp,entryPoints:['ssr.ts'],outfile:join(tmp,'ssr.mjs'),bundle:true,platform:'node',format:'esm',conditions:['node'],plugins:[{name:'svelte-ssr',setup(builder){builder.onLoad({filter:/\.svelte$/},async({path})=>({contents:compile(await readFile(path,'utf8'),{filename:path,generate:'server'}).js.code,loader:'js',resolveDir:resolve(path,'..')}));}}]});
 execFileSync('node',[join(tmp,'ssr.mjs')],{cwd:tmp,stdio:'inherit'});
 console.log(`Packed package consumer builds passed. Inspection directory: ${tmp}`);
+if(process.env.MSA_PACKAGE_REPORT)await writeFile(process.env.MSA_PACKAGE_REPORT,JSON.stringify({directory:tmp,peers}));

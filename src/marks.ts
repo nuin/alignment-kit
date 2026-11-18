@@ -1,4 +1,4 @@
-import { mergeColumnRanges, type ColumnRange } from './mask';
+import type { ColumnRange } from './mask';
 import type { ColumnMark } from './types';
 export const defaultMarkColor='#7b2cbf';
 /** A column number or an inclusive one-based [start, end] range. */
@@ -18,7 +18,7 @@ const tidy=(marks:ColumnMark[]):ColumnMark[]=>{
   for(const m of marks.sort((x,y)=>x.start-y.start)){const last=out[out.length-1];if(last&&last.color===m.color&&m.start<=last.end+1)last.end=Math.max(last.end,m.end);else out.push({...m});}
   return out;
 };
-export function subtractMarks(marks:readonly ColumnMark[],start:number,end:number):ColumnMark[] {
+function subtractMarks(marks:readonly ColumnMark[],start:number,end:number):ColumnMark[] {
   const out:ColumnMark[]=[];
   for(const m of marks){if(m.end<start||m.start>end){out.push({...m});continue;}if(m.start<start)out.push({...m,end:start-1});if(m.end>end)out.push({...m,start:end+1});}
   return out;
@@ -41,7 +41,6 @@ export function unmarked(marks:readonly ColumnMark[],start:number,end:number):Co
   if(at<=end)out.push([at,end]);return out;
 }
 export const isMarked=(marks:readonly ColumnMark[],start:number,end=start):boolean=>unmarked(marks,start,end).length===0;
-export const markSpans=(marks:readonly ColumnMark[]):ColumnRange[]=>mergeColumnRanges(marks.map(m=>[m.start,m.end] as ColumnRange));
 /** Marks from link ranges: default color, except where a current mark already covers the columns. */
 export function marksFromRanges(ranges:readonly ColumnRange[],current:readonly ColumnMark[]):ColumnMark[] {
   let out=addMarks([],ranges,defaultMarkColor);

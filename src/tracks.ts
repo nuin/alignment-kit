@@ -1,6 +1,6 @@
 import type { Alignment, CustomTrack, TrackType } from './types';
 import { defaultVisibility } from './visibility';
-export const trackTypes:readonly TrackType[]=['bar','heatmap','text','custom'];
+const trackTypes:readonly TrackType[]=['bar','heatmap','text','custom'];
 const known=new Set(['id','label','height','type','values','domain','color','render']);
 const fail=(id:string,message:string):never=>{throw new Error(`Track ${id}: ${message}`);};
 /** Validate one track definition. `json` rejects functions and typed arrays so the result stays JSON-safe. Returns a shallow copy. */

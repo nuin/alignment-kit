@@ -1,7 +1,6 @@
 import type { AlignmentSummary, ColumnScope, SummaryOptions, VariableColumnResult } from '../types';
 import { MAX_VARIABLE_COLUMNS, type ColumnAnalysis } from '../summary';
 import type { Core, SummaryEntry } from './core';
-export const PAGE_SIZE=20;
 const MAX_ENTRIES=8;
 function request(v:Core,o:SummaryOptions):{scope:ColumnScope;key:string;limit:number} {
   v.assertAlive();const a=v.a;if(!a)throw new Error('No alignment is loaded.');

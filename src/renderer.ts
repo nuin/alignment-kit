@@ -44,7 +44,7 @@ const referenceNumbers=(a:Alignment,row:number,first:number):Int32Array=>{
 const drawTable=(v:RenderView,row:number):Uint8Array|undefined=>v.a.alphabet!=='protein'&&!!v.reverse!==!!v.strands?.has(v.a.rows[row].id)?complementTable(v.a.alphabet):undefined;
 /** Complement of a consensus or logo symbol in the reverse-complement view. */
 const viewSymbol=(v:RenderView,symbol:string):string=>v.reverse&&v.a.alphabet!=='protein'&&symbol.length===1&&symbol.charCodeAt(0)<128?String.fromCharCode(complementTable(v.a.alphabet)[symbol.charCodeAt(0)]):symbol;
-export function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
+function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
   const dpr=Math.min(window.devicePixelRatio||1,3);
   w=Math.max(1,Math.round(w));h=Math.max(1,Math.round(h));
   if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)) {canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';}
