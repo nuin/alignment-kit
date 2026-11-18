@@ -6,7 +6,7 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 - Name: `@nuin/msa-canvas`, under the npm user scope `nuin` and the JSR scope `@nuin`.
 - License: MIT, copyright Bioinformat. Third-party MIT and OFL notices remain in `THIRD_PARTY_NOTICES.md`.
-- Versions: `0.1.0` (commit `0e1b6ef`, tag `v0.1.0`), then `0.2.0`, `0.3.0`, `0.4.0` and `0.5.0`, public, on the `latest` tag.
+- Versions: `0.1.0` (commit `0e1b6ef`, tag `v0.1.0`), then `0.2.0`, `0.3.0`, `0.4.0` and `0.5.0`, public, on the `latest` tag. The `v0.5.1` source tag was preserved after its release job was cancelled before registry publication; `0.5.2` includes those changes and the mirror fix below.
 - JSR publishes the core TypeScript source (`deno.json`). React, Svelte, PAVI and CSS stay npm-only.
 
 ## Automated release
@@ -22,7 +22,7 @@ One-time setup:
 - On npmjs.com, open `@nuin/msa-canvas` > Settings > Trusted publishing and add GitHub Actions: owner `nuin`, repository `alignment-kit`, workflow `release.yml`. npm then accepts the workflow's OIDC token, so no npm token is stored.
 - Create the `@nuin/msa-canvas` package on jsr.io and link it to `nuin/alignment-kit` in its settings. JSR then accepts the workflow's GitHub OIDC token, so no JSR secret is stored.
 
-To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, add notes to `CHANGELOG.md`, merge to master after CI passes, then create and push the matching annotated tag on that merge commit (for example, `git tag -a v0.5.1 -m v0.5.1` followed by `git push origin v0.5.1`).
+To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, add notes to `CHANGELOG.md`, merge to master after CI passes, then create and push the matching annotated tag on that merge commit (for example, `git tag -a v0.5.2 -m v0.5.2` followed by `git push origin v0.5.2`).
 - Review the current [browser performance and accessibility evidence](performance.md) before tagging. Timing results are hardware-specific; native screen-reader testing has a separate status.
 
 Authentication is checked with `npm whoami`. No credentials are stored in the repository.
