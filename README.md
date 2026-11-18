@@ -8,7 +8,7 @@ An embeddable multiple sequence alignment viewer for JavaScript, React and Svelt
 npm install @nuin/msa-canvas
 ```
 
-Browser validation is not yet complete; see [validation and performance](docs/performance.md). Project page: <https://bioinformat.org/msa-canvas>.
+Chromium and WebKit interaction and automated accessibility checks run in CI. See [validation and performance](docs/performance.md) for measured results and manual audit limits. Project page: <https://bioinformat.org/msa-canvas>.
 
 Start with the [full user guide](docs/USER_GUIDE.md) for walkthroughs, palette meanings, statistical definitions, annotation workflows, exports, keyboard shortcuts and troubleshooting. The Explorer's **User guide** link opens a browsable version with palette previews at `/guide/index.html`. This README covers installation and a first example; the [developer reference](#developer-reference) covers the rest.
 
@@ -119,14 +119,16 @@ npm run build           # distributable library
 npm run build:demo      # standalone + React + Svelte demo builds
 npm run check:package   # extract package archive, build consumers using local peers; SSR checks
 npm run test:browser    # Chromium and WebKit interaction tests
+npm run check:quality   # unused-code analysis and Aislop quality gate
 npm run benchmark      # Node model/statistics/index baseline (not browser FPS)
+npm run benchmark:browser # repeated browser startup, scrolling, memory and disposal measurements
 npm run preview:files  # self-contained local HTML demos
 npm run build:guide    # browsable user guide and palette previews
 npm run screenshots    # capture docs images from a running local demo
 npm run release:check  # package preparation checks; does not publish
 ```
 
-Targeted Chromium interaction checks and actual UI screenshots are available. The full CLI browser suite, WebKit and comprehensive accessibility/performance acceptance remain outstanding. See [performance report](docs/performance.md) for measured results and the exact outstanding acceptance checks. Aligning sequences, gene retrieval, clinical interpretation, editing alignments, structure viewers and tree inference are outside this library's scope.
+Install the test browsers with `npx playwright install chromium webkit` before running browser tests. Development tooling requires Node 22.20 or later; CI uses Node 22. Browser tests cover both frameworks, workers, exports, keyboard navigation, accessibility checks and narrow layouts. The [performance report](docs/performance.md) records the benchmark method and native screen-reader audit limits. Aligning sequences, gene retrieval, clinical interpretation, editing alignments, structure viewers and tree inference are outside this library's scope.
 
 ## Citation
 

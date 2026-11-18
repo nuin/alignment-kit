@@ -1,0 +1,308 @@
+{
+  "date": "2026-11-18T19:35:39.579Z",
+  "pilot": false,
+  "environment": {
+    "platform": "darwin",
+    "release": "27.0.0",
+    "arch": "arm64",
+    "cpu": "Apple M1 Ultra",
+    "logicalCpus": 20,
+    "ramGiB": 64,
+    "node": "v22.23.5",
+    "browser": "145.0.7632.6"
+  },
+  "method": {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "warmupsPerFixture": 1,
+    "measuredRuns": 3,
+    "scrollMs": 10000,
+    "startup": "FASTA text and annotations resident before timer; load includes parsing, workers, exact statistics, annotation indexing, two animation frames, keyboard input and repaint.",
+    "memory": "Sum of browser and descendant process RSS sampled about every 100 ms, including worker processes; shared pages can be counted more than once, peaks between samples may be missed. Baseline after input preparation and forced GC. Not a portable heap measurement.",
+    "frames": "requestAnimationFrame intervals during scripted two-axis scrolling; includes DOM-bound checks and concurrent memory sampling. Headless Chromium; not a compositor/GPU presentation measurement."
+  },
+  "results": [
+    {
+      "rows": 10000,
+      "columns": 1000,
+      "annotations": 0,
+      "workers": 8,
+      "runs": [
+        {
+          "startupMs": 417.40000000596046,
+          "durationMs": 10010.39999998808,
+          "frames": 533,
+          "p95FrameMs": 30.200000000000728,
+          "maxFrameMs": 50.099999999998545,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 427.5,
+            "peakMiB": 547.296875,
+            "increaseMiB": 119.796875,
+            "samples": 70
+          }
+        },
+        {
+          "startupMs": 435,
+          "durationMs": 10019.59999999404,
+          "frames": 514,
+          "p95FrameMs": 30.400000000001455,
+          "maxFrameMs": 45.60000000000218,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 432.515625,
+            "peakMiB": 533.078125,
+            "increaseMiB": 100.5625,
+            "samples": 72
+          }
+        },
+        {
+          "startupMs": 426.90000000596046,
+          "durationMs": 10025.899999988076,
+          "frames": 559,
+          "p95FrameMs": 29.400000000001455,
+          "maxFrameMs": 42.89999999999418,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 418.484375,
+            "peakMiB": 477.65625,
+            "increaseMiB": 59.171875,
+            "samples": 66
+          }
+        }
+      ]
+    },
+    {
+      "rows": 1000,
+      "columns": 10000,
+      "annotations": 0,
+      "workers": 8,
+      "runs": [
+        {
+          "startupMs": 443.59999999403954,
+          "durationMs": 10029.59999999404,
+          "frames": 532,
+          "p95FrameMs": 29.399999999999636,
+          "maxFrameMs": 62.69999999999891,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 391.03125,
+            "peakMiB": 467.453125,
+            "increaseMiB": 76.421875,
+            "samples": 73
+          }
+        },
+        {
+          "startupMs": 453.70000000298023,
+          "durationMs": 10028.5,
+          "frames": 562,
+          "p95FrameMs": 29.700000000000728,
+          "maxFrameMs": 39.79999999999927,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 397.859375,
+            "peakMiB": 476.046875,
+            "increaseMiB": 78.1875,
+            "samples": 73
+          }
+        },
+        {
+          "startupMs": 429.80000001192093,
+          "durationMs": 10007.299999994037,
+          "frames": 525,
+          "p95FrameMs": 32.19999999999709,
+          "maxFrameMs": 47.89999999999418,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 403.53125,
+            "peakMiB": 482.953125,
+            "increaseMiB": 79.421875,
+            "samples": 72
+          }
+        }
+      ]
+    },
+    {
+      "rows": 50000,
+      "columns": 300,
+      "annotations": 0,
+      "workers": 8,
+      "runs": [
+        {
+          "startupMs": 658.5999999940395,
+          "durationMs": 10017.000000005959,
+          "frames": 557,
+          "p95FrameMs": 30,
+          "maxFrameMs": 45.30000000000109,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 421.3125,
+            "peakMiB": 613.65625,
+            "increaseMiB": 192.34375,
+            "samples": 74
+          }
+        },
+        {
+          "startupMs": 669.6000000089407,
+          "durationMs": 10010.100000005958,
+          "frames": 530,
+          "p95FrameMs": 28.900000000001455,
+          "maxFrameMs": 88.40000000000146,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 445.71875,
+            "peakMiB": 611.421875,
+            "increaseMiB": 165.703125,
+            "samples": 73
+          }
+        },
+        {
+          "startupMs": 685.3000000119209,
+          "durationMs": 10004.100000005958,
+          "frames": 526,
+          "p95FrameMs": 29.69999999999709,
+          "maxFrameMs": 51.599999999998545,
+          "maxLabels": 11,
+          "maxElements": 424,
+          "memory": {
+            "baselineMiB": 426.0625,
+            "peakMiB": 596.78125,
+            "increaseMiB": 170.71875,
+            "samples": 72
+          }
+        }
+      ]
+    },
+    {
+      "rows": 10000,
+      "columns": 1000,
+      "annotations": 100000,
+      "workers": 8,
+      "runs": [
+        {
+          "startupMs": 634.5,
+          "durationMs": 10014.199999991059,
+          "frames": 538,
+          "p95FrameMs": 28.700000000000728,
+          "maxFrameMs": 45,
+          "maxLabels": 7,
+          "maxElements": 462,
+          "memory": {
+            "baselineMiB": 432.1875,
+            "peakMiB": 581.3125,
+            "increaseMiB": 149.125,
+            "samples": 69
+          }
+        },
+        {
+          "startupMs": 714.7000000029802,
+          "durationMs": 10004.199999997021,
+          "frames": 496,
+          "p95FrameMs": 30.799999999999272,
+          "maxFrameMs": 64,
+          "maxLabels": 7,
+          "maxElements": 462,
+          "memory": {
+            "baselineMiB": 437.40625,
+            "peakMiB": 568.984375,
+            "increaseMiB": 131.578125,
+            "samples": 63
+          }
+        },
+        {
+          "startupMs": 955.9000000059605,
+          "durationMs": 10000.599999997023,
+          "frames": 539,
+          "p95FrameMs": 29.099999999998545,
+          "maxFrameMs": 42.700000000004366,
+          "maxLabels": 7,
+          "maxElements": 462,
+          "memory": {
+            "baselineMiB": 422.84375,
+            "peakMiB": 637.0625,
+            "increaseMiB": 214.21875,
+            "samples": 59
+          }
+        }
+      ]
+    }
+  ],
+  "lifecycle": {
+    "cycles": [
+      {
+        "cycle": 1,
+        "usedHeapMiB": 11.686321258544922,
+        "rssMiB": 395.03125,
+        "workers": 0
+      },
+      {
+        "cycle": 2,
+        "usedHeapMiB": 11.734966278076172,
+        "rssMiB": 404.390625,
+        "workers": 0
+      },
+      {
+        "cycle": 3,
+        "usedHeapMiB": 11.744369506835938,
+        "rssMiB": 412.296875,
+        "workers": 0
+      },
+      {
+        "cycle": 4,
+        "usedHeapMiB": 11.744415283203125,
+        "rssMiB": 414.203125,
+        "workers": 0
+      },
+      {
+        "cycle": 5,
+        "usedHeapMiB": 11.744415283203125,
+        "rssMiB": 413.671875,
+        "workers": 0
+      },
+      {
+        "cycle": 6,
+        "usedHeapMiB": 11.78604507446289,
+        "rssMiB": 413.78125,
+        "workers": 0
+      },
+      {
+        "cycle": 7,
+        "usedHeapMiB": 11.786579132080078,
+        "rssMiB": 414.25,
+        "workers": 0
+      },
+      {
+        "cycle": 8,
+        "usedHeapMiB": 11.786911010742188,
+        "rssMiB": 414.453125,
+        "workers": 0
+      },
+      {
+        "cycle": 9,
+        "usedHeapMiB": 11.787433624267578,
+        "rssMiB": 413.328125,
+        "workers": 0
+      },
+      {
+        "cycle": 10,
+        "usedHeapMiB": 11.870563507080078,
+        "rssMiB": 413.234375,
+        "workers": 0
+      }
+    ],
+    "method": "Ten destroy/GC samples with the same input retained; reload between samples. Worker count and DOM removal checked each cycle."
+  },
+  "acceptance": {
+    "primary": true
+  }
+}

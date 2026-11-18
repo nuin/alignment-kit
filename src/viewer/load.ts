@@ -8,6 +8,7 @@ import { type Core, type Carry } from './core';
 import { syncWarnings } from './warnings';
 import { cancelSummaries } from './summary';
 import { nextVariant } from './variants';
+import { syncAccessibleCell } from './accessibility';
 export async function loadInput(v:Core, input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {
   v.assertAlive();v.parser.cancel();v.request?.abort();const token=++v.loadRevision;v.loading=true;
   v.message('Reading alignment…');
@@ -84,7 +85,7 @@ export function clear(v:Core):void {
   v.assertAlive();v.tip?.hide();++v.loadRevision;++v.statsRevision;++v.revision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();cancelSummaries(v);
   v.loading=false;v.pendingLink=undefined;v.identityJob=undefined;v.identities=undefined;v.identityDetails=undefined;
   v.a=undefined;v.variantCursor=undefined;v.detected=undefined;v.stats=undefined;v.fullStats=undefined;v.rows=[];v.filteredRows=[];v.selection=null;v.dropSearch();v.selectedRows.clear();v.annotationFilter={};v.hidden.clear();v.manualHidden=[];v.columnMarks=[];v.colMap=undefined;v.rowStrands.clear();v.manualOrder=null;v.collapsed.clear();v.groupMap=null;v.groupList=[];v.tree=undefined;v.treeHits=[];v.rowPos=new Int32Array(0);if(v.sort==='tree'||v.sort==='manual'||v.sort==='residue'){v.sort='input';$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value='input';}
-  v.rebuildAnnotations();v.labels.replaceChildren();v.inspector.replaceChildren();
+  v.rebuildAnnotations();v.labels.replaceChildren();v.inspector.replaceChildren();syncAccessibleCell(v);
   for(const canvas of v.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
   $(v.root,'.ak-reference-label').textContent='Reference';$(v.root,'.ak-overview-window').style.width='0';$(v.root,'.ak-status-main').textContent='No alignment loaded';$(v.root,'.ak-status-detail').textContent='';$(v.root,'.ak-empty').textContent='Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).';v.message('');syncWarnings(v,false);v.layout();v.emit('selection',null);
 }

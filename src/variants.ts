@@ -41,14 +41,14 @@ export function parseHgvsProtein(text:string):HgvsProtein|null {
   return null;
 }
 /** Normalize a free-text variant type (PAVI seq_substitution_type, SO names, short forms). */
-export function variantType(text:string|undefined):VariantType {
+function variantType(text:string|undefined):VariantType {
   const t=(text??'').toLowerCase().replace(/[\s-]+/g,'_');
   if(/^(substitution|snp|snv|mnv|point_mutation|missense|nonsense|single_nucleotide_variant|synonymous)/.test(t))return 'substitution';
   if(/^delins|^indel|^complex_substitution/.test(t))return 'delins';
-  if(/^del/.test(t))return 'deletion';
-  if(/^ins/.test(t))return 'insertion';
-  if(/^dup/.test(t))return 'duplication';
-  if(/^frameshift/.test(t))return 'frameshift';
+  if(t.startsWith('del'))return 'deletion';
+  if(t.startsWith('ins'))return 'insertion';
+  if(t.startsWith('dup'))return 'duplication';
+  if(t.startsWith('frameshift'))return 'frameshift';
   return 'other';
 }
 /** Consequence class from Sequence Ontology terms, most severe first; the variant type decides when no term is known. */
@@ -84,7 +84,7 @@ export function variantShape(v:VariantInfo):VariantShape {
   if(v.consequenceClass==='nonsense'||v.consequenceClass==='frameshift'||v.type==='frameshift')return 'square';
   if(v.type==='deletion')return 'triangle';if(v.type==='insertion'||v.type==='duplication')return 'chevron';return 'diamond';
 }
-export const MAX_LANES=8;
+const MAX_LANES=8;
 /** Greedy lanes: spans sorted by start go into the first of at most `max` lanes whose last span ends before them. A span that fits no lane gets -1 and counts in `overflow`. */
 export function assignLanes(spans:readonly {start:number;end:number}[],max=MAX_LANES):{lanes:number[];count:number;overflow:number} {
   const order=spans.map((_,i)=>i).sort((x,y)=>spans[x].start-spans[y].start||spans[x].end-spans[y].end||x-y),ends:number[]=[],lanes=Array.from({length:spans.length},()=>-1);let overflow=0;

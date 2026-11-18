@@ -1,6 +1,6 @@
 import type { Alignment, Alphabet, Hit, SearchMode, SearchOptions, SearchResult } from './types';
 
-export const MAX_HITS=10000;
+const MAX_HITS=10000;
 const MAX_PATTERN=500;
 export const MAX_SEARCH_MS=2000;
 const nested=/\((?:[^()\\]|\\.)*(?:[+*]|\{\d+,\d*\})(?:[^()\\]|\\.)*\)(?:[+*]|\{\d+,)/;

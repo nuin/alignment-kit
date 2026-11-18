@@ -1,5 +1,20 @@
 # Implementation ledger
 
+## 2026-11-18 release validation
+
+Plan: `docs/superpowers/plans/2026-11-18-validation.md`. User authorized completing the browser, CI, performance/accessibility and documentation work in this checkout, preserving pre-existing changes and leaving git history unchanged.
+
+- Installed Chromium and WebKit and added axe, keyboard, inspector-containment and packed React/Svelte consumer tests. Fixed contrast, active-cell semantics, stale clear-state accessibility, text-view exposure and clipped inspector tabs. Pinned matching React/React DOM development peers after tooling installation exposed a version mismatch.
+- Added package/release, Knip/Aislop and browser gates to PR and release workflows, with retained CI browser reports. Removed unused internal declarations/exports without changing package entry points; no Aislop rules were disabled or modified.
+- Completed one warm-up plus three measured runs for each of four browser fixtures and ten disposal cycles. The primary fixture met all three measured targets; raw data and measurement limits are in `docs/browser-benchmark-results.json` and `docs/performance.md`.
+- Inspected native Safari's accessibility tree. The approved temporary VoiceOver enablement did not start a usable reader: the app remained not running and its interface timed out. Restored VoiceOver to off. Spoken screen-reader validation remains explicitly unverified.
+- Refreshed README, release instructions, user/API accessibility guidance and performance evidence. Final check results and review disposition are recorded in the validation plan.
+- Follow-up authorization: user deferred native VoiceOver testing and requested committing the work, opening a PR, checking hosted CI and releasing it. Preparing patch release 0.5.1 with matching npm/JSR versions and a changelog; this supersedes the initial no-publication/no-history-change boundary for these release steps.
+
+## Historical implementation notes (2026-10-26/27)
+
+The environment restrictions and outstanding checks below describe the original implementation session; current browser evidence is recorded above.
+
 Plan: `docs/superpowers/plans/2026-10-26-msa-viewer.md`.
 
 - User approved implementation and required both React and Svelte integrations.

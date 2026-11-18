@@ -6,11 +6,11 @@ import { columnSpan, type ColumnMap } from '../mask';
 import { $ } from '../controls';
 import type { Core } from './core';
 
-export const LANE=12;
+const LANE=12;
 /** `rank` orders rows as displayed: -2 for a variant without a row, -1 for the pinned reference, a row's grid position, or just after its group header while the group is collapsed. `lane` is -1 beyond the eighth lane. */
-export interface VariantMark { a:Annotation; info:VariantInfo; lane:number; color:string; shape:VariantShape; rank:number }
+interface VariantMark { a:Annotation; info:VariantInfo; lane:number; color:string; shape:VariantShape; rank:number }
 /** A mark with its display interval [left, right) under the current column map. */
-export interface NavMark { k:VariantMark; left:number; right:number }
+interface NavMark { k:VariantMark; left:number; right:number }
 /** `marks` are the mapped variants that pass the annotation filter on shown rows, sorted by start column then row rank. `lanes` counts drawn lanes (at most 8); `overflow` counts marks beyond them. `total` counts mapped variants in the alignment. `nav` caches the navigation order for one column map. */
 export interface VariantLayout { marks:VariantMark[]; lanes:number; overflow:number; total:number; nav?:{columns:ColumnMap;list:NavMark[]} }
 const empty:VariantLayout={marks:[],lanes:0,overflow:0,total:0};
@@ -40,7 +40,7 @@ export function variantLayout(v:Core):VariantLayout {
 }
 /** Lanes the variant track takes in the layout: 0 when it is switched off or no variant is shown. */
 export const drawnLanes=(v:Core):number=>v.visibility.variantTrack?variantLayout(v).lanes:0;
-export const variantTrackTop=(v:Core):number|null=>v.a?trackLayout(v.visibility,v.options.rowHeight,v.drawnTracks().map(t=>({height:trackHeight(t)})),v.a.alphabet,drawnLanes(v)).offsets.variants:null;
+const variantTrackTop=(v:Core):number|null=>v.a?trackLayout(v.visibility,v.options.rowHeight,v.drawnTracks().map(t=>({height:trackHeight(t)})),v.a.alphabet,drawnLanes(v)).offsets.variants:null;
 /** The variant marker under a pointer in the track strip, or null. Markers are at least 12 px wide for hit testing. */
 export function variantAt(v:Core,event:MouseEvent):Annotation|null {
   const top=variantTrackTop(v);if(top===null)return null;
@@ -60,7 +60,7 @@ export function selectVariant(v:Core,n:Annotation):void {
   v.variantCursor=n.id;v.setSelection({start:n.start!,end:n.end!,...(n.rowId?{rowId:n.rowId}:{})});
 }
 /** Marks with at least one shown column, ordered by display column (left to right on screen, so right to left in source columns in the reverse-complement view), then row rank. Cached on the layout per column map. */
-export function navigable(v:Core):NavMark[] {
+function navigable(v:Core):NavMark[] {
   const l=variantLayout(v),m=v.columns;if(l.nav?.columns===m)return l.nav.list;
   const list:NavMark[]=[];
   for(const k of l.marks){const [left,right]=columnSpan(m,k.a.start!,k.a.end!);if(right>left)list.push({k,left,right});}

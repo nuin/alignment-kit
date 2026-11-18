@@ -13,17 +13,19 @@ npm run dev               # Vite demo at http://127.0.0.1:4173 (strictPort); /ex
 npm test                  # Vitest, tests/**/*.test.ts (jsdom/node)
 npx vitest run tests/core.test.ts -t "name"   # single file / single test
 npm run check             # tsc --noEmit + svelte-check
+npm run check:quality     # Knip public-entry analysis + Aislop CI gate
 npm run build             # scripts/build.mjs: esbuild bundle + tsc declarations into dist/
 npm run build:demo        # Vite build of the 3 demo pages into demo-dist/
-npm run test:browser      # Playwright, tests/**/*.spec.ts, chromium + webkit; starts `npm run dev`
+npm run test:browser      # builds library, then Playwright chromium + webkit; starts `npm run dev`
 npx playwright test tests/viewer.spec.ts --project=chromium   # single browser spec
 npm run check:package     # npm pack, extract into a temp consumer, build React/Svelte consumers, SSR checks
 npm run check:datasets    # verify demo/public snapshots against hashes/dimensions in alignments.json
 npm run benchmark         # Node CPU baseline -> docs/benchmark-results.json (not browser FPS)
+npm run benchmark:browser # built package, repeated Chromium startup/scroll/RSS/disposal measurements
 npm run preview:files     # self-contained offline HTML demos in .preview/ (blob workers)
 ```
 
-`*.test.ts` runs under Vitest, `*.spec.ts` under Playwright; the split is by filename suffix. Set `AK_STATIC_PREVIEW` to stop Playwright starting its own dev server.
+`*.test.ts` runs under Vitest, `*.spec.ts` under Playwright; the split is by filename suffix. Set `AK_STATIC_PREVIEW` to stop Playwright starting its own dev server. Direct `npx playwright test` invocations bypass the build hook; run `npm run build` first when including the packed-consumer spec.
 
 ## Architecture
 
@@ -47,6 +49,6 @@ npm run preview:files     # self-contained offline HTML demos in .preview/ (blob
 
 - Source style is dense: short names, many statements per line, few comments. Match it in `src/`.
 - `docs/source-similarity-audit.md` records a lexical comparison against Nightingale, AlignmentViewer 2.0, React MSAViewer, BioJS MSA and PAVI (`scripts/similarity-audit.mjs`). Do not copy implementation code from those projects; palette data is the only intentional reuse.
-- `docs/performance.md` lists browser acceptance checks still outstanding (frame time, memory, WebKit, screen-reader grid audit). Do not claim them as verified without running them.
+- `docs/performance.md` records browser acceptance measurements and their limits. Chromium/WebKit and automated accessibility checks run in CI; native spoken screen-reader testing is deferred by the user. Do not turn sampled RSS or headless animation-frame results into broader guarantees.
 - Developer documentation lives in `docs/reference/*.md`; the README links to it and `scripts/build-guide.mjs` renders each page into `demo/public/guide/`. A new reference page needs no script change; it needs a row in the README table.
 - Out of scope per README: aligning sequences, gene retrieval, clinical interpretation, alignment editing, structure viewers, tree inference.

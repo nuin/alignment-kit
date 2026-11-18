@@ -437,7 +437,7 @@ Focus the matrix by clicking it or navigating to it with Tab.
 | Escape / open menu | Cancel without changing the value. |
 | Tab / open menu | Close and move focus onward. |
 
-Controls have accessible names and focus indicators, and selections have textual/live announcements. A complete screen-reader grid audit remains outstanding; the canvas is not a fully audited spreadsheet substitute.
+Controls have accessible names and focus indicators, and selections have textual/live announcements. The grid exposes the active cell's row, alignment column, residue or gap, and sequence position. The inspector is keyboard-focusable. **Text** offers readable alignment blocks and hides the covered canvas controls from accessibility navigation. Automated checks cover both themes, menus and keyboard use in Chromium and WebKit; see [native screen-reader audit status](performance.md) for the remaining manual coverage.
 
 ## Troubleshooting
 
@@ -464,4 +464,4 @@ The library has a framework-independent JavaScript API, a React component, and a
 
 For a reproducible issue, record the package version, browser/OS, alphabet, dimensions, palette, statistics scope, exact interaction and error text. Use a small non-sensitive alignment that demonstrates the issue. Do not include private biological data merely to report a UI problem.
 
-See [performance and validation](performance.md) for measured CPU baselines and outstanding browser acceptance checks. Input validation caps a single alignment at 250 million cells; this is a guardrail, not a promise that every device can load that size. Aligning sequences, editing the alignment, phylogenetic inference and structure visualization are outside this release.
+See [performance and validation](performance.md) for repeated browser measurements, automated coverage and the remaining native screen-reader audit. Input validation caps a single alignment at 250 million cells; this is a guardrail, not a promise that every device can load that size. Aligning sequences, editing the alignment, phylogenetic inference and structure visualization are outside this release.

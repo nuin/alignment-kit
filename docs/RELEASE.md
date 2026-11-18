@@ -11,25 +11,29 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 ## Automated release
 
-`.github/workflows/release.yml` runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `deno.json`. Then it runs `release:check`, `npm publish` (trusted publishing, with provenance), `deno publish` and `gh release create --generate-notes`. `.github/workflows/ci.yml` runs tests, type checks and `deno publish --dry-run` on every pull request.
+`.github/workflows/release.yml` runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `deno.json`. It runs `release:check`, Knip/Aislop and the Chromium/WebKit suite before `npm publish` (trusted publishing, with provenance), `deno publish` and `gh release create --generate-notes`. Pull-request CI runs the same package, quality and browser checks plus `deno publish --dry-run`, and retains browser reports, failure screenshots and traces for 14 days.
 
 One-time setup:
 
 - On npmjs.com, open `@nuin/msa-canvas` > Settings > Trusted publishing and add GitHub Actions: owner `nuin`, repository `alignment-kit`, workflow `release.yml`. npm then accepts the workflow's OIDC token, so no npm token is stored.
 - Create the `@nuin/msa-canvas` package on jsr.io and link it to `nuin/alignment-kit` in its settings. JSR then accepts the workflow's GitHub OIDC token, so no JSR secret is stored.
 
-To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, merge to master, then run `git tag -a v0.5.0 -m v0.5.0 && git push origin v0.5.0` on that merge commit.
-- Browser acceptance checks are still outstanding. Recorded local CPU benchmarks are not browser frame-rate measurements.
+To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, add notes to `CHANGELOG.md`, merge to master after CI passes, then create and push the matching annotated tag on that merge commit (for example, `git tag -a v0.5.1 -m v0.5.1` followed by `git push origin v0.5.1`).
+- Review the current [browser performance and accessibility evidence](performance.md) before tagging. Timing results are hardware-specific; native screen-reader testing has a separate status.
 
 Authentication is checked with `npm whoami`. No credentials are stored in the repository.
 
 ## Reproduce the release candidate
 
-Use Node 22 or later and the committed lockfile:
+Use Node 22.20 or later and the committed lockfile:
 
 ```sh
 npm ci
 npm run release:check
+npm run check:quality
+npx playwright install chromium webkit
+npm run test:browser
+deno publish --dry-run --allow-dirty
 npm pack --dry-run
 npm pack
 ```
@@ -49,11 +53,11 @@ The package allowlist includes the distributable modules, declarations, module w
 
 Core has no runtime package dependencies. React and Svelte are optional peers. A consumer imports only the integration it uses. Source maps include implementation source; publishing the package is not a way to keep that implementation secret.
 
-The packed-consumer check extracts the actual npm archive into a separate directory and builds React and Svelte consumers against locally installed framework peers. It checks SSR imports and validates required archive contents. It does not prove registry authentication, permission to publish, fresh-install behavior under every package manager or browser execution.
+The packed-consumer check extracts the actual npm archive into a separate directory and builds React and Svelte consumers against locally installed framework peers. It checks SSR imports and validates required archive contents. The browser suite opens these built consumers and checks worker execution, styles and coordinate navigation in Chromium and WebKit. These checks do not prove registry authentication, permission to publish or fresh-install behavior under every package manager.
 
 ## Publishing a version
 
-Bump the version in `package.json` and `package-lock.json` together. Keep the file allowlist and third-party notices intact. Rebuild and rerun the checks against that exact version.
+Bump the version in `package.json`, `package-lock.json` and `deno.json` together. Keep the file allowlist and third-party notices intact. Rebuild and rerun the checks against that exact version.
 
 Check the intended account and inspect the archive before the irreversible registry step:
 

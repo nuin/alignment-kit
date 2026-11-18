@@ -45,7 +45,7 @@ export function rebuildRows(v:Core):void {
 }
 export function rowsChanged(v:Core):void {v.rebuildRows();v.inspectorDirty=true;if(v.options.statisticsScope==='filtered')void v.updateStats().catch(()=>{});v.emit('state',v.getState());}
 export function setFilter(v:Core, query:string):void {v.assertAlive();v.query=query;v.scroll.scrollTop=0;v.rebuildRows();$<HTMLInputElement>(v.root,'[aria-label="Filter sequences"]').value=query;if(v.options.statisticsScope==='filtered')void v.updateStats().catch(()=>{});v.emit('state',v.getState());}
-export const sortKeys:readonly SortKey[]=['input','name','identity','gaps','length','residue','annotations','manual','tree'];
+const sortKeys:readonly SortKey[]=['input','name','identity','gaps','length','residue','annotations','manual','tree'];
 /** Identity of every row to the reference, shared by the identity sort and the minIdentity filter. False when the alignment or reference changed meanwhile. */
 export async function loadIdentities(v:Core):Promise<boolean> {
   const a=v.a;if(!a)return false;if(v.identities)return true;const ref=v.reference;

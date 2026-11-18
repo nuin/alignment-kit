@@ -26,7 +26,7 @@ export async function captureDocumentation(page,baseURL='http://127.0.0.1:4173')
   return directory;
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
-  const {chromium}=await import('playwright');
+  const {chromium}=await import('@playwright/test');
   const browser=await chromium.launch();
   try{console.log(await captureDocumentation(await browser.newPage()));}finally{await browser.close();}
 }
