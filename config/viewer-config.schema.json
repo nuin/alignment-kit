@@ -11,17 +11,23 @@
     "height": {
       "type": "number",
       "minimum": 360,
-      "maximum": 2000
+      "maximum": 2000,
+      "description": "Viewer height in pixels.",
+      "default": 740
     },
     "theme": {
       "enum": [
         "light",
         "dark"
-      ]
+      ],
+      "description": "Surface colors. Residue palettes keep their meaning in both themes.",
+      "default": "light"
     },
     "colorScheme": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "ID of a registered color scheme. A scheme that does not fit the alphabet falls back to soft (protein) or soft-nucleotide (DNA/RNA).",
+      "default": "soft"
     },
     "colorMode": {
       "enum": [
@@ -30,321 +36,499 @@
         "reference-matches",
         "consensus-differences",
         "consensus-matches"
-      ]
+      ],
+      "description": "Color all residues, or only matches or differences against the pinned reference or the consensus.",
+      "default": "all"
     },
     "matchDisplay": {
       "enum": [
         "letter",
         "dot"
-      ]
+      ],
+      "description": "dot draws residues identical to the comparison residue (consensus for consensus color modes, else the pinned reference row) as a dot.",
+      "default": "letter"
     },
     "cellWidth": {
       "type": "number",
       "minimum": 3,
-      "maximum": 32
+      "maximum": 32,
+      "description": "Column width in pixels.",
+      "default": 16
     },
     "rowHeight": {
       "type": "number",
       "minimum": 18,
-      "maximum": 48
+      "maximum": 48,
+      "description": "Row height in pixels. Rows below 32 hide the species line.",
+      "default": 36
     },
     "labelWidth": {
       "type": "number",
       "minimum": 100,
-      "maximum": 420
+      "maximum": 420,
+      "description": "Width of the row label gutter in pixels.",
+      "default": 230
     },
     "statisticsScope": {
       "enum": [
         "all",
         "filtered"
-      ]
+      ],
+      "description": "Rows the column statistics cover: all rows, or the rows left by the filter and row hiding.",
+      "default": "all"
     },
     "rulerCoordinates": {
       "enum": [
         "alignment",
         "reference"
       ],
-      "description": "Ruler numbering: alignment columns, or ungapped residue numbers of the pinned reference row."
+      "description": "Ruler numbering: alignment columns, or ungapped residue numbers of the pinned reference row.",
+      "default": "alignment"
     },
     "workerUrl": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "URL of the module worker. Read once when the viewer is created. Default: the worker.js bundled with the package."
     },
     "visibility": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "toolbar": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Main toolbar row.",
+          "default": true
         },
         "tools": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Secondary toolbar row.",
+          "default": true
         },
         "overview": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Overview strip with the viewport slider.",
+          "default": true
         },
         "overviewTitle": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Title above the overview.",
+          "default": true
         },
         "tracks": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Track area above the rows. false also returns the reference row to the scrolling rows.",
+          "default": true
         },
         "alignment": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Scrolling residue matrix.",
+          "default": true
         },
         "inspector": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Inspector panel.",
+          "default": true
         },
         "inspectorTabs": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Tab bar of the inspector.",
+          "default": true
         },
         "status": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Status bar.",
+          "default": true
         },
         "statusSummary": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Main text of the status bar.",
+          "default": true
         },
         "statusDetails": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Detail text of the status bar.",
+          "default": true
         },
         "warnings": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Parser warnings badge in the status bar.",
+          "default": true
         },
         "open": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Open alignment button.",
+          "default": true
         },
         "search": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Filter sequences field.",
+          "default": true
         },
         "colorScheme": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Color scheme select.",
+          "default": true
         },
         "zoom": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Zoom controls.",
+          "default": true
         },
         "fit": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Fit button.",
+          "default": true
         },
         "theme": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Theme toggle button.",
+          "default": true
         },
         "inspectorToggle": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Inspector toggle button.",
+          "default": true
         },
         "fullscreen": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Full screen button.",
+          "default": true
         },
         "export": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Export select.",
+          "default": true
         },
         "goTo": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Go to alignment column field.",
+          "default": true
         },
         "motif": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Find motif field and buttons.",
+          "default": true
         },
         "order": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Sequence order select.",
+          "default": true
         },
         "colorMode": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Residues to color select.",
+          "default": true
         },
         "logoToggle": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Show frequency logo checkbox. The logo flag controls the track itself.",
+          "default": true
         },
         "matchDots": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Dots for matches checkbox.",
+          "default": true
         },
         "statisticsScope": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Statistics scope select.",
+          "default": true
         },
         "alphabet": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Sequence alphabet (Type) select.",
+          "default": true
         },
         "rulerCoordinates": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Ruler coordinates select.",
+          "default": true
         },
         "ruler": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Ruler track.",
+          "default": true
         },
         "modalFrequency": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Modal frequency track.",
+          "default": true
         },
         "gapFraction": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Gap fraction track.",
+          "default": true
         },
         "consensus": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Consensus track.",
+          "default": true
         },
         "logo": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Frequency logo track.",
+          "default": false
         },
         "reference": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Pinned reference row in the track area. false returns it to the scrolling rows; it stays the comparison reference.",
+          "default": true
         },
         "labels": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Row label gutter.",
+          "default": true
         },
         "rowNames": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Name line of each row label.",
+          "default": true
         },
         "rowSpecies": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Species line of each row label.",
+          "default": true
         },
         "rowSelection": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Row checkboxes.",
+          "default": true
         },
         "rowPinning": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Pin as reference buttons on rows.",
+          "default": true
         },
         "labelResize": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Handle that resizes the label gutter.",
+          "default": true
         },
         "residueLetters": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Letters inside residue cells.",
+          "default": true
         },
         "annotationMarks": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Annotation marks on residue cells.",
+          "default": true
         },
         "selectionOverlay": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Selection highlight on the grid.",
+          "default": true
         },
         "positionTab": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Position tab of the inspector.",
+          "default": true
         },
         "featuresTab": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Features tab of the inspector.",
+          "default": true
         },
         "compareTab": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Compare tab of the inspector.",
+          "default": true
         },
         "colorsTab": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Colors tab of the inspector.",
+          "default": true
         },
         "hitsTab": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Hits tab of the inspector.",
+          "default": true
         },
         "summaryTab": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Summary tab of the inspector.",
+          "default": true
         },
         "pinReference": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Pin selected row as reference button in the inspector.",
+          "default": true
         },
         "rowFeaturesToggle": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Button that shows or hides the features of the selected row.",
+          "default": true
         },
         "featureType": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Feature type select.",
+          "default": true
         },
         "featureConsequence": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Feature consequence select.",
+          "default": true
         },
         "diseaseFilter": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Disease evidence checkbox.",
+          "default": true
         },
         "phenotypeFilter": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Phenotype evidence checkbox.",
+          "default": true
         },
         "featurePagination": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Page controls of the feature list.",
+          "default": true
         },
         "calculateIdentity": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Calculate identity button of the Compare tab.",
+          "default": true
         },
         "clearRows": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Clear checked rows button.",
+          "default": true
         },
         "messages": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Message area. The alphabet prompt shows even when this is false.",
+          "default": true
         },
         "emptyState": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Hint shown while no alignment is loaded.",
+          "default": true
         },
         "entropy": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Entropy track.",
+          "default": false
         },
         "quality": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Quality track.",
+          "default": false
         },
         "stockholmTracks": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Tracks read from Stockholm #=GC and #=GR lines.",
+          "default": true
         },
         "rowHiding": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Hide row buttons and the Show hidden button.",
+          "default": true
         },
         "rowReordering": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Dragging and Alt+Arrow reordering of rows.",
+          "default": true
         },
         "tree": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Tree column.",
+          "default": true
         },
         "columnMasking": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Hide selected columns and Show all columns buttons.",
+          "default": true
         },
         "reverseComplementToggle": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Reverse complement checkbox.",
+          "default": true
         },
         "rowStrand": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Strand button on each row.",
+          "default": true
         },
         "columnMarks": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Mark columns button and Alt+click marking.",
+          "default": true
         },
         "consensusThreshold": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Consensus threshold slider.",
+          "default": true
         },
         "colorThreshold": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Color threshold slider.",
+          "default": true
         },
         "minIdentity": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Minimum identity to reference field.",
+          "default": true
         },
         "minCoverage": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Minimum coverage field.",
+          "default": true
         },
         "tooltip": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Hover cards and button hints.",
+          "default": true
         },
         "variantTrack": {
           "type": "boolean",
-          "description": "Variant track above the pinned reference row; shown only while a mapped variant passes the annotation filter."
+          "description": "Variant track above the pinned reference row; shown only while a mapped variant passes the annotation filter.",
+          "default": true
         },
         "variantNav": {
           "type": "boolean",
-          "description": "Previous variant and Next variant buttons with a k / n counter; hidden when the alignment has no mapped variants."
+          "description": "Previous variant and Next variant buttons with a k / n counter; hidden when the alignment has no mapped variants.",
+          "default": true
         },
         "textView": {
           "type": "boolean",
-          "description": "Text button that swaps the residue grid for plain text blocks."
+          "description": "Text button that swaps the residue grid for plain text blocks.",
+          "default": true
         }
-      }
+      },
+      "description": "Presentation switches. Omitted keys keep their current value."
     },
     "worker": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "false runs parsing and analysis on the main thread. Read once when the viewer is created.",
+      "default": true
     },
     "consensusThreshold": {
       "type": "number",
       "minimum": 0,
       "maximum": 1,
-      "description": "Consensus columns whose modal frequency among non-gap rows is below this become X (protein) or N (DNA/RNA)."
+      "description": "Consensus columns whose modal frequency among non-gap rows is below this become X (protein) or N (DNA/RNA).",
+      "default": 0
     },
     "colorThreshold": {
       "type": "number",
       "minimum": 0,
       "maximum": 1,
-      "description": "For the conservation and percent-identity schemes, residues whose column value is below this are left uncoloured."
+      "description": "For the conservation and percent-identity schemes, residues whose column value is below this are left uncoloured.",
+      "default": 0
     },
     "minIdentity": {
       "type": "number",
       "minimum": 0,
       "maximum": 100,
-      "description": "Show only rows whose identity to the reference is at least this percentage."
+      "description": "Show only rows whose identity to the reference is at least this percentage.",
+      "default": 0
     },
     "minCoverage": {
       "type": "number",
       "minimum": 0,
       "maximum": 100,
-      "description": "Show only rows whose non-gap fraction is at least this percentage."
+      "description": "Show only rows whose non-gap fraction is at least this percentage.",
+      "default": 0
     },
     "fasta": {
       "type": "object",
@@ -355,14 +539,18 @@
           "enum": [
             "keep",
             "remove"
-          ]
+          ],
+          "description": "remove drops gap characters from each record.",
+          "default": "keep"
         },
         "letterCase": {
           "enum": [
             "original",
             "upper",
             "lower"
-          ]
+          ],
+          "description": "Letter case of the written residues.",
+          "default": "original"
         },
         "lineWidth": {
           "type": "integer",
@@ -375,14 +563,17 @@
               "minimum": 10,
               "maximum": 1000
             }
-          ]
+          ],
+          "default": 80
         },
         "header": {
           "enum": [
             "name",
             "name-species",
             "id-name"
-          ]
+          ],
+          "description": "Record header: the row name, name and species, or ID and name.",
+          "default": "name"
         },
         "columns": {
           "enum": [
@@ -396,7 +587,8 @@
             "source",
             "reverse-complement"
           ],
-          "description": "reverse-complement writes each exported region reversed and complemented (DNA and RNA only). Default source."
+          "description": "reverse-complement writes each exported region reversed and complemented (DNA and RNA only). Default source.",
+          "default": "source"
         }
       }
     },
@@ -410,7 +602,8 @@
             "all",
             "visible"
           ],
-          "description": "visible leaves out columns hidden by column masking in every export and copy, and marks collapsed boundaries in SVG and PNG. Default all."
+          "description": "visible leaves out columns hidden by column masking in every export and copy, and marks collapsed boundaries in SVG and PNG. Default all.",
+          "default": "all"
         }
       }
     },
@@ -423,36 +616,48 @@
       "type": "number",
       "minimum": 0,
       "maximum": 400,
-      "description": "Pixel width of the tree column. 0 hides it."
+      "description": "Pixel width of the tree column. 0 hides it.",
+      "default": 120
     },
     "urlSync": {
       "type": "boolean",
-      "description": "Keep location.hash in sync with the view and apply a link found there on the next load."
+      "description": "Keep location.hash in sync with the view and apply a link found there on the next load.",
+      "default": false
     },
     "dragToPan": {
       "type": "boolean",
-      "description": "Drag the residue grid to pan. A press that moves under 4 px stays a click. Default true."
+      "description": "Drag the residue grid to pan. A press that moves under 4 px stays a click. Default true.",
+      "default": true
     },
     "showLogo": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Alias of visibility.logo.",
+      "default": false
     },
     "showInspector": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Alias of visibility.inspector.",
+      "default": true
     },
     "showToolbar": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Alias that sets visibility.toolbar and visibility.tools.",
+      "default": true
     },
     "logoMode": {
       "enum": [
         "frequency",
         "bits"
-      ]
+      ],
+      "description": "bits scales each logo stack by information content.",
+      "default": "frequency"
     },
     "conservationWindow": {
       "type": "integer",
       "minimum": 1,
       "maximum": 51,
-      "description": "Odd integer: centered moving average for the entropy and quality bars."
+      "description": "Odd integer: centered moving average for the entropy and quality bars.",
+      "default": 1
     },
     "tracks": {
       "type": "array",
@@ -467,24 +672,29 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^[\\w.:-]{1,64}$"
+            "pattern": "^[\\w.:-]{1,64}$",
+            "description": "Unique track ID: 1 to 64 letters, digits, dots, colons, underscores or hyphens."
           },
           "label": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "Label shown beside the track."
           },
           "height": {
             "type": "number",
             "minimum": 12,
-            "maximum": 120
+            "maximum": 120,
+            "description": "Track height in pixels.",
+            "default": 26
           },
           "type": {
             "enum": [
               "bar",
               "heatmap",
               "text"
-            ]
+            ],
+            "description": "How the values are drawn. A custom render function is not available in JSON."
           },
           "values": {
             "oneOf": [
@@ -500,7 +710,8 @@
                   ]
                 }
               }
-            ]
+            ],
+            "description": "One entry per alignment column. A string gives one character per column; digits read as 0 to 9 for bar and heatmap."
           },
           "domain": {
             "type": "array",
@@ -508,14 +719,21 @@
               "type": "number"
             },
             "minItems": 2,
-            "maxItems": 2
+            "maxItems": 2,
+            "description": "Value range [min, max] for bar and heatmap.",
+            "default": [
+              0,
+              1
+            ]
           },
           "color": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "CSS color of the bars or cells."
           }
         }
-      }
+      },
+      "description": "Custom tracks drawn below the built-in tracks. JSON accepts bar, heatmap and text tracks."
     },
     "hideGapColumns": {
       "type": [
@@ -524,23 +742,28 @@
       ],
       "minimum": 0,
       "maximum": 1,
-      "description": "Hide columns whose gap fraction over all rows is at least this value. null turns it off."
+      "description": "Hide columns whose gap fraction over all rows is at least this value. null turns it off.",
+      "default": null
     },
     "hideAllGapColumns": {
       "type": "boolean",
-      "description": "Hide columns that are gaps in every row."
+      "description": "Hide columns that are gaps in every row.",
+      "default": false
     },
     "reverseComplement": {
       "type": "boolean",
-      "description": "Show the whole alignment reverse-complemented (DNA and RNA only). Default false."
+      "description": "Show the whole alignment reverse-complemented (DNA and RNA only). Default false.",
+      "default": false
     },
     "tooltips": {
       "type": "boolean",
-      "description": "Show hover cards for residues and annotation marks and pin annotation cards on click. Default true."
+      "description": "Show hover cards for residues and annotation marks and pin annotation cards on click. Default true.",
+      "default": true
     },
     "focusFirstVariant": {
       "type": "boolean",
-      "description": "Select and reveal the first variant when new data loads (load, loadUrl, setAlignment); not after removeRows or a Type switch. Default false."
+      "description": "Select and reveal the first variant when new data loads (load, loadUrl, setAlignment); not after removeRows or a Type switch. Default false.",
+      "default": false
     },
     "annotationLinks": {
       "type": "object",
@@ -552,7 +775,8 @@
     },
     "textView": {
       "type": "boolean",
-      "description": "Show the alignment as plain text blocks of 60 columns in place of the residue grid. Up to 200,000 residues. Default false."
+      "description": "Show the alignment as plain text blocks of 60 columns in place of the residue grid. Up to 200,000 residues. Default false.",
+      "default": false
     }
   }
 }

@@ -100,6 +100,51 @@ The parser checks known keys, types, ranges and visibility names, and reports in
 
 A JSON configuration controls presentation, not access rights. Hidden controls do not disable keyboard shortcuts, file dropping or the API. An exported view-state JSON is a separate format containing navigation and analysis state; restore it with `setState`, not `parseViewerConfig`.
 
+## Option defaults
+
+Every key of a JSON configuration is optional. The table states the value the viewer uses when a key is absent. `parseViewerConfig` rejects a value outside the range, and the [JSON Schema](../../config/viewer-config.schema.json) carries the same defaults and ranges for editor hints. `tests/docs-api.test.ts` compares this table and the schema with the `AlignmentViewer` constructor.
+
+| Option | JSON type | Range | Default |
+|---|---|---|---|
+| `height` | number | 360 to 2000 | `740` |
+| `theme` | string | `light`, `dark` | `'light'` |
+| `colorScheme` | string | a registered scheme ID | `'soft'` |
+| `colorMode` | string | `all`, `reference-differences`, `reference-matches`, `consensus-differences`, `consensus-matches` | `'all'` |
+| `matchDisplay` | string | `letter`, `dot` | `'letter'` |
+| `cellWidth` | number | 3 to 32 | `16` |
+| `rowHeight` | number | 18 to 48 | `36` |
+| `labelWidth` | number | 100 to 420 | `230` |
+| `showLogo` | boolean | | `false` |
+| `showInspector` | boolean | | `true` |
+| `showToolbar` | boolean | | `true` |
+| `statisticsScope` | string | `all`, `filtered` | `'all'` |
+| `rulerCoordinates` | string | `alignment`, `reference` | `'alignment'` |
+| `consensusThreshold` | number | 0 to 1 | `0` |
+| `colorThreshold` | number | 0 to 1 | `0` |
+| `minIdentity` | number | 0 to 100 | `0` |
+| `minCoverage` | number | 0 to 100 | `0` |
+| `logoMode` | string | `frequency`, `bits` | `'frequency'` |
+| `conservationWindow` | integer | odd, 1 to 51 | `1` |
+| `treeWidth` | number | 0 to 400 | `120` |
+| `hideGapColumns` | number or null | 0 to 1 | `null` |
+| `hideAllGapColumns` | boolean | | `false` |
+| `dragToPan` | boolean | | `true` |
+| `reverseComplement` | boolean | | `false` |
+| `tooltips` | boolean | | `true` |
+| `focusFirstVariant` | boolean | | `false` |
+| `textView` | boolean | | `false` |
+| `groupBy` | string | non-empty | no grouping |
+| `urlSync` | boolean | | `false` |
+| `worker` | boolean | | `true` |
+| `workerUrl` | string | non-empty | the bundled `worker.js` |
+| `visibility` | object | 80 boolean keys | all `true` except `logo`, `entropy`, `quality` |
+| `fasta` | object | `gaps`, `letterCase`, `lineWidth`, `header`, `orientation` | `keep`, `original`, `80`, `name`, `source` |
+| `export` | object | `columns`: `all`, `visible` | `all` |
+| `annotationLinks` | object | `http` or `https` templates with `{id}` | no links |
+| `tracks` | array | `bar`, `heatmap` and `text` tracks | no custom tracks |
+
+The `colorScheme` default applies to protein. A DNA or RNA alignment replaces `soft` with `soft-nucleotide`. The [options table](api.md#options) adds the meaning of each option.
+
 ## Colors and themes
 
 Protein alignments default to **Residue classes** (`soft`); DNA/RNA default to **Nucleotide · muted** (`soft-nucleotide`), with A green, C gold, G rose and T/U blue. Ambiguity symbols have a neutral background. The original vivid mapping remains **Nucleotide · classic** (`nucleotide`). The Color menu lists schemes compatible with the loaded alphabet; changing Type or loading a different alphabet replaces an incompatible scheme with its default. Type changes interpretation, not the underlying sequence letters—it does not translate proteins or convert T to U.
