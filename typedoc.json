@@ -1,0 +1,20 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "MSA Canvas API",
+  "entryPoints": [
+    "src/index.ts",
+    "src/react.tsx",
+    "src/svelte.ts",
+    "src/pavi.ts"
+  ],
+  "tsconfig": "tsconfig.json",
+  "out": "demo/public/guide/api",
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "githubPages": false,
+  "treatWarningsAsErrors": true,
+  "intentionallyNotExported": [
+    "src/export.ts:FigureOptions"
+  ]
+}

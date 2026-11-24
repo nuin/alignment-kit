@@ -63,6 +63,7 @@
     "preview:files": "node scripts/preview.mjs",
     "check:datasets": "node scripts/check-datasets.mjs",
     "build:guide": "node scripts/build-guide.mjs",
+    "docs:api": "typedoc",
     "predev": "npm run build:guide",
     "prebuild:demo": "npm run build:guide",
     "prepack": "npm run build",
@@ -100,6 +101,7 @@
     "react-dom": "19.2.3",
     "svelte": "^5.57.3",
     "svelte-check": "^4.4.6",
+    "typedoc": "0.28.20",
     "typescript": "^5.9.3",
     "vite": "^7.3.7",
     "vitest": "^4.1.12"
