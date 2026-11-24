@@ -54,7 +54,7 @@ export function layoutTree(root:TreeNode):TreeLayout {
   return {nodes,parent:Int32Array.from(parent),kids,x};
 }
 
-/** Pair leaves with rows by id first, then by name. Each row takes at most one leaf; leafRow is -1 for unmatched leaves and internal nodes. */
+/** Pair leaves with rows by id first, then by full name, then by the first whitespace-separated word of the name (tree tools cut FASTA headers there). Each row takes at most one leaf; leafRow is -1 for unmatched leaves and internal nodes. */
 export function matchLeaves(layout:TreeLayout,rows:{id:string;name:string}[]):TreeMatch {
   const byId=new Map<string,number>(),byName=new Map<string,number[]>(),taken=new Set<number>();
   rows.forEach((row,r)=>{byId.set(row.id,r);const list=byName.get(row.name);if(list)list.push(r);else byName.set(row.name,[r]);});
@@ -62,6 +62,11 @@ export function matchLeaves(layout:TreeLayout,rows:{id:string;name:string}[]):Tr
   layout.nodes.forEach((node,k)=>{if(!node.children.length)leaves.push(k);});
   for(const k of leaves){const r=byId.get(layout.nodes[k].name);if(r!==undefined&&!taken.has(r)){leafRow[k]=r;taken.add(r);}}
   for(const k of leaves)if(leafRow[k]<0){const r=byName.get(layout.nodes[k].name)?.find(candidate=>!taken.has(candidate));if(r!==undefined){leafRow[k]=r;taken.add(r);}}
+  if(leaves.some(k=>leafRow[k]<0)){
+    const byWord=new Map<string,number[]>();
+    rows.forEach((row,r)=>{if(taken.has(r))return;const word=row.name.trim().split(/\s+/)[0],list=byWord.get(word);if(list)list.push(r);else byWord.set(word,[r]);});
+    for(const k of leaves)if(leafRow[k]<0){const r=byWord.get(layout.nodes[k].name)?.find(candidate=>!taken.has(candidate));if(r!==undefined){leafRow[k]=r;taken.add(r);}}
+  }
   return {leafRow,unmatchedLeaves:leaves.filter(k=>leafRow[k]<0).map(k=>layout.nodes[k].name),unmatchedRows:rows.length-taken.size};
 }
 
