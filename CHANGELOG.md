@@ -25,24 +25,65 @@ Saved view states stay readable. `getState()` writes `version: 1`. `setState()` 
 
 `removeRows()` gives the alignment a new ID, so a state saved before the removal no longer applies.
 
-## Unreleased
+## 0.6.0 (2026-11-24)
 
-- Add `<msa-canvas>` (`./element`), a Vue 3 wrapper (`./vue`), the script-tag bundle `dist/msa-canvas.global.js` and `dist/style.inline.css`. `workerUrl` also accepts a function that returns a `Worker`.
-- Declarations resolve under TypeScript `moduleResolution` `node16` and `bundler`. Exports use the `default` condition, so `require()` works on Node 22.12 and later.
-- Add `theme: 'auto'`, which follows `prefers-color-scheme`. The tools bar has labelled groups, with rarely used controls behind More.
+### Changes that can affect existing code
+
+- Alphabet detection uses one rule everywhere: nucleotide when at least 90% of non-gap residues are A, C, G, T, U or N. DNA with more than 10% IUPAC ambiguity codes is now detected as protein. Pass `alphabet` to `parseAlignment` to keep the old result.
+- `VariantClass` gains `startstop` for `start_lost` and `stop_lost`. Code that switches over every class needs a new case.
+- `viewport` fires only when the visible range or row count changes. `mountViewer` skips `setOptions` when the new options object equals the last one.
+- `replace()` and `setAlignment()` emit `selection` when they clear a selection.
 - The theme button is named Dark theme. Inspector tabs are a tablist and use `aria-selected`.
-- Residue letters use dark or white ink per fill, so every built-in palette entry reaches a 4.5:1 contrast.
-- Alphabet detection uses one rule everywhere: nucleotide when at least 90% of non-gap residues are A, C, G, T, U or N. DNA with more than 10% IUPAC ambiguity codes is now detected as protein.
-- `~` is a gap in FASTA, Stockholm, CLUSTAL and PIR.
-- `VariantClass` gains `startstop` for `start_lost` and `stop_lost`.
+- Exports use the `default` condition. `require()` works on Node 22.12 and later.
+
+### Added
+
+- `<msa-canvas>` custom element (`./element`). Its events carry an `msa-` prefix.
+- Vue 3 wrapper (`./vue`). `vue` is an optional peer dependency.
+- Script-tag bundle `dist/msa-canvas.global.js` (global `MsaCanvas`) with the worker inlined, plus `dist/style.inline.css` with fonts as data URLs.
+- `workerUrl` accepts a string, a `URL` or a function that returns a `Worker`.
+- Wire format version 1: `toJson`, `fromJson`, `fillTemplate`, `escapeJson`, `WIRE_FORMAT`, `WIRE_VERSION` and `WIRE_PLACEHOLDER`, and `MsaCanvas.mountWire` in the bundle.
+- Package exports `./wire.schema.json`, `./view-state.schema.json` and `./template.html`. The template is one self-contained page with a single JSON payload placeholder.
+- `msa-canvas <file> -o view.html` command, with `--config`, `--state`, `--theme`, `--height` and `--json`.
+- Python package `msa_canvas` (`python/`) with `to_wire`, `to_html` and an anywidget `MSAWidget`. R htmlwidgets package `msacanvas` (`r/msacanvas`). Neither is in the npm archive or published by the release workflow.
+- `theme: 'auto'` follows `prefers-color-scheme`.
+- The tools bar has labelled groups, with rarely used controls behind More. New `--ak-*` tokens cover type sizes, radius, mono font, danger, warning, scrollbar and shadow.
+- `getVariableColumns({ limit: Infinity })` and `variableColumns` with `limit: Infinity` list every variable column.
+- Annotation import matches Stockholm `NAME/START-END` row names and warns when a name matches more than one row.
+
+### Fixed
+
 - Tree leaves match the first word of a row name, so FASTA headers with a description match.
-- `viewport` fires only when the visible range or row count changes. `mountViewer` skips `setOptions` for an equal options object.
-- PNG export checks 16,384 px per side and 32,000,000 px area before it builds the figure. SVG and PNG follow the reverse-complement view.
-- Add the wire format, version 1: `toJson`, `fromJson`, `fillTemplate`, `escapeJson`, `WIRE_FORMAT`, `WIRE_VERSION` and `WIRE_PLACEHOLDER` from the package entry, and `MsaCanvas.mountWire` in the script-tag bundle.
-- Add the package exports `./wire.schema.json`, `./view-state.schema.json` and `./template.html`. `npm run build` writes `dist/template.html`, one self-contained page with a single JSON payload placeholder.
-- Add the `msa-canvas <file> -o view.html` command (`bin`), with `--config`, `--state`, `--theme`, `--height` and `--json`.
-- Add the Python package `msa_canvas` (`python/`) and the R htmlwidgets package `msacanvas` (`r/msacanvas`) to the repository. Neither is in the npm archive. `npm run sync:bindings` copies the built bundle, CSS and template into both.
-- A release now sets the version in four binding files as well; see `docs/RELEASE.md`.
+- The regex guard rejects a repeated group that holds a repeat at any depth. Such patterns froze main-thread search.
+- `~` is a gap in FASTA, Stockholm, CLUSTAL and PIR.
+- Parsers load more than about 120,000 rows. Warning line numbers stay correct when a file starts with blank lines.
+- A React parent that passed inline `options` and set state in `onViewportChange` no longer loops.
+- An alphabet switch keeps the view state. A superseded failed load resets `loading`.
+- `setOptions` validates every field before it applies any, and emits `error` on a bad value.
+- Overview and label-resize drags end on `pointercancel`.
+- PNG export checks 16,384 px per side and 32,000,000 px area before it builds the figure. Before, it failed after building a large SVG.
+- SVG and PNG export follow the reverse-complement view and per-row strand flags.
+- `escapeXml` drops XML-illegal control characters, which broke SVG output.
+- Glyphs stay sharp at a fractional `devicePixelRatio`. Re-registering a color scheme redraws its colors.
+- GFF3 export names the reason when it skips an annotation without a row.
+
+### Accessibility
+
+- Residue letters use dark or white ink per fill, so every built-in palette entry reaches 4.5:1 contrast.
+- Focus rings on the grid and the reference label are no longer clipped.
+- Forced-colors mode shows pressed and selected states. Reduced-motion mode stops transitions.
+- A layout for widths under 480px. Larger touch targets on coarse pointers.
+- Visible labels match accessible names. Toggle buttons carry `aria-pressed`.
+- Menus open, close and select inside a shadow root.
+
+### Packaging and documentation
+
+- Declarations resolve under TypeScript `moduleResolution` `node16` and `bundler`.
+- The build prints a size table and checks each entry against a gzip budget.
+- New pages: quick start, functions and types, architecture, wire format, other languages and CONTRIBUTING. `npm run docs:api` builds a TypeDoc reference.
+- `docs/reference/frameworks.md` covers Vue, Solid, Angular, Preact, Next.js, Astro, SvelteKit, CDN use, worker setup per bundler and CSP.
+- CI enforces coverage minimums of 90% statements, 85% branches, 90% functions and 95% lines.
+- A release sets the version in four binding files as well; see `docs/RELEASE.md`.
 
 ## 0.5.2 (2026-11-18)
 

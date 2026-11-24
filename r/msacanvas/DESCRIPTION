@@ -1,6 +1,6 @@
 Package: msacanvas
 Title: Multiple Sequence Alignment Viewer Widget
-Version: 0.5.2
+Version: 0.6.0
 Authors@R: person("Paulo", "Nuin", role = c("aut", "cre"),
     comment = c(ORCID = "0000-0003-4915-664X"))
 Description: An 'htmlwidgets' binding of the 'msa-canvas' alignment viewer for

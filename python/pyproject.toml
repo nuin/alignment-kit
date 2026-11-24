@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "msa-canvas"
-version = "0.5.2"
+version = "0.6.0"
 description = "Python binding of the msa-canvas multiple sequence alignment viewer: wire JSON, standalone HTML and a notebook widget"
 readme = "README.md"
 requires-python = ">=3.9"

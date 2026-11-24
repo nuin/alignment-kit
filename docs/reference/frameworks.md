@@ -243,7 +243,7 @@ Add `node_modules/@nuin/msa-canvas/dist/style.css` to `styles` in `angular.json`
 </script>
 ```
 
-Replace `VERSION` with a release later than 0.5.2, the last one without these files. `https://unpkg.com/@nuin/msa-canvas@VERSION` resolves to the same bundle through the `unpkg` and `jsdelivr` fields.
+Replace `VERSION` with 0.6.0 or later. Earlier releases do not have these files. `https://unpkg.com/@nuin/msa-canvas@VERSION` resolves to the same bundle through the `unpkg` and `jsdelivr` fields.
 
 - `dist/msa-canvas.global.js` is one minified IIFE. `MsaCanvas` holds every export of the core entry plus `fromPavi`, `mountViewer` and `MsaCanvasElement`, and the script registers `<msa-canvas>`.
 - The bundle holds the worker code as a string. With `workerUrl` unset it starts workers from one `blob:` URL, so no second file is fetched. That works from a CDN, a `file:` page and an iframe (Jupyter, Shiny, Streamlit). Under a CSP without `worker-src blob:` see the [CSP matrix](#content-security-policy).

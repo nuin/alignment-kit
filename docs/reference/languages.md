@@ -97,7 +97,7 @@ The page fills the iframe when `height` is omitted. It posts `selection` and `st
 
 ```sh
 R CMD build r/msacanvas
-R CMD INSTALL msacanvas_0.5.2.tar.gz
+R CMD INSTALL msacanvas_0.6.0.tar.gz
 ```
 
 The package imports htmlwidgets and jsonlite. `DESCRIPTION` has no maintainer e-mail yet, which `R CMD check` requires.
@@ -201,7 +201,7 @@ await viewer.setAlignment(alignment);
 invalidation.then(() => viewer.destroy());
 ```
 
-Add `<link rel="stylesheet" href="npm:@nuin/msa-canvas/style.inline.css">` to the page. `fromJson` is in releases after 0.5.2.
+Add `<link rel="stylesheet" href="npm:@nuin/msa-canvas/style.inline.css">` to the page. `fromJson` is in 0.6.0 and later.
 
 ## Rust, Julia and any other language
 
