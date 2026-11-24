@@ -1,6 +1,6 @@
-# Alignment Kit user guide
+# MSA Canvas user guide
 
-Alignment Kit displays **already aligned** protein, DNA and RNA sequences. Use it to explore a family, compare residues, inspect supplied annotations and export a region. It runs in your browser; the library does not upload your alignment. Loading a remote URL requests that file from its server.
+MSA Canvas displays **already aligned** protein, DNA and RNA sequences. Use it to explore a family, compare residues, inspect supplied annotations and export a region. It runs in your browser; the library does not upload your alignment. Loading a remote URL requests that file from its server.
 
 This guide describes the standalone Explorer. Applications embedding the library can hide controls or supply their own data and annotations. For installation and JavaScript, React and Svelte examples, see the [developer README](../README.md) and the [developer reference](reference/api.md).
 
@@ -460,7 +460,7 @@ Controls have accessible names and focus indicators, and selections have textual
 
 ## Embedding and support
 
-The library has a framework-independent JavaScript API, a React component, and a Svelte 5 component/action. The [README](../README.md) and the [developer reference](reference/api.md) include working examples, event semantics, custom palettes, annotation schema, coordinate helpers, worker/CSP guidance and SSR behavior. The [release notes](RELEASE.md) describe package preparation and publication status.
+The library has a framework-independent JavaScript API, a React component, and a Svelte 5 component/action. The [README](../README.md) and the [developer reference](reference/api.md) include working examples, event semantics, custom palettes, annotation schema, coordinate helpers, worker/CSP guidance and SSR behavior. The [quick start](reference/quick-start.md) has a complete page for Vite, plain HTML, Next.js, SvelteKit and Deno. The [release notes](RELEASE.md) describe package preparation and publication status.
 
 For a reproducible issue, record the package version, browser/OS, alphabet, dimensions, palette, statistics scope, exact interaction and error text. Use a small non-sensitive alignment that demonstrates the issue. Do not include private biological data merely to report a UI problem.
 
