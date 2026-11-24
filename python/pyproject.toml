@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "msa-canvas"
+version = "0.5.2"
+description = "Python binding of the msa-canvas multiple sequence alignment viewer: wire JSON, standalone HTML and a notebook widget"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+keywords = ["msa", "multiple-sequence-alignment", "bioinformatics", "jupyter", "anywidget"]
+dependencies = []
+
+[project.optional-dependencies]
+widget = ["anywidget>=0.9"]
+test = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://bioinformat.org/msa-canvas"
+Repository = "https://github.com/nuin/alignment-kit"
+
+# The bundle, CSS and template are build outputs copied by scripts/sync-bindings.mjs.
+# They are git-ignored, so hatchling needs them listed as artifacts.
+[tool.hatch.build]
+artifacts = ["msa_canvas/static/msa-canvas.global.js", "msa_canvas/static/style.inline.css", "msa_canvas/static/template.html"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["msa_canvas"]
+
+[tool.hatch.build.targets.sdist]
+include = ["msa_canvas", "tests", "README.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
