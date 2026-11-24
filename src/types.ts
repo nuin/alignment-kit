@@ -136,7 +136,7 @@ export interface CustomTrack {
 }
 export interface ViewerOptions {
   visibility?:ViewerVisibility;
-  alignment?: Alignment; height?:number; theme?:'light'|'dark';
+  alignment?: Alignment; height?:number; theme?:'light'|'dark'|'auto';
   colorScheme?:string; colorMode?:ColorMode; /** 'dot' draws residues identical to the comparison residue (consensus for consensus-* color modes, else the pinned reference row) as '.'. Default 'letter'. */ matchDisplay?:'letter'|'dot'; cellWidth?:number; rowHeight?:number;
   labelWidth?:number; showLogo?:boolean; showInspector?:boolean; showToolbar?:boolean;
   statisticsScope?:'all'|'filtered'; rulerCoordinates?:RulerCoordinates; workerUrl?:string|URL; worker?:boolean;

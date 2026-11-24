@@ -16,7 +16,8 @@
     "theme": {
       "enum": [
         "light",
-        "dark"
+        "dark",
+        "auto"
       ]
     },
     "colorScheme": {
