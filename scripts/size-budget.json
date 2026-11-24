@@ -9,5 +9,6 @@
   "msa-canvas.global.js": 96256,
   "msa-canvas.worker.js": 10752,
   "style.css": 5734,
-  "style.inline.css": 143360
+  "style.inline.css": 143360,
+  "template.html": 245760
 }
