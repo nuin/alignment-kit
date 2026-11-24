@@ -33,7 +33,13 @@ viewer.addAnnotations(annotations);
 const records = parseGff3(text); // { seqid, start, end, kind, label, metadata }[] in 1-based ungapped coordinates
 ```
 
-- `seqid` is matched to a row by ID, then by display name, then by the first word of the name or any `|`-separated part of it (GenBank, EMBL and UniProt also try accession, version and entry name), then falls back to `rowId`.
+- `seqid` is matched to a row in four steps, and the first step that finds a row wins. GenBank, EMBL and UniProt try the accession, version and entry name in each step as well.
+  1. Row ID.
+  2. Whole display name (the first row with that name).
+  3. A token of the name: its first whitespace-separated word, any `|`-separated part of that word, and each of those without a `/START-END` suffix. `Q9XYZ` matches the rows `Q9XYZ/51-120`, `sp|Q9XYZ|NAME_HUMAN desc` and `sp|Q9XYZ|NAME_HUMAN/51-120`.
+  4. The `rowId` option, when no row matched.
+- When a token belongs to several rows, such as two domains `Q9XYZ/51-120` and `Q9XYZ/200-270` of one protein, the first row takes the features and one warning per token names it. To reach another row, use its full name or its ID as `seqid`; `rowId` applies only when no step matches.
+- A `/START-END` suffix only helps to find the row. Coordinates still count from 1 at the first residue of the row, so features given in whole-protein positions need shifting by `START - 1` before import.
 - `coordinates: 'sequence'` (default) counts ungapped residues and converts them to alignment columns. `'alignment'` uses 1-based columns as given.
 - Records with no matching row, or beyond the sequence, become `mapping: 'unmapped'` and add a warning.
 - BED12 blocks become one `exon` annotation each. GenBank and EMBL `join()` locations become one annotation spanning the lowest to highest position, with `<`, `>` and `complement()` kept in `metadata`. Labels come from `/gene`, `/product`, `/note`, `/label`, then the feature key.
