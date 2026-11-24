@@ -1,7 +1,7 @@
 import type { Alignment, AlignmentSummary, ColumnScope, VariableColumn, VariableColumnResult, RowGc } from './types';
 import { SYMBOLS, STRIDE } from './analysis';
 import { rowOffset } from './model';
-/** Most variable columns a summary lists unless `limit` says otherwise. */
+/** Most variable columns a summary lists unless `limit` says otherwise. `limit: Infinity` lists every variable column; NaN and other non-numbers give this default. */
 export const MAX_VARIABLE_COLUMNS=50000;
 const BLOCK=4096;
 const slot=new Int16Array(128).fill(-1);
@@ -14,7 +14,7 @@ export function analyzeColumns(a:Alignment,scope:ColumnScope={}):ColumnAnalysis 
   if(!Number.isInteger(ref)||ref<0||ref>=a.rows.length)throw new Error('Invalid reference row.');
   if(!rows.length)throw new Error('A summary needs at least one row.');
   if(rows.some(r=>!Number.isInteger(r)||r<0||r>=a.rows.length))throw new Error('Invalid summary row.');
-  const limit=Number.isFinite(scope.limit)?Math.max(0,Math.floor(scope.limit!)):MAX_VARIABLE_COLUMNS;
+  const limit=scope.limit===Infinity?Infinity:Number.isFinite(scope.limit)?Math.max(0,Math.floor(scope.limit!)):MAX_VARIABLE_COLUMNS;
   const W=a.width,codes=a.codes,n=rows.length,cols=end-start+1,canonical=a.alphabet==='protein'?'ACDEFGHIKLMNPQRSTVWY':a.alphabet==='rna'?'ACGU':'ACGT';
   const valid=new Uint8Array(128),canonSlots=[...canonical].map(c=>slot[c.charCodeAt(0)]);for(const c of canonical)valid[c.charCodeAt(0)]=1;
   const refOff=ref*W;let refPos=rowOffset(a.rows[ref])-1;for(let c=0;c<start-1;c++)if(codes[refOff+c]!==45)refPos++;

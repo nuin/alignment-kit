@@ -3,12 +3,24 @@ import type { Alignment, Alphabet, Hit, SearchMode, SearchOptions, SearchResult 
 const MAX_HITS=10000;
 const MAX_PATTERN=500;
 export const MAX_SEARCH_MS=2000;
-const nested=/\((?:[^()\\]|\\.)*(?:[+*]|\{\d+,\d*\})(?:[^()\\]|\\.)*\)(?:[+*]|\{\d+,)/;
 const nucleotide:Record<string,string>={R:'AG',Y:'CTU',S:'CG',W:'ATU',K:'GTU',M:'AC',B:'CGTU',D:'AGTU',H:'ACTU',V:'ACG',T:'TU',U:'TU'};
 const protein:Record<string,string>={B:'DN',Z:'EQ',J:'IL'};
 const complement:Record<string,string>={A:'T',C:'G',G:'C',T:'A',U:'A',R:'Y',Y:'R',K:'M',M:'K',B:'V',V:'B',D:'H',H:'D'};
 const escape=(text:string):string=>text.replace(/[\\^$.*+?()[\]{}|/-]/g,'\\$&');
 const isNucleotide=(alphabet:Alphabet):boolean=>alphabet!=='protein';
+/** True when a group repeated by +, * or {n,} holds +, * or {n,…} at any depth, as in (A+)+ or ((A+)B?)+; such patterns can backtrack exponentially. */
+function nestedRepeat(body:string):boolean {
+  const open:boolean[]=[];
+  for(let i=0;i<body.length;i++){
+    const ch=body[i];
+    if(ch==='\\'){i++;continue;}
+    if(ch==='['){for(i++;i<body.length&&body[i]!==']';i++)if(body[i]==='\\')i++;continue;}
+    if(ch==='(')open.push(false);
+    else if(ch===')'){if(open.pop()&&/^(?:[+*]|\{\d+,)/.test(body.slice(i+1,i+12)))return true;}
+    else if(open.length&&(ch==='+'||ch==='*'||(ch==='{'&&/^\{\d+,\d*\}/.test(body.slice(i,i+24)))))open.fill(true);
+  }
+  return false;
+}
 /** True when a group repeated by +, * or {…} contains '|' at any depth, as in (A|AA)+; such patterns can backtrack exponentially. */
 function repeatedAlternation(body:string):boolean {
   const open:boolean[]=[];
@@ -82,7 +94,7 @@ export function compilePattern(pattern:string,options:{alphabet:Alphabet;mode?:S
   let source:string;
   if(mode==='regex'){
     const m=/^\/(.+)\/i?$/.exec(text),body=m?m[1]:text;
-    if(nested.test(body))throw new Error('Nested repetition such as (A+)+ can freeze the page. Rewrite the pattern without a repeated group that contains a repeat.');
+    if(nestedRepeat(body))throw new Error('Nested repetition such as (A+)+ can freeze the page. Rewrite the pattern without a repeated group that contains a repeat.');
     if(repeatedAlternation(body))throw new Error('A repeated group with alternatives such as (A|AA)+ can freeze the page. Use a character class such as [AC]+ or write out a fixed number of repeats.');
     try{return new RegExp(body,'gi');}catch(error){throw new Error(`Invalid regular expression: ${(error as Error).message}`);}
   }

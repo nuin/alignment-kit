@@ -1,27 +1,30 @@
-import { createAlignment } from './model';
+import { alphabetOf, createAlignment, residueKind } from './model';
 import type { Alignment, AlignmentMetadata, Alphabet, ParseOptions, ParseWarning, SequenceInput } from './types';
 
 export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
-  const clean=text.replace(/^\uFEFF/,'').trim();
+  const body=text.replace(/^\uFEFF/,''),clean=body.trim();
+  // Line numbers count from the first line of the file, so blank lines removed from the top are added back.
+  const first=1+(body.slice(0,body.length-body.trimStart().length).match(/\n/g)?.length??0);
   const format=options.format??detectFormat(clean);
   if(!format) throw new Error('Unrecognized alignment format. Use aligned FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR. A3M insertion notation is not supported.');
   const rows:SequenceInput[]=[], metadata:AlignmentMetadata={format,headers:[]}, warnings:ParseWarning[]=[], lines:number[]=[];
+  const add=(list:SequenceInput[])=>{for(const row of list)rows.push(row);};
   if(format==='fasta') {
     let current:SequenceInput|undefined;
     clean.split(/\r?\n/).forEach((line,i)=>{
       if(line.startsWith('>')) {
         const name=line.slice(1).trim();
-        if(!name) throw new Error(`Missing FASTA name at line ${i+1}.`);
-        current={name,sequence:''}; rows.push(current); lines.push(i+1);
+        if(!name) throw new Error(`Missing FASTA name at line ${i+first}.`);
+        current={name,sequence:''}; rows.push(current); lines.push(i+first);
       } else if(line.trim() && !line.startsWith(';')) {
-        if(!current) throw new Error(`Sequence before FASTA header at line ${i+1}.`);
+        if(!current) throw new Error(`Sequence before FASTA header at line ${i+first}.`);
         current.sequence+=line.replace(/\s/g,'');
       }
     });
-  } else if(format==='phylip') rows.push(...parsePhylip(clean));
-  else if(format==='pir') rows.push(...parsePir(clean,lines));
-  else if(format==='msf') {const msf=parseMsf(clean);rows.push(...msf.rows);options={...options,alphabet:options.alphabet??msf.alphabet};}
-  else if(format==='nexus') {const nexus=parseNexus(clean);rows.push(...nexus.rows);options={...options,alphabet:options.alphabet??nexus.alphabet};}
+  } else if(format==='phylip') add(parsePhylip(clean));
+  else if(format==='pir') add(parsePir(clean,lines,first));
+  else if(format==='msf') {const msf=parseMsf(clean);add(msf.rows);options={...options,alphabet:options.alphabet??msf.alphabet};}
+  else if(format==='nexus') {const nexus=parseNexus(clean);add(nexus.rows);options={...options,alphabet:options.alphabet??nexus.alphabet};}
   else {
     const byName=new Map<string,SequenceInput>();
     const dict = <T>():Record<string,T> => Object.create(null);
@@ -36,7 +39,7 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
     };
     let terminated=false;
     for(const [i,line] of clean.split(/\r?\n/).entries()) {
-      if(i===0) { metadata.headers!.push(line); continue; }
+      if(i===0&&(/^(# STOCKHOLM|CLUSTAL|MUSCLE)/i.test(line)||!(line.startsWith('#')||dataLine.test(line.trim())))) { metadata.headers!.push(line); continue; }
       if(!line.trim()) {finishBlock();continue;}
       if(line.trim()==='//') {finishBlock();terminated=true;continue;}
       if(terminated) throw new Error('Multiple Stockholm alignments in one file are not supported. Load one alignment at a time.');
@@ -44,26 +47,26 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
         const m=line.match(/^#=(GF|GS|GC|GR)\s+(\S+)\s+(.*)$/);
         if(m) {
           const [,kind,key,value]=m;
-          if(kind==='GF')noteTag(warnings,seen,kind,key,i+1);
+          if(kind==='GF')noteTag(warnings,seen,kind,key,i+first);
           if(kind==='GF') (st.GF[key]??=[]).push(value);
-          if(kind==='GC') {noteTag(warnings,seen,kind,key,i+1);st.GC[key]=(st.GC[key]??'')+value.trim();}
+          if(kind==='GC') {noteTag(warnings,seen,kind,key,i+first);st.GC[key]=(st.GC[key]??'')+value.trim();}
           if(kind==='GS'||kind==='GR') {
-            const sep=value.search(/\s/); if(sep<0) throw new Error(`Malformed Stockholm annotation at line ${i+1}.`);
+            const sep=value.search(/\s/); if(sep<0) throw new Error(`Malformed Stockholm annotation at line ${i+first}.`);
             const tag=value.slice(0,sep),v=value.slice(sep).trim();
-            noteTag(warnings,seen,kind,tag,i+1);
+            noteTag(warnings,seen,kind,tag,i+first);
             if(kind==='GS') ((st.GS[key]??=dict<string[]>())[tag]??=[]).push(v);
             else (st.GR[key]??=dict<string>())[tag]=((st.GR[key]??=dict<string>())[tag]??'')+v;
           }
-        } else {metadata.headers!.push(line);if(line.startsWith('#='))warnings.push({code:'unknown-stockholm-tag',message:`Unrecognized Stockholm line “${line.slice(0,40)}” kept in metadata.headers.`,line:i+1});}
+        } else {metadata.headers!.push(line);if(line.startsWith('#='))warnings.push({code:'unknown-stockholm-tag',message:`Unrecognized Stockholm line “${line.slice(0,40)}” kept in metadata.headers.`,line:i+first});}
         continue;
       }
       if(format==='clustal' && /^\s+[*:.\s]+$/.test(line)) continue;
-      const m=line.trim().match(/^(\S+)\s+(\S+)(?:\s+\d+)?\s*$/);
-      if(!m) throw new Error(`Malformed ${format} sequence at line ${i+1}.`);
+      const m=line.trim().match(dataLine);
+      if(!m) throw new Error(`Malformed ${format} sequence at line ${i+first}.`);
       const [,name,sequence]=m;
-      if(block.has(name))throw new Error(`Duplicate sequence “${name}” in alignment block at line ${i+1}. Separate interleaved blocks with a blank line.`);
+      if(block.has(name))throw new Error(`Duplicate sequence “${name}” in alignment block at line ${i+first}. Separate interleaved blocks with a blank line.`);
       block.set(name,sequence.length);
-      if(!byName.has(name)) {const row={name,sequence:''};byName.set(name,row);rows.push(row);lines.push(i+1);}
+      if(!byName.has(name)) {const row={name,sequence:''};byName.set(name,row);rows.push(row);lines.push(i+first);}
       byName.get(name)!.sequence+=sequence;
     }
     finishBlock();
@@ -83,15 +86,18 @@ export function parseAlignment(text:string, options:ParseOptions={}):Alignment {
   return createAlignment(rows,{...options,metadata});
 }
 
+const dataLine=/^(\S+)\s+(\S+)(?:\s+\d+)?\s*$/;
 const known={GF:'ID AC DE AU SE GA TC NC TP SQ DC DR RC RN RM RT RA RL PI KW CC NE NH BM SM DT WK CB MB OS OC LO',GS:'WT AC DE DR OS OC LO ID',GR:'SS SA TM PP LI AS pAS sAS IN',GC:'RF SS_cons SA_cons TM_cons PP_cons AS_cons MM seq_cons'};
 const noteTag=(warnings:ParseWarning[],seen:Set<string>,kind:string,tag:string,line:number)=>{
   const key=kind+' '+tag;if(seen.has(key))return;seen.add(key);
   if(!known[kind as keyof typeof known].split(' ').includes(tag))warnings.push({code:'unknown-stockholm-tag',message:`Unknown #=${kind} tag “${tag}” kept in metadata.stockholm.`,line});
 };
-/** Fix what can be fixed without failing: replace invalid residue characters, pad short rows when `padShort` is set, rename repeated names. Stockholm and CLUSTAL names are keys and never repeat. */
+/** Fix what can be fixed without failing: turn `~` into a gap (FASTA, Stockholm, CLUSTAL, PIR), replace invalid residue characters, pad short rows when `padShort` is set, rename repeated names. Stockholm and CLUSTAL names are keys and never repeat. */
 function repairRows(rows:SequenceInput[],warnings:ParseWarning[],lines:number[],options:ParseOptions,format:string):void {
   const at=(i:number)=>lines[i]?{line:lines[i]}:{},id=(i:number)=>rows[i].id??`seq-${i+1}`,bad=/[^A-Za-z*.-]/g;
-  const nucleotide=options.alphabet?options.alphabet!=='protein':rows.every(r=>/^[ACGTUNRYKMSWBDHV.-]*$/i.test(r.sequence.replace(bad,'')));
+  if(format==='fasta'||format==='stockholm'||format==='clustal'||format==='pir')for(const row of rows)if(row.sequence.includes('~'))row.sequence=row.sequence.replace(/~/g,'-');
+  let nucleotide=options.alphabet!==undefined&&options.alphabet!=='protein';
+  if(!options.alphabet&&rows.some(r=>r.sequence.search(bad)>=0)){const tally=[0,0,0,0,0];for(const r of rows)for(let c=0;c<r.sequence.length;c++)tally[residueKind(r.sequence.charCodeAt(c))]++;nucleotide=alphabetOf(tally).alphabet!=='protein';}
   const fill=nucleotide?'N':'X';
   rows.forEach((row,i)=>{
     const first=row.sequence.search(bad);if(first<0)return;
@@ -100,7 +106,7 @@ function repairRows(rows:SequenceInput[],warnings:ParseWarning[],lines:number[],
     row.sequence=row.sequence.replace(bad,fill);
   });
   if(options.padShort){
-    const width=Math.max(...rows.map(r=>r.sequence.length));
+    let width=0;for(const row of rows)if(row.sequence.length>width)width=row.sequence.length;
     rows.forEach((row,i)=>{if(row.sequence.length<width){warnings.push({code:'unequal-length',message:`“${row.name}” has ${row.sequence.length} columns; padded with gaps to ${width}.`,...at(i),rowId:id(i)});row.sequence=row.sequence.padEnd(width,'-');}});
   }
   if(format!=='fasta'&&format!=='phylip'&&format!=='pir')return;
@@ -144,13 +150,13 @@ function parsePhylip(text:string):SequenceInput[] {
   }catch{ /* Try the next PHYLIP layout. */ }
   throw new Error(`Malformed PHYLIP alignment. Expected ${n} sequences of ${m} columns, with relaxed or 10-character names, sequential or interleaved.`);
 }
-function parsePir(text:string,lines:number[]):SequenceInput[] {
+function parsePir(text:string,lines:number[],first:number):SequenceInput[] {
   const rows:SequenceInput[]=[];let current:SequenceInput|undefined,state=0;
   for(const [i,raw] of text.split(/\r?\n/).entries()) {
     const line=raw.trim(),m=line.match(/^>[A-Za-z0-9]{2};\s*(.*)$/);
-    if(m){if(!m[1])throw new Error(`Missing PIR identifier at line ${i+1}.`);current={name:m[1],sequence:''};rows.push(current);lines.push(i+1);state=1;continue;}
+    if(m){if(!m[1])throw new Error(`Missing PIR identifier at line ${i+first}.`);current={name:m[1],sequence:''};rows.push(current);lines.push(i+first);state=1;continue;}
     if(!line){if(state===1)state=2;continue;}
-    if(!current)throw new Error(`Sequence before PIR header at line ${i+1}.`);
+    if(!current)throw new Error(`Sequence before PIR header at line ${i+first}.`);
     if(state===1){state=2;continue;}
     if(state===2){const end=line.indexOf('*');current.sequence+=strip(end<0?line:line.slice(0,end));if(end>=0)state=3;}
   }
