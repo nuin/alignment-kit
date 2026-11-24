@@ -3,7 +3,7 @@ import {it,expect} from 'vitest';
 import {JSDOM} from 'jsdom';
 import {readFileSync} from 'node:fs';
 import {buildTemplate,PAYLOAD_PLACEHOLDER} from '../scripts/package-tools.mjs';
-import {createAlignment,toJson,fillTemplate,fromJson,WIRE_PLACEHOLDER} from '../src/index';
+import {createAlignment,toJson,fillTemplate,fromJson,escapeJson,WIRE_PLACEHOLDER} from '../src/index';
 // A stand-in bundle that records what the boot script passes to mountWire.
 const stub=`window.MsaCanvas={mountWire:function(el,text,handlers,defaults){window.got={el:el.id,text:text,defaults:defaults,handlers:handlers};return {viewer:{setSelection:function(v){window.selected=v;}},setState:function(v){window.stated=v;return Promise.resolve();}};}};var s="</script><p id=leak>";`;
 const page=()=>buildTemplate(stub,'.ak-viewer{color:red}','9.9.9') as string;
@@ -31,4 +31,9 @@ it('shows a load error in the page and ignores messages that do not come from th
   w.dispatchEvent(new w.MessageEvent('message',{data:{target:'msa-canvas',type:'selection',value:{start:1,end:2}},source:w.parent}));expect(w.selected).toEqual({start:1,end:2});
   w.dispatchEvent(new w.MessageEvent('message',{data:{target:'other',type:'state',value:{}},source:w.parent}));expect(w.stated).toBeUndefined();
   w.dispatchEvent(new w.MessageEvent('message',{data:{target:'msa-canvas',type:'state',value:{version:1}},source:w.parent}));expect(w.stated).toEqual({version:1});
+});
+it('states the escape rule in the wire format page with the characters escapeJson writes',()=>{
+  const doc=readFileSync('docs/reference/wire-format.md','utf8'),out=escapeJson('<');expect(out).toBe('\\u003c');expect(out).toHaveLength(6);
+  expect(doc).toContain(`| \`escapeJson(json)\` | Replaces every \`<\` with the six characters \`${out}\`.`);expect(doc).toContain(`replace every \`<\` with the six characters \`${out}\``);expect(doc).toContain(`where \`${out}\` means the same character`);
+  expect(doc).not.toMatch(/with (the six characters )?`<`/);expect(JSON.parse(escapeJson(JSON.stringify('</script><!--')))).toBe('</script><!--');
 });

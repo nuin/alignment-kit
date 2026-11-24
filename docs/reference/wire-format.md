@@ -69,7 +69,7 @@ if (state) await next.setState(state);
 | `toJson(alignment, extras?)` | Returns a `WireDocument` of plain JSON values. `extras` holds `annotations` (replaces those of the alignment), `tree`, `config` and `state`; each is validated. |
 | `fromJson(input)` | Returns `{ alignment, tree?, config?, state? }`. Does not change `input`. |
 | `fillTemplate(template, doc)` | Returns the template with its placeholder replaced by the escaped JSON of `doc`. |
-| `escapeJson(json)` | Replaces every `<` with `<`. |
+| `escapeJson(json)` | Replaces every `<` with the six characters `\u003c`. |
 | `WIRE_FORMAT`, `WIRE_VERSION`, `WIRE_PLACEHOLDER` | `"msa-canvas"`, `1`, `"{{MSA_PAYLOAD_JSON}}"`. |
 | Types | `WireDocument`, `WireRow`, `WireExtras`, `WireContent`. |
 
@@ -97,11 +97,11 @@ The contract for any language:
 
 1. Read the template as UTF-8 text.
 2. Serialize a wire document as JSON.
-3. In that JSON, replace every `<` with the six characters `<`.
+3. In that JSON, replace every `<` with the six characters `\u003c` (backslash, `u`, `0`, `0`, `3`, `c`).
 4. Replace the single occurrence of `{{MSA_PAYLOAD_JSON}}` with the result, as a literal string and not as a regular expression replacement.
 5. Write the page as UTF-8.
 
-The placeholder sits inside `<script type="application/json" id="msa-payload">`. Step 3 is the whole escape rule. `<` occurs in JSON only inside strings, where `<` means the same character, so the value does not change. After the replacement the payload cannot contain `</script>` or `<!--`, the two sequences that end or corrupt a script element. Do not HTML-escape the JSON (`&lt;` would reach the viewer as four characters).
+The placeholder sits inside `<script type="application/json" id="msa-payload">`. Step 3 is the whole escape rule. `<` occurs in JSON only inside strings, where `\u003c` means the same character, so the value does not change. After the replacement the payload cannot contain `</script>` or `<!--`, the two sequences that end or corrupt a script element. Do not HTML-escape the JSON (`&lt;` would reach the viewer as four characters).
 
 The page then:
 
@@ -151,6 +151,7 @@ Run in Vitest (`npm test`):
 - Round trips of `toJson` and `fromJson`, including a gzipped Pfam Stockholm snapshot, and every rejection listed above.
 - The three schemas against `toJson` output and against the state of a live viewer, with Ajv 8 in 2020-12 mode.
 - The template boot script in jsdom with a payload that holds `</script>` and `<!--`.
+- This page against `escapeJson`: the three statements of the escape rule name the output of `escapeJson("<")`.
 - The command on `demo/public/kinase-seed.sto.gz` and `demo/public/cbs-seed.sto`. The page it writes boots in jsdom, loads 838 rows and makes no `fetch` or `XMLHttpRequest` call.
 
 Not run: the template in Chromium, WebKit or Firefox; the blob worker inside the template (the jsdom run uses `worker: false`); the `postMessage` bridge inside a real iframe.
