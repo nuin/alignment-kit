@@ -11,9 +11,13 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 ## Automated release
 
-`.github/workflows/release.yml` runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `deno.json`. It runs `release:check`, Knip/Aislop and the Chromium/WebKit suite before `npm publish` (trusted publishing, with provenance), `deno publish` and `gh release create --generate-notes`. Pull-request CI runs the same package, quality and browser checks plus `deno publish --dry-run`, and retains browser reports, failure screenshots and traces for 14 days.
+`.github/workflows/release.yml` runs when a `v*` tag is pushed. It has two jobs. `verify` holds a read-only token. It checks that the tag matches the version in `package.json`, `package-lock.json` and `deno.json`, then runs `release:check`, Knip/Aislop and the Chromium/WebKit suite. `publish` starts only after `verify` passes and is the only job with `contents: write` and `id-token: write`. It installs npm 11.5.1 exactly, then runs `npm publish --access public --provenance` (trusted publishing), `deno publish` and `gh release create --generate-notes`. Raise the npm pin by editing the workflow.
 
-Both workflows use Ubuntu 24.04, which is supported by the locked Playwright version. Update the runner image and browser tooling together; the Ubuntu 26.04 image behind `ubuntu-latest` cannot install this version's browser dependencies.
+Pull-request CI runs the same package, quality and browser checks plus `npm pack --dry-run` and `deno publish --dry-run`. The pack step prints the archive file list and size; it does not contact the registry, so a pull request that keeps an already published version still passes. CI retains browser reports, failure screenshots and traces for 14 days.
+
+CI also runs `npm run test:coverage` and keeps `coverage/lcov.info` for 14 days. `vitest.config.ts` fails the run below 90% statements, 85% branches, 90% functions and 95% lines of `src/`. These floors are the measured values (90.64, 85.00, 93.07 and 97.91) rounded down to a multiple of 5. The branch floor has no slack: 4705 of 5535 branches are covered, and 4704 reads as 84.99%. `tests/version-sync.test.ts` fails when the three version files disagree, so a partial bump fails in pull-request CI.
+
+Both workflows use Ubuntu 24.04, which is supported by Playwright 1.58.2. `package.json` pins `@playwright/test` to that exact version. Update the runner image and browser tooling together; the Ubuntu 26.04 image behind `ubuntu-latest` cannot install this version's browser dependencies.
 
 Before installing browser dependencies, both workflows select Ubuntu's official HTTPS archive and security mirror in the runner's APT mirror list. The runner's regional AWS mirror repeatedly downloaded packages at only tens of kilobytes per second during the 0.5.1 release. This override follows the [runner image's APT mirror configuration](https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt-sources.sh) and retains signed-package verification.
 
