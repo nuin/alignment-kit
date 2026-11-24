@@ -33,10 +33,11 @@ export class MsaCanvasElement extends Base {
   /** Alignment text or bytes, parsed by the viewer. It replaces `alignment`; null leaves the current alignment in place. */
   get source():MsaCanvasSource|null|undefined {return this.held.source;}
   set source(value:MsaCanvasSource|null|undefined) {this.held.source=value;this.read();}
+  /** A property assigned before the element was defined is an own property that hides the accessor; move it through the setter. */
+  private upgrade<K extends typeof keys[number]>(key:K):void {if(!Object.hasOwn(this,key))return;const value=this[key];Reflect.deleteProperty(this,key);this[key]=value;}
   connectedCallback():void {
     if(this.controller)return;
-    // Properties assigned before the element was defined are own properties that hide the accessors.
-    for(const key of keys)if(Object.hasOwn(this,key)){const value=(this as any)[key];delete (this as any)[key];(this as any)[key]=value;}
+    for(const key of keys)this.upgrade(key);
     if(!this.style.display)this.style.display='block';
     this.controller=mountViewer(this,this.props());this.read();
   }
