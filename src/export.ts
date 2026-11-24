@@ -1,10 +1,11 @@
 import type { VariableColumnResult, Alignment, AlignmentStats, ExportRegion, ExportOptions, ColorMode, FastaOptions, Sequence } from './types';
 import { columnDetail } from './analysis';
 import { isGap } from './model';
-import { reverseComplementSequence } from './strand';
+import { reverseComplementSequence, displayCode } from './strand';
 import { getColorScheme, residueColor, dynamicColor, dynamicSchemes, textColor } from './colors';
 import { annotationColor } from './variants';
-export const escapeXml=(s:unknown)=>String(s).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
+/** Escapes the five XML specials and drops characters XML 1.0 forbids (C0 controls other than tab, LF and CR, U+FFFE, U+FFFF). */
+export const escapeXml=(s:unknown)=>String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g,'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]!));
 export function resolveRegion(a:Alignment,region:ExportRegion={}) {
   const start=region.start??1,end=region.end??a.width;
   if(!Number.isInteger(start)||!Number.isInteger(end)||start<1||end<start||end>a.width) throw new Error('Export range must use valid inclusive alignment coordinates.');
@@ -124,34 +125,46 @@ export function exportStatistics(s:AlignmentStats,region:Pick<ExportRegion,'colu
   for(let c=1;c<=s.width;c++){if(mask&&!mask[c-1])continue;const d=columnDetail(s,c);lines.push([c,d.total,d.gapCount,d.gapFraction??'NA',d.tied?'tie':d.consensus??'NA',d.frequency??'NA',d.support??'NA',d.entropy??'NA',d.information??'NA',d.quality??'NA'].join('\t'));}
   return lines.join('\n')+'\n';
 }
-/** Display index ranges (inclusive) of consecutive kept columns inside the one-based alignment columns left to right. */
+/** Display index ranges (inclusive) of adjacent kept columns inside the one-based alignment columns left to right; `cols` may run in either direction. */
 function runs(cols:number[],left:number,right:number):[number,number][] {
   const out:[number,number][]=[];
-  cols.forEach((col,i)=>{if(col+1<left||col+1>right)return;const last=out[out.length-1];if(last&&last[1]===i-1&&cols[i-1]===col-1)last[1]=i;else out.push([i,i]);});
+  cols.forEach((col,i)=>{if(col+1<left||col+1>right)return;const last=out[out.length-1];if(last&&last[1]===i-1&&Math.abs(cols[i-1]-col)===1)last[1]=i;else out.push([i,i]);});
   return out;
 }
 /** Tab-separated variable-column table: column, reference residue number and letter, alleles as residue:count, gap count and class. */
 export function exportVariableColumns(r:VariableColumnResult):string {
   return ['column\treference_residue_number\treference_residue\talleles\tgap_count\tclass',...r.columns.map(c=>[c.column,c.referenceResidue??'NA',c.reference,c.alleles.map(x=>`${x.residue}:${x.count}`).join(','),c.gapCount,c.kind].join('\t'))].join('\n')+'\n';
 }
-export interface FigureOptions { colorMode?:ColorMode; referenceId?:string; matchDisplay?:'letter'|'dot'; colorThreshold?:number; consensusThreshold?:number }
+/** `reverse` draws the reverse-complement view: columns right to left and letters complemented. `strands` holds IDs of rows flagged as reverse strand; a row is complemented when exactly one of the two applies. Both are ignored for protein. */
+export interface FigureOptions { colorMode?:ColorMode; referenceId?:string; matchDisplay?:'letter'|'dot'; colorThreshold?:number; consensusThreshold?:number; reverse?:boolean; strands?:ReadonlySet<string> }
+/** Fixed figure layout in px, shared by the SVG writer and the PNG size check. */
+const FIG={cw:16,rh:22,gutter:250,top:72,right:24,bottom:100},CELLS=200000,PNG_SIDE=16384,PNG_AREA=32_000_000;
+/** Pixel size of the figure for a number of columns and rows. */
+const figureSize=(columns:number,rows:number)=>({width:FIG.gutter+columns*FIG.cw+FIG.right,height:FIG.top+rows*FIG.rh+FIG.bottom});
+const checkCells=(columns:number,rows:number)=>{
+  if(!rows)throw new Error('Select at least one row to export.');
+  if(columns*rows>CELLS)throw new Error('Figure export is limited to 200,000 cells. Narrow the selected rows or columns.');
+};
 export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},schemeId='soft',options:FigureOptions={}):string {
-  const {start,end,rows,columns}=resolveRegion(a,region),cols=columns??Array.from({length:end-start+1},(_,i)=>start-1+i),count=cols.length,masked=!!columns&&count<end-start+1;
-  if(!rows.length)throw new Error('Select at least one row to export.');
-  if(count*rows.length>200000)throw new Error('Figure export is limited to 200,000 cells. Narrow the selected rows or columns.');
-  const cw=16,rh=22,gutter=250,top=72,width=gutter+count*cw+24,height=top+rows.length*rh+100,scheme=getColorScheme(schemeId);
+  const {start,end,rows,columns}=resolveRegion(a,region),count=columns?.length??end-start+1,masked=!!columns&&count<end-start+1;
+  checkCells(count,rows.length);
+  const flip=!!options.reverse&&a.alphabet!=='protein',cols=columns??Array.from({length:count},(_,i)=>start-1+i);if(flip)cols.reverse();
+  const flagged=(r:number)=>!!options.strands?.has(a.rows[r].id),shown=(r:number,code:number)=>displayCode(a.alphabet,code,flip,flagged(r)),minus=rows.filter(flagged).map(r=>a.rows[r].id);
+  const {cw,rh,gutter,top}=FIG,{width,height}=figureSize(count,rows.length),scheme=getColorScheme(schemeId);
   const dynamic=dynamicSchemes.has(schemeId),colorThreshold=options.colorThreshold??0,consensusThreshold=options.consensusThreshold??0,mode=options.colorMode??'all',ref=options.referenceId?a.rows.findIndex(r=>r.id===options.referenceId):0;
   const wantDots=options.matchDisplay==='dot',byRef=!mode.startsWith('consensus');
   if((mode.startsWith('reference')||wantDots&&byRef)&&ref<0)throw new Error('Unknown figure reference.');
   const dots=wantDots&&(!byRef||rows.includes(ref));
-  const chunks=[`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${escapeXml(a.name)}</title><metadata>${escapeXml(JSON.stringify({source:a.metadata.source,alphabet:a.alphabet,start,end,...(masked?{columns:'visible',hiddenColumns:end-start+1-count}:{}),statisticsRows:s.total,definition:'Consensus support = modal non-gap count / all rows in statistics scope',palette:scheme.label,colorMode:mode,matchDisplay:dots?'dot':'letter',referenceId:a.rows[ref]?.id}))}</metadata><rect width="100%" height="100%" fill="#ffffff"/><g font-family="monospace" font-size="12" fill="#243447"><text x="16" y="25" font-size="17">${escapeXml(a.name)}</text><text x="16" y="46">Alignment columns ${start}–${end}${masked?` (${count} visible)`:''} · ${rows.length} sequences · ${a.alphabet}</text>`];
+  const chunks=[`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${escapeXml(a.name+(flip?' (reverse complement)':''))}</title><metadata>${escapeXml(JSON.stringify({source:a.metadata.source,alphabet:a.alphabet,start,end,...(masked?{columns:'visible',hiddenColumns:end-start+1-count}:{}),statisticsRows:s.total,definition:'Consensus support = modal non-gap count / all rows in statistics scope',palette:scheme.label,colorMode:mode,matchDisplay:dots?'dot':'letter',referenceId:a.rows[ref]?.id,...(flip?{orientation:'reverse-complement'}:{}),...(minus.length&&a.alphabet!=='protein'?{reverseStrandRows:minus}:{})}))}</metadata><rect width="100%" height="100%" fill="#ffffff"/><g font-family="monospace" font-size="12" fill="#243447"><text x="16" y="25" font-size="17">${escapeXml(a.name)}</text><text x="16" y="46">Alignment columns ${flip?`${end}–${start}`:`${start}–${end}`}${masked?` (${count} visible)`:''}${flip?' · reverse complement':''} · ${rows.length} sequences · ${a.alphabet}</text>`];
   cols.forEach((col,i)=>{const c=col+1;if(i===0||c%10===0)chunks.push(`<text x="${gutter+i*cw}" y="${top-8}">${c}</text>`);});
   const used=new Set<string>();
   for(const [j,r] of rows.entries()) {
     const y=top+j*rh;
-    chunks.push(`<text x="16" y="${y+15}"><title>${escapeXml(a.rows[r].name)}</title>${escapeXml(a.rows[r].name.slice(0,30))}</text>`);
+    chunks.push(`<text x="16" y="${y+15}"><title>${escapeXml(a.rows[r].name)}</title>${escapeXml(Array.from(a.rows[r].name).slice(0,30).join(''))}</text>`);
     for(const [i,col] of cols.entries()) {
-      const c=col+1,residue=String.fromCharCode(a.codes[r*a.width+c-1]),color=dynamic?dynamicColor(scheme,residue,s,c-1,colorThreshold,consensusThreshold):residueColor(residue,scheme,s.support[c-1]),x=gutter+i*cw;used.add(residue);      const comparison=mode.startsWith('consensus')?s.consensus[c-1]:a.codes[ref*a.width+c-1],code=a.codes[r*a.width+c-1],same=code===comparison&&code!==45&&code!==63;
+      // As in the grid: fixed palettes color the letter drawn, statistic-driven schemes color the source residue.
+      const c=col+1,raw=a.codes[r*a.width+c-1],code=shown(r,raw),residue=String.fromCharCode(code),color=dynamic?dynamicColor(scheme,String.fromCharCode(raw),s,c-1,colorThreshold,consensusThreshold):residueColor(residue,scheme,s.support[c-1]),x=gutter+i*cw;used.add(residue);
+      const comparison=byRef?shown(ref,a.codes[ref*a.width+c-1]):displayCode(a.alphabet,s.consensus[c-1],flip,false),same=code===comparison&&code!==45&&code!==63;
       const faded=mode!=='all'&&(mode.endsWith('differences')?same:!same);
       chunks.push(`<g opacity="${faded?'0.22':'1'}"><rect x="${x}" y="${y}" width="${cw}" height="${rh-1}" fill="${color}"/><text x="${x+cw/2}" y="${y+15}" text-anchor="middle" fill="${textColor(color)}">${dots&&same&&r!==ref&&!isGap(code)?'.':residue==='-'?'·':escapeXml(residue)}</text></g>`);
     }
@@ -161,7 +174,7 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
     }
   }
   if(masked)for(let i=0;i<=count;i++){
-    const before=i?cols[i-1]+1:start-1,after=i<count?cols[i]+1:end+1;
+    const p=i?cols[i-1]+1:flip?end+1:start-1,q=i<count?cols[i]+1:flip?start-1:end+1,before=Math.min(p,q),after=Math.max(p,q);
     if(after-before>1)chunks.push(`<line x1="${gutter+i*cw}" y1="${top-4}" x2="${gutter+i*cw}" y2="${top+rows.length*rh+2}" stroke="#a63d59" stroke-width="2" stroke-dasharray="4 3"><title>${after-before-1} hidden column${after-before>2?'s':''}: ${before+1}–${after-1}</title></line>`);
   }
   const y=top+rows.length*rh+24;
@@ -171,10 +184,12 @@ export function exportSvg(a:Alignment,s:AlignmentStats,region:ExportRegion={},sc
   chunks.push('</g></svg>');return chunks.join('');
 }
 export async function exportPng(a:Alignment,s:AlignmentStats,region:ExportRegion={},scheme='soft',options:FigureOptions={}):Promise<Blob> {
+  // Size check first: an oversized region would otherwise build and decode a multi-megabyte SVG before failing.
+  const {start,end,rows,columns}=resolveRegion(a,region),count=columns?.length??end-start+1,{width,height}=figureSize(count,rows.length);checkCells(count,rows.length);
+  if(width>PNG_SIDE||height>PNG_SIDE||width*height>PNG_AREA)throw new Error(`PNG export is limited to 16,384 px per side and 32,000,000 px in area; this region needs ${width} × ${height} px. One row allows 1,006 columns and one column allows 736 rows. Export SVG or select a smaller region.`);
   const svg=exportSvg(a,s,region,scheme,options),blob=new Blob([svg],{type:'image/svg+xml'}),url=URL.createObjectURL(blob);
   try {
     const img=new Image();img.src=url;await img.decode();
-    if(img.width>16384||img.height>16384||img.width*img.height>32_000_000)throw new Error('PNG dimensions are too large. Export SVG or select a smaller region.');
     const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
     canvas.getContext('2d')!.drawImage(img,0,0);
     return await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG export failed.')),'image/png'));
