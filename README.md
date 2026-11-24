@@ -93,6 +93,8 @@ viewer.destroy();
 | Page | Contents |
 |---|---|
 | [React, Svelte, workers and Deno](docs/reference/frameworks.md) | React component, Svelte 5 component and action, callbacks, worker bundling, CSP, SSR, Deno and JSR |
+| [Wire format, schemas, HTML template and CLI](docs/reference/wire-format.md) | Versioned JSON document, `toJson` and `fromJson`, JSON Schemas, `dist/template.html`, the `msa-canvas` command |
+| [Python, R and other languages](docs/reference/languages.md) | Python `to_wire`, `to_html` and notebook widget, R htmlwidget for Shiny, Streamlit, Dash, Quarto, Observable, Rust and Julia |
 | [Input formats and parser warnings](docs/reference/formats.md) | Supported alignment formats, A3M handling, warning codes and repairs |
 | [Configuration, colors and themes](docs/reference/configuration.md) | `visibility` switches, JSON configuration and schema, palettes, colorblind-safe schemes, CSS properties |
 | [API, events and controls](docs/reference/api.md) | Viewer methods, events, options, mouse and keyboard controls, alphabet guard, tooltips |
