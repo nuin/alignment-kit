@@ -1,0 +1,15 @@
+Package: msacanvas
+Title: Multiple Sequence Alignment Viewer Widget
+Version: 0.5.2
+Authors@R: person("Paulo", "Nuin", role = c("aut", "cre"),
+    comment = c(ORCID = "0000-0003-4915-664X"))
+Description: An 'htmlwidgets' binding of the 'msa-canvas' alignment viewer for
+    'Shiny', 'R Markdown' and 'Quarto'. Alignments are sent to the browser as a
+    versioned JSON document. The widget loads no file from the network.
+License: MIT + file LICENSE
+URL: https://github.com/nuin/alignment-kit
+BugReports: https://github.com/nuin/alignment-kit/issues
+Encoding: UTF-8
+Depends: R (>= 4.0)
+Imports: htmlwidgets (>= 1.5), jsonlite
+Suggests: shiny

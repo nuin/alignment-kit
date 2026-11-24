@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import { mkdir, cp, readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
-import { addJsExtensions, inlineFontUrls, sizeRows, sizeTable } from './package-tools.mjs';
+import { addJsExtensions, buildTemplate, inlineFontUrls, sizeRows, sizeTable } from './package-tools.mjs';
 await rm('dist',{recursive:true,force:true});await mkdir('dist',{recursive:true});
 await build({entryPoints:['src/index.ts','src/react.tsx','src/svelte.ts','src/pavi.ts','src/element.ts','src/vue.ts','src/worker.js'],outdir:'dist',bundle:true,splitting:true,format:'esm',platform:'browser',target:'es2022',external:['react','react/jsx-runtime','svelte','svelte/*','vue'],sourcemap:true,logLevel:'info'});
 // Single-file hosts: a classic worker with no chunks, and one IIFE that starts that worker from a blob URL when workerUrl is unset.
@@ -20,7 +20,10 @@ for(const file of await readdir('dist',{recursive:true})){
 }
 const fonts=await readFile('src/fonts.css','utf8'),style=await readFile('src/style.css','utf8');
 await writeFile('dist/style.css',fonts+'\n'+style);
-await writeFile('dist/style.inline.css',inlineFontUrls(fonts,path=>readFileSync(`src/${path}`))+'\n'+style);
+const inline=inlineFontUrls(fonts,path=>readFileSync(`src/${path}`))+'\n'+style;
+await writeFile('dist/style.inline.css',inline);
+// One page for the CLI and for other languages: bundle and CSS inside, one JSON placeholder. See docs/reference/wire-format.md.
+await writeFile('dist/template.html',buildTemplate(await readFile('dist/msa-canvas.global.js','utf8'),inline,JSON.parse(await readFile('package.json','utf8')).version));
 await cp('THIRD_PARTY_NOTICES.md','dist/THIRD_PARTY_NOTICES.md');
-console.log('Built core, worker, React, Svelte action/component, Vue, custom element, global bundle, declarations, styles and fonts.');
+console.log('Built core, worker, React, Svelte action/component, Vue, custom element, global bundle, HTML template, declarations, styles and fonts.');
 console.log(sizeTable(sizeRows(JSON.parse(await readFile('scripts/size-budget.json','utf8')),path=>readFileSync(`dist/${path}`))));

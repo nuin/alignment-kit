@@ -11,5 +11,9 @@
     "src/global.ts",
     "src/worker.js",
     "scripts/browser-benchmark-client.ts"
+  ],
+  "ignore": [
+    "python/**",
+    "r/**"
   ]
 }

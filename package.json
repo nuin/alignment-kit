@@ -5,6 +5,7 @@
   "description": "An annotation-aware, virtualized multiple sequence alignment viewer for JavaScript, React, Svelte, Vue and Web Components",
   "files": [
     "dist",
+    "bin",
     "README.md",
     "CHANGELOG.md",
     "THIRD_PARTY_NOTICES.md",
@@ -20,6 +21,9 @@
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "msa-canvas": "./bin/msa-canvas.mjs"
+  },
   "unpkg": "./dist/msa-canvas.global.js",
   "jsdelivr": "./dist/msa-canvas.global.js",
   "exports": {
@@ -58,7 +62,10 @@
     "./style.css": "./dist/style.css",
     "./style.inline.css": "./dist/style.inline.css",
     "./config.schema.json": "./config/viewer-config.schema.json",
-    "./config.example.json": "./config/viewer-config.example.json"
+    "./config.example.json": "./config/viewer-config.example.json",
+    "./wire.schema.json": "./config/wire.schema.json",
+    "./view-state.schema.json": "./config/view-state.schema.json",
+    "./template.html": "./dist/template.html"
   },
   "sideEffects": [
     "**/*.css",
@@ -82,6 +89,7 @@
     "check:size": "node scripts/check-size.mjs",
     "preview:files": "node scripts/preview.mjs",
     "check:datasets": "node scripts/check-datasets.mjs",
+    "sync:bindings": "node scripts/sync-bindings.mjs",
     "build:guide": "node scripts/build-guide.mjs",
     "predev": "npm run build:guide",
     "prebuild:demo": "npm run build:guide",
@@ -117,6 +125,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.1.12",
     "aislop": "0.22.1",
+    "ajv": "8.20.0",
     "esbuild": "^0.28.2",
     "jsdom": "^26.1.0",
     "knip": "6.46.0",
