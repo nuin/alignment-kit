@@ -15,7 +15,7 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 Pull-request CI runs the same package, quality and browser checks plus `npm pack --dry-run` and `deno publish --dry-run`. The pack step prints the archive file list and size; it does not contact the registry, so a pull request that keeps an already published version still passes. CI retains browser reports, failure screenshots and traces for 14 days.
 
-CI also runs `npm run test:coverage` and keeps `coverage/lcov.info` for 14 days. `vitest.config.ts` fails the run below 90% statements, 80% branches, 90% functions and 95% lines of `src/`. These floors are the measured values (90.2, 84.64, 92.19 and 97.38) rounded down to a multiple of 5. `tests/version-sync.test.ts` fails when the three version files disagree, so a partial bump fails in pull-request CI.
+CI also runs `npm run test:coverage` and keeps `coverage/lcov.info` for 14 days. `vitest.config.ts` fails the run below 90% statements, 85% branches, 90% functions and 95% lines of `src/`. These floors are the measured values (90.64, 85.00, 93.07 and 97.91) rounded down to a multiple of 5. The branch floor has no slack: 4705 of 5535 branches are covered, and 4704 reads as 84.99%. `tests/version-sync.test.ts` fails when the three version files disagree, so a partial bump fails in pull-request CI.
 
 Both workflows use Ubuntu 24.04, which is supported by Playwright 1.58.2. `package.json` pins `@playwright/test` to that exact version. Update the runner image and browser tooling together; the Ubuntu 26.04 image behind `ubuntu-latest` cannot install this version's browser dependencies.
 
