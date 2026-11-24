@@ -1,36 +1,109 @@
-import { mkdtemp,writeFile,mkdir,readFile,symlink,realpath } from 'node:fs/promises';
+import { mkdtemp,writeFile,mkdir,readFile,readdir,symlink,realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join,resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { JSDOM } from 'jsdom';
 import { execFileSync } from 'node:child_process';
 import { build } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { build as esbuild } from 'esbuild';
 import { compile } from 'svelte/compiler';
 import assert from 'node:assert/strict';
+import { threadWorkers } from './thread-worker.mjs';
 const tmp=await realpath(await mkdtemp(join(tmpdir(),'alignment-kit-package-')));
 // release:check builds first; keep lifecycle output out of npm's JSON response.
 const packed=JSON.parse(execFileSync('npm',['pack','--ignore-scripts','--json','--cache',join(tmp,'cache'),'--pack-destination',tmp,'--logs-dir',join(tmp,'logs')],{encoding:'utf8'}));
 const tgz=join(tmp,packed[0].filename);
 const contents=new Set(packed[0].files.map(file=>file.path));
-for(const required of ['dist/index.js','dist/index.d.ts','dist/react.js','dist/svelte.js','dist/svelte/AlignmentViewer.svelte','dist/worker.js','dist/style.css','dist/fonts/IBMPlex-LICENSE.txt','THIRD_PARTY_NOTICES.md','docs/USER_GUIDE.md','config/viewer-config.schema.json','config/viewer-config.example.json'])assert.ok(contents.has(required),`Missing packed file: ${required}`);
-assert.ok(![...contents].some(path=>/^(?:demo|tests|scripts|node_modules)\//.test(path)),'Development files leaked into archive');
-const peers=Object.fromEntries(await Promise.all(['react','react-dom','svelte'].map(async name=>[name,JSON.parse(await readFile(resolve('node_modules',name,'package.json'),'utf8')).version])));
+for(const required of ['dist/index.js','dist/index.d.ts','dist/react.js','dist/svelte.js','dist/svelte/AlignmentViewer.svelte','dist/vue.js','dist/vue.d.ts','dist/element.js','dist/element.d.ts','dist/worker.js','dist/msa-canvas.global.js','dist/msa-canvas.worker.js','dist/style.css','dist/style.inline.css','dist/fonts/IBMPlex-LICENSE.txt','THIRD_PARTY_NOTICES.md','docs/USER_GUIDE.md','config/viewer-config.schema.json','config/viewer-config.example.json','config/wire.schema.json','config/view-state.schema.json','dist/template.html','bin/msa-canvas.mjs'])assert.ok(contents.has(required),`Missing packed file: ${required}`);
+assert.ok(![...contents].some(path=>/^(?:demo|tests|scripts|node_modules|python|r)\//.test(path)),'Development files leaked into archive');
+const peers=Object.fromEntries(await Promise.all(['react','react-dom','svelte','vue'].map(async name=>[name,JSON.parse(await readFile(resolve('node_modules',name,'package.json'),'utf8')).version])));
 await writeFile(join(tmp,'package.json'),JSON.stringify({private:true,type:'module',dependencies:{'@nuin/msa-canvas':`file:${tgz}`,...peers}}));
 console.log('Consumer peer versions:',peers);
 // Extract the actual package archive; reuse installed framework peers without registry access.
 const packageDir=join(tmp,'node_modules/@nuin/msa-canvas');await mkdir(packageDir,{recursive:true});
 execFileSync('tar',['-xzf',tgz,'--strip-components=1','-C',packageDir]);
-for(const peer of ['react','react-dom','svelte'])await symlink(resolve('node_modules',peer),join(tmp,'node_modules',peer),'dir');
+for(const peer of ['react','react-dom','svelte','vue'])await symlink(resolve('node_modules',peer),join(tmp,'node_modules',peer),'dir');
+await mkdir(join(tmp,'node_modules/@types'));await symlink(resolve('node_modules/@types/react'),join(tmp,'node_modules/@types/react'),'dir');
+const dist=file=>readFile(join(packageDir,'dist',file),'utf8');
+assert.match(await dist('react.js'),/^["']use client["'];/,'dist/react.js must start with the "use client" directive');
+// Declarations must resolve for ESM consumers under node16 (explicit .js specifiers) and under bundler resolution.
+await mkdir(join(tmp,'types'));
+await writeFile(join(tmp,'types/consumer.ts'),`import { createViewer, parseAlignment, type Alignment, type ViewerOptions, type Selection } from '@nuin/msa-canvas';
+import { AlignmentViewer, type AlignmentViewerProps } from '@nuin/msa-canvas/react';
+import { alignmentViewer } from '@nuin/msa-canvas/svelte';
+import SvelteViewer from '@nuin/msa-canvas/svelte/AlignmentViewer.svelte';
+import { AlignmentViewer as VueViewer } from '@nuin/msa-canvas/vue';
+import { MsaCanvasElement } from '@nuin/msa-canvas/element';
+import { fromPavi } from '@nuin/msa-canvas/pavi';
+const alignment:Alignment=parseAlignment('>a\\nAC'),options:ViewerOptions={worker:true,workerUrl:()=>new Worker('/worker.js',{type:'module'})};
+const props:AlignmentViewerProps={alignment,options,onSelectionChange:(selection:Selection|null)=>selection?.start};
+const element:MsaCanvasElement=document.createElement('msa-canvas');element.alignment=alignment;element.source='>a\\nAC';
+element.addEventListener('msa-selection',event=>{const start:number|undefined=event.detail?.start;return start;});
+const width:number=fromPavi('>a\\nAC',{}).width,viewer=createViewer(element,options),rows:number=viewer.getAlignment()?.rows.length??0;
+export { AlignmentViewer, alignmentViewer, SvelteViewer, VueViewer, props, width, rows };
+`);
+for(const [name,module,moduleResolution] of [['node16','node16','node16'],['bundler','esnext','bundler']]){
+  await writeFile(join(tmp,`types/tsconfig.${name}.json`),JSON.stringify({compilerOptions:{target:'es2022',module,moduleResolution,lib:['es2022','dom','dom.iterable'],strict:true,noEmit:true,skipLibCheck:false,types:[]},files:['consumer.ts']}));
+  execFileSync('node',[resolve('node_modules/typescript/bin/tsc'),'--project',join(tmp,`types/tsconfig.${name}.json`)],{stdio:'inherit'});
+}
+console.log('Packed declarations type-check under moduleResolution node16 and bundler');
 await writeFile(join(tmp,'index.html'),'<div id="app"></div><script type="module" src="/react.tsx"></script>');
 await writeFile(join(tmp,'svelte.html'),'<div id="app"></div><script type="module" src="/svelte.ts"></script>');
 await writeFile(join(tmp,'react.tsx'),`import {createRoot} from 'react-dom/client';import {AlignmentViewer} from '@nuin/msa-canvas/react';import {parseAlignment} from '@nuin/msa-canvas';import '@nuin/msa-canvas/style.css';createRoot(document.getElementById('app')!).render(<AlignmentViewer alignment={parseAlignment('>a\\nAC\\n>b\\nAT')}/>);`);
 await writeFile(join(tmp,'App.svelte'),`<script>import AlignmentViewer from '@nuin/msa-canvas/svelte/AlignmentViewer.svelte';import {parseAlignment} from '@nuin/msa-canvas';const a=parseAlignment('>a\\nAC\\n>b\\nAT');</script><AlignmentViewer alignment={a}/>`);
 await writeFile(join(tmp,'svelte.ts'),`import {mount} from 'svelte';import App from './App.svelte';import '@nuin/msa-canvas/style.css';mount(App,{target:document.getElementById('app')!});`);
-await build({configFile:false,root:tmp,plugins:[svelte()],logLevel:'warn',esbuild:{jsx:'automatic'},build:{outDir:join(tmp,'build'),rollupOptions:{input:{react:join(tmp,'index.html'),svelte:join(tmp,'svelte.html')}}}});
-const serverCode=`import {renderToString} from 'react-dom/server';import {createElement} from 'react';import {AlignmentViewer} from '@nuin/msa-canvas/react';import {parseAlignment} from '@nuin/msa-canvas';import {alignmentViewer} from '@nuin/msa-canvas/svelte';if(!renderToString(createElement(AlignmentViewer,{alignment:parseAlignment('>a\\nAC')})).includes('<div'))throw Error('SSR failed');if(typeof alignmentViewer!=='function')throw Error('Missing action');console.log('Packed React SSR and Svelte action imports pass');`;
+await writeFile(join(tmp,'vue.html'),'<div id="app"></div><script type="module" src="/vue.ts"></script>');
+await writeFile(join(tmp,'element.html'),'<div id="app"></div><script type="module" src="/element.ts"></script>');
+await writeFile(join(tmp,'vue.ts'),`import {createApp,h,shallowRef} from 'vue';import {AlignmentViewer} from '@nuin/msa-canvas/vue';import {parseAlignment} from '@nuin/msa-canvas';import '@nuin/msa-canvas/style.css';const a=shallowRef(parseAlignment('>a\\nAC\\n>b\\nAT'));createApp(()=>h(AlignmentViewer,{alignment:a.value})).mount('#app');`);
+await writeFile(join(tmp,'element.ts'),`import '@nuin/msa-canvas/element';import {parseAlignment} from '@nuin/msa-canvas';import '@nuin/msa-canvas/style.css';const el=document.createElement('msa-canvas');el.alignment=parseAlignment('>a\\nAC\\n>b\\nAT');document.getElementById('app')!.append(el);`);
+await build({configFile:false,root:tmp,plugins:[svelte()],logLevel:'warn',esbuild:{jsx:'automatic'},build:{outDir:join(tmp,'build'),rollupOptions:{input:{react:join(tmp,'index.html'),svelte:join(tmp,'svelte.html'),vue:join(tmp,'vue.html'),element:join(tmp,'element.html')}}}});
+const assets=await readdir(join(tmp,'build/assets')),built=(await Promise.all(assets.filter(file=>file.endsWith('.js')).map(file=>readFile(join(tmp,'build/assets',file),'utf8')))).join('\n');
+assert.ok(assets.some(file=>/^worker-.*\.js$/.test(file)),'Vite did not emit the module worker as an asset');
+assert.match(built,/customElements\.define\(["']msa-canvas["']/,'The custom element registration was tree-shaken out of the consumer build');
+const serverCode=`import {renderToString} from 'react-dom/server';import {createElement} from 'react';import {AlignmentViewer} from '@nuin/msa-canvas/react';import {parseAlignment} from '@nuin/msa-canvas';import {alignmentViewer} from '@nuin/msa-canvas/svelte';if(!renderToString(createElement(AlignmentViewer,{alignment:parseAlignment('>a\\nAC')})).includes('<div'))throw Error('SSR failed');if(typeof alignmentViewer!=='function')throw Error('Missing action');console.log('Packed React SSR and Svelte action imports pass');
+const {createSSRApp,h}=await import('vue'),{renderToString:renderVue}=await import('vue/server-renderer'),{AlignmentViewer:VueViewer}=await import('@nuin/msa-canvas/vue');
+if(await renderVue(createSSRApp(()=>h(VueViewer,{alignment:parseAlignment('>a\\nAC'),class:'host'})))!=='<div class="host"></div>')throw Error('Vue SSR failed');
+const {MsaCanvasElement}=await import('@nuin/msa-canvas/element');if(typeof MsaCanvasElement!=='function'||typeof customElements!=='undefined')throw Error('Element import is not SSR-safe');
+console.log('Packed Vue SSR and custom element server imports pass');`;
 execFileSync('node',['--input-type=module','-e',serverCode],{cwd:tmp,stdio:'inherit'});
+// The "default" condition serves require(esm), which Node runs without a flag from 22.12.
+execFileSync('node',['-e',`const core=require('@nuin/msa-canvas'),pavi=require('@nuin/msa-canvas/pavi');if(core.parseAlignment('>a\\nAC').width!==2||typeof pavi.fromPavi!=='function')throw Error('require() failed');console.log('Packed package loads through require()');`],{cwd:tmp,stdio:'inherit'});
 await writeFile(join(tmp,'ssr.ts'),`import {render} from 'svelte/server';import App from './App.svelte';const result=render(App);if(!result.body.includes('<div'))throw Error('Svelte SSR failed');console.log('Packed Svelte component SSR passes');`);
 await esbuild({absWorkingDir:tmp,entryPoints:['ssr.ts'],outfile:join(tmp,'ssr.mjs'),bundle:true,platform:'node',format:'esm',conditions:['node'],plugins:[{name:'svelte-ssr',setup(builder){builder.onLoad({filter:/\.svelte$/},async({path})=>({contents:compile(await readFile(path,'utf8'),{filename:path,generate:'server'}).js.code,loader:'js',resolveDir:resolve(path,'..')}));}}]});
 execFileSync('node',[join(tmp,'ssr.mjs')],{cwd:tmp,stdio:'inherit'});
+// The global bundle from a plain HTML file with two tags and no build step. jsdom has no ResizeObserver, canvas or Worker, so the page runs worker: false; a real browser run belongs to Playwright.
+const globalJs=await dist('msa-canvas.global.js');
+assert.ok(!globalJs.includes('import.meta')&&globalJs.includes('createObjectURL(new Blob(['),'The global bundle must inline its worker and hold no import.meta');
+assert.ok(!/url\(['"]?\.\//.test(await dist('style.inline.css')),'style.inline.css must not reference font files');
+await writeFile(join(tmp,'global.html'),`<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./node_modules/@nuin/msa-canvas/dist/style.inline.css"><script src="./node_modules/@nuin/msa-canvas/dist/msa-canvas.global.js"></script></head><body><msa-canvas id="viewer"></msa-canvas><script>const el=document.getElementById('viewer');el.options={worker:false,height:400};el.alignment=MsaCanvas.parseAlignment('>a\\nAC\\n>b\\nAT');</script></body></html>`);
+const page=await JSDOM.fromFile(join(tmp,'global.html'),{url:pathToFileURL(join(tmp,'global.html')).href,runScripts:'dangerously',resources:'usable',pretendToBeVisual:true,beforeParse(window){window.ResizeObserver=class{observe(){}disconnect(){}};window.HTMLCanvasElement.prototype.getContext=()=>null;}});
+await new Promise(done=>page.window.addEventListener('load',done));
+const {MsaCanvas}=page.window,host=page.window.document.getElementById('viewer');
+assert.equal(typeof MsaCanvas?.createViewer,'function','The global bundle did not set window.MsaCanvas');
+assert.equal(page.window.customElements.get('msa-canvas'),MsaCanvas.MsaCanvasElement,'The global bundle did not define <msa-canvas>');
+assert.ok(host.querySelector('.ak-viewer'),'<msa-canvas> did not mount from the global bundle');
+assert.equal(host.viewer.getAlignment().rows.length,2);page.window.close();
+console.log('Packed global bundle loads from a plain HTML file and mounts <msa-canvas>');
+// The same two tags with workers on and workerUrl unset: the bundle must start its inlined worker from a blob URL. jsdom has no Worker, so each blob runs in a node:worker_threads thread; tests/package.spec.ts opens this file in Chromium and WebKit.
+await writeFile(join(tmp,'global-worker.html'),`<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./node_modules/@nuin/msa-canvas/dist/style.inline.css"><script src="./node_modules/@nuin/msa-canvas/dist/msa-canvas.global.js"></script></head><body><msa-canvas id="viewer"></msa-canvas><script>const el=document.getElementById('viewer');el.options={height:400};el.source='>a\\nAC\\n>b\\nAT';</script></body></html>`);
+let threads;
+const workerPage=await JSDOM.fromFile(join(tmp,'global-worker.html'),{url:pathToFileURL(join(tmp,'global-worker.html')).href,runScripts:'dangerously',resources:'usable',pretendToBeVisual:true,beforeParse(window){window.ResizeObserver=class{observe(){}disconnect(){}};window.HTMLCanvasElement.prototype.getContext=()=>null;threads=threadWorkers(window);}});
+try{
+  const failures=[];workerPage.window.addEventListener('msa-error',event=>failures.push(event.detail.message));
+  const workerHost=await new Promise((done,fail)=>{
+    const started=Date.now(),poll=()=>{
+      const el=workerPage.window.document.getElementById('viewer');
+      if(el?.viewer?.getAlignment()?.rows.length===2&&threads.jobs.some(job=>job.kind==='stats'&&job.ok))done(el);
+      else if(failures.length||Date.now()-started>20000)fail(new Error(`The inlined worker did not load the alignment: ${failures.join('; ')||'timeout'} ${JSON.stringify(threads.jobs)}`));
+      else setTimeout(poll,20);
+    };poll();
+  });
+  assert.ok(threads.jobs.some(job=>job.kind==='parse'&&job.ok),'The alignment was not parsed by the inlined worker');
+  assert.ok(threads.jobs.every(job=>job.url.startsWith('blob:')),'A worker started from something other than a blob URL');
+  assert.equal(new Set(threads.jobs.map(job=>job.url)).size,1,'The global bundle must reuse one blob URL');
+  assert.deepEqual(failures,[]);workerHost.remove();
+}finally{await threads.stop();workerPage.window.close();}
+console.log(`Packed global bundle parses and analyses in its inlined blob worker (${threads.jobs.length} worker jobs)`);
 console.log(`Packed package consumer builds passed. Inspection directory: ${tmp}`);
 if(process.env.MSA_PACKAGE_REPORT)await writeFile(process.env.MSA_PACKAGE_REPORT,JSON.stringify({directory:tmp,peers}));

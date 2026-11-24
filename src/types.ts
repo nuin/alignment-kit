@@ -134,12 +134,14 @@ export interface CustomTrack {
   values?:ArrayLike<number|null>|string; /** Default [0, 1]. */ domain?:[number,number]; color?:string;
   render?(ctx:CanvasRenderingContext2D,info:TrackRenderInfo):void;
 }
+/** Where analysis workers come from: the URL of a module worker, or a factory that returns a new Worker on every call (each job terminates its worker). */
+export type WorkerSource = string|URL|(()=>Worker);
 export interface ViewerOptions {
   visibility?:ViewerVisibility;
   alignment?: Alignment; height?:number; theme?:'light'|'dark'|'auto';
   colorScheme?:string; colorMode?:ColorMode; /** 'dot' draws residues identical to the comparison residue (consensus for consensus-* color modes, else the pinned reference row) as '.'. Default 'letter'. */ matchDisplay?:'letter'|'dot'; cellWidth?:number; rowHeight?:number;
   labelWidth?:number; showLogo?:boolean; showInspector?:boolean; showToolbar?:boolean;
-  statisticsScope?:'all'|'filtered'; rulerCoordinates?:RulerCoordinates; workerUrl?:string|URL; worker?:boolean;
+  statisticsScope?:'all'|'filtered'; rulerCoordinates?:RulerCoordinates; workerUrl?:WorkerSource; worker?:boolean;
   /** 0 to 1. Consensus columns whose modal frequency (non-gap rows) is below this become X (protein) or N (DNA/RNA). Default 0. */
   consensusThreshold?:number;
   /** 0 to 1 (default 0). For the conservation and percent-identity schemes, residues whose column value is below this are left uncoloured. */

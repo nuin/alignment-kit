@@ -1,5 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bioinformat.org/msa-canvas/schema/viewer-config.schema.json",
+  "x-version": 1,
   "title": "Alignment Kit viewer configuration",
   "type": "object",
   "additionalProperties": false,

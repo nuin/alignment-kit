@@ -7,5 +7,5 @@
     "types": ["node", "vite/client"], "noEmit": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.svelte", "demo/**/*.ts", "examples/**/*", "tests/**/*.ts", "*.config.ts"],
-  "exclude": ["dist", "node_modules", "demo-dist"]
+  "exclude": ["dist", "node_modules", "demo-dist", "python", "r"]
 }

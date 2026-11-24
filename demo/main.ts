@@ -17,10 +17,11 @@ await viewer.load(alignmentText);
 viewer.on('selection', selection => {
   // Alignment columns are 1-based and inclusive.
 });</code></pre></section></main><footer class="site-footer"><span>Alignment Kit</span><span>Sequence first. Context always.</span><span>JavaScript · React · Svelte</span></footer>`;
+// Offline preview files embed the datasets here; their worker is inlined by the build.
 const preview=(window as any).__ALIGNMENT_PREVIEW__;
 // The page follows the system color scheme in CSS. The viewer starts on the same scheme and follows system changes; its theme button still switches by hand.
 const systemDark=window.matchMedia('(prefers-color-scheme: dark)'),narrow=window.innerWidth<=480;
-const viewer=createViewer(document.querySelector('#viewer')!,{height:740,theme:systemDark.matches?'dark':'light',showInspector:window.innerWidth>800,labelWidth:narrow?150:230,workerUrl:preview?.workerUrl,urlSync:!preview});
+const viewer=createViewer(document.querySelector('#viewer')!,{height:740,theme:systemDark.matches?'dark':'light',showInspector:window.innerWidth>800,labelWidth:narrow?150:230,urlSync:!preview});
 systemDark.addEventListener('change',event=>viewer.setOptions({theme:event.matches?'dark':'light'}));
 const customize=document.querySelector<HTMLDetailsElement>('.demo-customize')!;
 const groups:Record<string,(keyof ViewerVisibility)[]>={

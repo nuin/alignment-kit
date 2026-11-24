@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bioinformat.org/msa-canvas/schema/wire.schema.json",
+  "x-version": 1,
+  "title": "msa-canvas wire document, version 1",
+  "description": "An alignment with optional annotations, tree, viewer configuration and view state. Read by fromJson and written by toJson. config and state refer to viewer-config.schema.json and view-state.schema.json next to this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "alignment"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "const": "msa-canvas"
+    },
+    "version": {
+      "const": 1
+    },
+    "alignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rows"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Kept when not empty; otherwise the reader derives an id from the residues, row ids and row names."
+        },
+        "name": {
+          "type": "string"
+        },
+        "alphabet": {
+          "enum": [
+            "protein",
+            "dna",
+            "rna"
+          ],
+          "description": "Detected from the residues when omitted."
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/row"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Free-form JSON values."
+        }
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/annotation"
+      }
+    },
+    "tree": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One Newick tree; leaves match row names."
+    },
+    "config": {
+      "$ref": "viewer-config.schema.json"
+    },
+    "state": {
+      "$ref": "view-state.schema.json"
+    }
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "sequence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique in the alignment; seq-N (N from 1) when omitted."
+        },
+        "name": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z*.\\-]+$",
+          "description": "One character per column: a letter, * or a gap (- or .). Every row has the same length."
+        },
+        "species": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Free-form JSON values."
+        }
+      }
+    },
+    "annotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "mapping"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "rowId": {
+          "type": "string",
+          "description": "The id of a row in alignment.rows."
+        },
+        "label": {
+          "type": "string"
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "First alignment column, one-based. Required when mapping is mapped."
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Last alignment column, inclusive."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "consequence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "disease": {
+          "type": "boolean"
+        },
+        "phenotype": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        },
+        "mapping": {
+          "enum": [
+            "mapped",
+            "unmapped"
+          ]
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Free-form JSON values."
+        }
+      },
+      "if": {
+        "properties": {
+          "mapping": {
+            "const": "mapped"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "start",
+          "end"
+        ]
+      }
+    }
+  }
+}
