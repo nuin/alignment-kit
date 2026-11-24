@@ -39,9 +39,9 @@ export function bindPointer(v:Core,on:On):void {
   on(treeCanvas,'wheel',(event:WheelEvent)=>{event.preventDefault();v.scroll.scrollTop+=event.deltaY;});
   const overview=$(v.root,'.ak-overview');let dragging=false;
   const navigate=(event:PointerEvent)=>{if(!v.a)return;const rect=overview.getBoundingClientRect(),ratio=bounded((event.clientX-rect.left)/rect.width,0,1);v.scroll.scrollLeft=ratio*v.columns.count*v.options.cellWidth-(v.scroll.clientWidth-v.gutter)/2;v.schedule();};
-  on(overview,'pointerdown',(event:PointerEvent)=>{dragging=true;overview.setPointerCapture(event.pointerId);navigate(event);});on(overview,'pointermove',(event:PointerEvent)=>{if(dragging)navigate(event);});on(overview,'pointerup',()=>{dragging=false;});
+  on(overview,'pointerdown',(event:PointerEvent)=>{dragging=true;overview.setPointerCapture(event.pointerId);navigate(event);});on(overview,'pointermove',(event:PointerEvent)=>{if(dragging)navigate(event);});for(const end of ['pointerup','pointercancel','lostpointercapture'])on(overview,end,()=>{dragging=false;});
   on(overview,'keydown',(event:KeyboardEvent)=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();v.scroll.scrollLeft+=(event.key==='ArrowRight'?1:-1)*v.options.cellWidth*10;v.schedule();}});
   const separator=$(v.root,'.ak-gutter-resize');let resizing=false,origin=0,gutter=0;
-  on(separator,'pointerdown',(event:PointerEvent)=>{resizing=true;origin=event.clientX;gutter=v.options.labelWidth;separator.setPointerCapture(event.pointerId);});on(separator,'pointermove',(event:PointerEvent)=>{if(resizing)v.setOptions({labelWidth:gutter+event.clientX-origin});});on(separator,'pointerup',()=>{resizing=false;});
+  on(separator,'pointerdown',(event:PointerEvent)=>{resizing=true;origin=event.clientX;gutter=v.options.labelWidth;separator.setPointerCapture(event.pointerId);});on(separator,'pointermove',(event:PointerEvent)=>{if(resizing)v.setOptions({labelWidth:gutter+event.clientX-origin});});for(const end of ['pointerup','pointercancel','lostpointercapture'])on(separator,end,()=>{resizing=false;});
   on(separator,'keydown',(event:KeyboardEvent)=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();v.setOptions({labelWidth:v.options.labelWidth+(event.key==='ArrowRight'?10:-10)});}});
 }
