@@ -9,6 +9,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { build as esbuild } from 'esbuild';
 import { compile } from 'svelte/compiler';
 import assert from 'node:assert/strict';
+import { threadWorkers } from './thread-worker.mjs';
 const tmp=await realpath(await mkdtemp(join(tmpdir(),'alignment-kit-package-')));
 // release:check builds first; keep lifecycle output out of npm's JSON response.
 const packed=JSON.parse(execFileSync('npm',['pack','--ignore-scripts','--json','--cache',join(tmp,'cache'),'--pack-destination',tmp,'--logs-dir',join(tmp,'logs')],{encoding:'utf8'}));
@@ -84,5 +85,25 @@ assert.equal(page.window.customElements.get('msa-canvas'),MsaCanvas.MsaCanvasEle
 assert.ok(host.querySelector('.ak-viewer'),'<msa-canvas> did not mount from the global bundle');
 assert.equal(host.viewer.getAlignment().rows.length,2);page.window.close();
 console.log('Packed global bundle loads from a plain HTML file and mounts <msa-canvas>');
+// The same two tags with workers on and workerUrl unset: the bundle must start its inlined worker from a blob URL. jsdom has no Worker, so each blob runs in a node:worker_threads thread; tests/package.spec.ts opens this file in Chromium and WebKit.
+await writeFile(join(tmp,'global-worker.html'),`<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="./node_modules/@nuin/msa-canvas/dist/style.inline.css"><script src="./node_modules/@nuin/msa-canvas/dist/msa-canvas.global.js"></script></head><body><msa-canvas id="viewer"></msa-canvas><script>const el=document.getElementById('viewer');el.options={height:400};el.source='>a\\nAC\\n>b\\nAT';</script></body></html>`);
+let threads;
+const workerPage=await JSDOM.fromFile(join(tmp,'global-worker.html'),{url:pathToFileURL(join(tmp,'global-worker.html')).href,runScripts:'dangerously',resources:'usable',pretendToBeVisual:true,beforeParse(window){window.ResizeObserver=class{observe(){}disconnect(){}};window.HTMLCanvasElement.prototype.getContext=()=>null;threads=threadWorkers(window);}});
+try{
+  const failures=[];workerPage.window.addEventListener('msa-error',event=>failures.push(event.detail.message));
+  const workerHost=await new Promise((done,fail)=>{
+    const started=Date.now(),poll=()=>{
+      const el=workerPage.window.document.getElementById('viewer');
+      if(el?.viewer?.getAlignment()?.rows.length===2&&threads.jobs.some(job=>job.kind==='stats'&&job.ok))done(el);
+      else if(failures.length||Date.now()-started>20000)fail(new Error(`The inlined worker did not load the alignment: ${failures.join('; ')||'timeout'} ${JSON.stringify(threads.jobs)}`));
+      else setTimeout(poll,20);
+    };poll();
+  });
+  assert.ok(threads.jobs.some(job=>job.kind==='parse'&&job.ok),'The alignment was not parsed by the inlined worker');
+  assert.ok(threads.jobs.every(job=>job.url.startsWith('blob:')),'A worker started from something other than a blob URL');
+  assert.equal(new Set(threads.jobs.map(job=>job.url)).size,1,'The global bundle must reuse one blob URL');
+  assert.deepEqual(failures,[]);workerHost.remove();
+}finally{await threads.stop();workerPage.window.close();}
+console.log(`Packed global bundle parses and analyses in its inlined blob worker (${threads.jobs.length} worker jobs)`);
 console.log(`Packed package consumer builds passed. Inspection directory: ${tmp}`);
 if(process.env.MSA_PACKAGE_REPORT)await writeFile(process.env.MSA_PACKAGE_REPORT,JSON.stringify({directory:tmp,peers}));
