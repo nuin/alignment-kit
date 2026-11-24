@@ -117,8 +117,12 @@ export function importAnnotations(alignment:Alignment,text:string,options:Annota
   if(options.rowId!==undefined&&fallback<0) throw new Error(`Unknown sequence “${options.rowId}”.`);
   const byId=new Map(alignment.rows.map((r,i)=>[r.id,i])),byName=new Map<string,number>();
   alignment.rows.forEach((r,i)=>{if(!byName.has(r.name))byName.set(r.name,i);});
-  const byToken=new Map<string,number>();
-  alignment.rows.forEach((r,i)=>{for(const t of [r.name.split(/\s+/)[0],...r.name.split(/\s+/)[0].split('|')])if(t&&!byToken.has(t))byToken.set(t,i);});
+  // Tokens of a name: its first word, the '|'-separated parts of that word, and each of those without a /START-END suffix (Stockholm). The first row owns a token; `shared` counts the rows that carry it.
+  const byToken=new Map<string,number>(),shared=new Map<string,number>(),told=new Set<string>();
+  alignment.rows.forEach((r,i)=>{
+    const word=r.name.trim().split(/\s+/)[0],parts=[word,...word.split('|')];
+    for(const t of new Set([...parts,...parts.map(t=>t.replace(/\/\d+-\d+$/,''))]))if(t){if(byToken.has(t))shared.set(t,(shared.get(t)??1)+1);else byToken.set(t,i);}
+  });
   const columns=new Map<number,Int32Array>(),columnsOf=(row:number):Int32Array=>{
     let map=columns.get(row);
     if(!map){const list:number[]=[];for(let c=0;c<alignment.width;c++)if(alignment.codes[row*alignment.width+c]!==45)list.push(c+1);map=Int32Array.from(list);columns.set(row,map);}
@@ -131,7 +135,12 @@ export function importAnnotations(alignment:Alignment,text:string,options:Annota
     let row=-1;
     for(const id of ids){const i=byId.get(id);if(i!==undefined){row=i;break;}}
     if(row<0)for(const id of ids){const i=byName.get(id);if(i!==undefined){row=i;break;}}
-    if(row<0)for(const id of ids){const i=byToken.get(id);if(i!==undefined){row=i;break;}}
+    if(row<0)for(const id of ids){
+      const i=byToken.get(id);if(i===undefined)continue;
+      row=i;
+      if(shared.has(id)&&!told.has(id)){told.add(id);warnings.push(`“${id}” matches part of ${shared.get(id)} row names; its features attach to “${alignment.rows[i].name}”, the first. Use the full row name or the row ID as seqid to reach another row.`);}
+      break;
+    }
     if(row<0)row=fallback;
     const base={id:nextId(),label:r.label,kind:r.kind,metadata:{...r.metadata,seqid:r.seqid,sourceStart:r.start,sourceEnd:r.end,format}};
     const rowId=row>=0?alignment.rows[row].id:undefined;

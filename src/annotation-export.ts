@@ -28,7 +28,7 @@ export function exportAnnotationsGff3(alignment:Alignment,options:AnnotationExpo
   for(const p of place(alignment,options)) {
     const {a}=p,row=p.row===undefined?undefined:alignment.rows[p.row];
     const start=columns?(mapped(p)?a.start:undefined):p.seqStart,end=columns?(mapped(p)?a.end:undefined):p.seqEnd;
-    if(start===undefined||end===undefined||(!columns&&!row)){warnings.push(`${a.label} (${a.id}) skipped: ${a.mapping==='mapped'?'no residue of its sequence in the mapped columns':'unmapped'}.`);continue;}
+    if(start===undefined||end===undefined||(!columns&&!row)){warnings.push(`${a.label} (${a.id}) skipped: ${a.mapping!=='mapped'?'unmapped':row||columns?'no residue of its sequence in the mapped columns':'no sequence row, so no sequence coordinates; export with coordinates: \'alignment\''}.`);continue;}
     const dup=!!row&&options.seqid!=='id'&&seen.get(row.name)!>1;
     if(row&&dup&&!warned.has(row.name)){warned.add(row.name);warnings.push(`Row name “${row.name}” is used by ${seen.get(row.name)} rows; their seqid is the row id.`);}
     const seqid=row?(options.seqid==='id'||dup?row.id:row.name):alignment.name;

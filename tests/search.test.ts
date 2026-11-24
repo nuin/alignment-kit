@@ -194,6 +194,10 @@ it('adds the hitsTab visibility key, on by default and accepted in configuration
   expect((viewer as any).root.querySelector('[data-tab="hits"]').hidden).toBe(true);
   viewer.setOptions({visibility:{hitsTab:true}});expect((viewer as any).root.querySelector('[data-tab="hits"]').hidden).toBe(false);
 });
+it('rejects a repeated group that holds a repeat at any depth',()=>{
+  for(const p of ['/((A+)B?)+C/','/(?:(?:A*)C?){2,}G/','/((A{1,3})T?)*G/','/(A(C(G+)))+T/','/((?:A+))+/'])expect(()=>compilePattern(p,{alphabet:'dna'}),p).toThrow(/Nested repetition/);
+  for(const p of ['/((A+)B?)C+/','/(A+)(C+)G/','/(AC){2,}G+/','/([+*]A)+/','/(A\\+)+/','/(A{2}C)+/','/(?:A+C)?G+/'])expect(()=>compilePattern(p,{alphabet:'dna'}),p).not.toThrow();
+});
 it('rejects nested repetition that backtracks catastrophically',()=>{
   expect(()=>compilePattern('/(A+)+B/',{alphabet:'dna'})).toThrow(/Nested repetition/);
   expect(()=>compilePattern('/(?:A*B)*/',{alphabet:'dna'})).toThrow(/Nested repetition/);

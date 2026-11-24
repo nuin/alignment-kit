@@ -109,7 +109,7 @@ it('shows the consequence legend in the Colors tab when variants exist',async()=
   const {el,viewer}=await make();
   const legend=()=>{el.querySelector<HTMLButtonElement>('[data-tab="legend"]')!.click();renderPanel(viewer as any);return el.querySelector('.ak-variant-legend');};
   expect(legend()).toBeNull();viewer.addVariants(variants);
-  const list=legend()!;expect(list.querySelectorAll('li')).toHaveLength(7);expect(list.textContent).toContain('Frameshift');
+  const list=legend()!;expect(list.querySelectorAll('li')).toHaveLength(8);expect(list.textContent).toContain('Frameshift');
   expect((list.querySelector('[data-variant-class="nonsense"]') as HTMLElement).style.background).toBe('rgb(213, 94, 0)');
 });
 

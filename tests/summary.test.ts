@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import {it,expect,beforeAll,afterEach,vi} from 'vitest';
 import {createAlignment} from '../src/model';
-import {summarizeColumns,variableColumns,analyzeColumns} from '../src/summary';
+import {summarizeColumns,variableColumns,analyzeColumns,MAX_VARIABLE_COLUMNS} from '../src/summary';
 import {exportVariableColumns} from '../src/export';
 import {createViewer} from '../src/viewer';
 import {renderPanel} from '../src/viewer/panel';
@@ -60,6 +60,11 @@ it('has no GC for protein and no identity to the reference for one row',()=>{
   expect(summarizeColumns(p)).toMatchObject({conserved:1,variable:2,gapOnly:1,rowGc:null,parsimonyInformative:0,singleton:2});
   expect(summarizeColumns(p).meanPairwiseIdentity).toBeCloseTo(((3)+(1)+(1))/(3+3+3),10);
   expect(summarizeColumns(dna(),{rows:[1],reference:1}).identityToReference).toBeNull();
+});
+it('lists every variable column for limit Infinity and keeps the default for NaN',()=>{
+  const n=MAX_VARIABLE_COLUMNS+5,a=createAlignment([{name:'a',sequence:'A'.repeat(n)},{name:'b',sequence:'C'.repeat(n)}],{alphabet:'dna'});
+  const all=variableColumns(a,{limit:Infinity});expect(all.columns).toHaveLength(n);expect(all).toMatchObject({total:n,truncated:false});
+  for(const limit of [undefined,NaN,-Infinity]){const v=variableColumns(a,{limit});expect(v.columns).toHaveLength(MAX_VARIABLE_COLUMNS);expect(v).toMatchObject({total:n,truncated:true});}
 });
 it('limits the list and keeps the exact total',()=>{
   const v=variableColumns(dna(),{limit:2});

@@ -33,7 +33,13 @@ viewer.addAnnotations(annotations);
 const records = parseGff3(text); // { seqid, start, end, kind, label, metadata }[] in 1-based ungapped coordinates
 ```
 
-- `seqid` is matched to a row by ID, then by display name, then by the first word of the name or any `|`-separated part of it (GenBank, EMBL and UniProt also try accession, version and entry name), then falls back to `rowId`.
+- `seqid` is matched to a row in four steps, and the first step that finds a row wins. GenBank, EMBL and UniProt try the accession, version and entry name in each step as well.
+  1. Row ID.
+  2. Whole display name (the first row with that name).
+  3. A token of the name: its first whitespace-separated word, any `|`-separated part of that word, and each of those without a `/START-END` suffix. `Q9XYZ` matches the rows `Q9XYZ/51-120`, `sp|Q9XYZ|NAME_HUMAN desc` and `sp|Q9XYZ|NAME_HUMAN/51-120`.
+  4. The `rowId` option, when no row matched.
+- When a token belongs to several rows, such as two domains `Q9XYZ/51-120` and `Q9XYZ/200-270` of one protein, the first row takes the features and one warning per token names it. To reach another row, use its full name or its ID as `seqid`; `rowId` applies only when no step matches.
+- A `/START-END` suffix only helps to find the row. Coordinates still count from 1 at the first residue of the row, so features given in whole-protein positions need shifting by `START - 1` before import.
 - `coordinates: 'sequence'` (default) counts ungapped residues and converts them to alignment columns. `'alignment'` uses 1-based columns as given.
 - Records with no matching row, or beyond the sequence, become `mapping: 'unmapped'` and add a warning.
 - BED12 blocks become one `exon` annotation each. GenBank and EMBL `join()` locations become one annotation spanning the lowest to highest position, with `<`, `>` and `complement()` kept in `metadata`. Labels come from `/gene`, `/product`, `/note`, `/label`, then the feature key.
@@ -53,7 +59,7 @@ const json = exportAnnotationsJson(alignment);
 - Options (`AnnotationExportOptions`): `annotations` (default all of `alignment.annotations`), `filter` (an `AnnotationFilter`, applied when `annotations` is omitted), `coordinates` (GFF3 only: `'sequence'` default, or `'alignment'`), `seqid` (GFF3 only: `'name'` default, or `'id'`; rows whose name is shared by several rows always use their id, with a warning, and a leading `#` or `>` in a name is percent-encoded) and `warnings` (an array that receives skip messages).
 - The Explorer's Export menu entries (Annotations · GFF3, TSV, JSON) write the annotations visible under the active filter.
 - Coordinates are 1-based inclusive. Sequence coordinates count ungapped residues from 1 at the first residue of the row; row offsets such as `seqA/51-120` are not applied, as on import. Alignment columns are always present in TSV and JSON.
-- GFF3 skips unmapped annotations, annotations without a row and annotations whose columns are all gaps in their row, with one warning each. TSV and JSON list them with empty (TSV) or null (JSON) coordinates.
+- GFF3 skips unmapped annotations, annotations without a row and annotations whose columns are all gaps in their row, with one warning each. The warning names the cause: `unmapped`, `no sequence row, so no sequence coordinates; export with coordinates: 'alignment'`, or `no residue of its sequence in the mapped columns`. With `coordinates: 'alignment'` an annotation without a row is written with the alignment name as seqid. TSV and JSON list them with empty (TSV) or null (JSON) coordinates.
 - GFF3 with `coordinates: 'sequence'` read by `importAnnotations` returns the same mapped annotations. Columns that are gaps at an annotation's edge shrink it to its first and last residue.
 
 ## Variants
@@ -80,7 +86,7 @@ parseHgvsProtein('p.Arg123ProfsTer5'); // { start: 123, end: 123, ref: 'R', alt:
 - `addVariants` adds the annotations as `addAnnotations` does, returns `{ annotations, warnings }` and shows the count and the first warnings in the message area.
 - `fromPavi` maps PAVI variants through the same helpers: `type` comes from `seq_substitution_type`, `hgvs` from `hgvs_protein`, positions from `alignment_start_pos` and `alignment_end_pos`.
 
-`parseHgvsProtein(text)` reads protein HGVS with three-letter or one-letter residues, optional parentheses and an optional accession prefix: substitutions (`p.Arg123Trp`, `p.R123W`), stops (`p.Arg123Ter`, `p.Arg123*`, `p.R123X`), synonymous (`p.Arg123=`), frameshifts (`p.Arg123fs`, `p.Arg123ProfsTer5`, `p.Arg97ProfsTer`), deletions (`p.Arg123del`, `p.Arg123_Lys125del`), insertions (`p.Lys2_Leu3insGln`), delins (`p.Arg123delinsTrpGly`) duplications (`p.Arg123dup`), extensions (`p.Ter110GlnextTer17`, consequence `stop_lost`) and an unknown effect at one residue (`p.Met1?`, consequence `start_lost`; class `other`). It returns `{ start, end, ref, alt, type, consequence }` or `null`. Residue names are case-sensitive, so `p.arg123trp` is rejected. A whole-protein unknown (`p.?`) and nucleotide HGVS are not parsed.
+`parseHgvsProtein(text)` reads protein HGVS with three-letter or one-letter residues, optional parentheses and an optional accession prefix: substitutions (`p.Arg123Trp`, `p.R123W`), stops (`p.Arg123Ter`, `p.Arg123*`, `p.R123X`), synonymous (`p.Arg123=`), frameshifts (`p.Arg123fs`, `p.Arg123ProfsTer5`, `p.Arg97ProfsTer`), deletions (`p.Arg123del`, `p.Arg123_Lys125del`), insertions (`p.Lys2_Leu3insGln`), delins (`p.Arg123delinsTrpGly`) duplications (`p.Arg123dup`), extensions (`p.Ter110GlnextTer17`, consequence `stop_lost`) and an unknown effect at one residue (`p.Met1?`, consequence `start_lost`). Both consequences give class `startstop`. It returns `{ start, end, ref, alt, type, consequence }` or `null`. Residue names are case-sensitive, so `p.arg123trp` is rejected. A whole-protein unknown (`p.?`) and nucleotide HGVS are not parsed.
 
 ### Consequence classes and colors
 
@@ -90,6 +96,7 @@ parseHgvsProtein('p.Arg123ProfsTer5'); // { start: 123, end: 123, ref: 'R', alt:
 |---|---|---|
 | `nonsense` | `stop_gained` | vermillion `#D55E00` |
 | `frameshift` | `frameshift_variant` | reddish purple `#CC79A7` |
+| `startstop` | `stop_lost`, `start_lost`, `initiator_codon_variant` | yellow `#F0E442` |
 | `missense` | `missense_variant` | blue `#0072B2` |
 | `inframe` | `inframe_insertion`, `inframe_deletion`, `protein_altering_variant` | orange `#E69F00` |
 | `splice` | `splice_*` | sky blue `#56B4E9` |
@@ -100,7 +107,7 @@ parseHgvsProtein('p.Arg123ProfsTer5'); // { start: 123, end: 123, ref: 'R', alt:
 
 ### Variant track and navigation
 
-- The `variants` track sits directly above the pinned reference row, below the other tracks. It shows one marker per mapped variant that passes the annotation filter on a shown row. Markers are diamonds (substitutions, missense, other), triangles (deletions), chevrons (insertions and duplications) and squares (frameshift and nonsense), filled with the class color.
+- The `variants` track sits directly above the pinned reference row, below the other tracks. It shows one marker per mapped variant that passes the annotation filter on a shown row. Markers are diamonds (substitutions, missense, start or stop lost, other), triangles (deletions), chevrons (insertions and duplications) and squares (frameshift and nonsense), filled with the class color.
 - Overlapping variants stack in lanes of 12 px, at most 8. Lane assignment stops at 8 lanes; the track label shows `+n` for the variants left over, which `nextVariant` still reaches. Below 9 px cell width markers merge into 4 px bins per lane. Hidden columns and the reverse-complement view apply as in the other tracks.
 - Hover a marker for its annotation card. Click it to select the variant's columns and row, scroll to the row (expanding a collapsed group) and pin the card. The overview strip shows a tick per variant in its class color while the variant track is on; `visibility.variantTrack: false` removes the ticks too.
 - `viewer.nextVariant(direction = 1)` selects the next (`1`) or previous (`-1`) shown variant, ordered by display column (left to right on screen, so in the reverse-complement view it moves to lower source columns) then display row, wrapping around, and returns the annotation or `null`. Variants whose columns are all hidden are skipped. A row inside a collapsed group ranks at its group header, so expanding the group on selection does not revisit a variant. `]` and `[` do the same on the focused grid, and the secondary toolbar has **Previous variant** and **Next variant** buttons with a `k / n` counter.
