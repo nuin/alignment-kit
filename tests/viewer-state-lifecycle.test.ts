@@ -136,3 +136,9 @@ it('loadUrl keeps the parser message for a fetched file that does not parse, and
   vi.stubGlobal('fetch',async()=>{throw new TypeError('Failed to fetch');});
   await expect(v.loadUrl('https://example.org/a.fasta')).rejects.toThrow(/Could not load this URL: Failed to fetch.*CORS/);expect(errors).toHaveLength(2);
 });
+
+it('passes limit Infinity through the viewer summary request without the 50,000 cap',async()=>{
+  const v=await viewerFor(),core=priv(v).core??priv(v);
+  const r=await v.getVariableColumns({limit:Infinity});expect(r.truncated).toBe(false);
+  expect([...core.summaryCache.values()].map((e:any)=>e.limit)).toContain(Infinity);
+});
