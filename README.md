@@ -56,8 +56,10 @@ If local servers are unavailable, `npm run preview:files` generates self-contain
 npm run build
 npm pack
 # In a consuming application:
-npm install /path/to/nuin-msa-canvas-0.5.0.tgz
+npm install /path/to/nuin-msa-canvas-<version>.tgz
 ```
+
+`npm pack` prints the tarball name. `<version>` is the `version` field of `package.json`.
 
 The core has no framework runtime dependency. React and Svelte are optional peers, imported only through their respective entry points. Build output includes module code, type declarations, a worker, CSS, fonts and the Svelte component source.
 
@@ -88,21 +90,30 @@ viewer.destroy();
 
 `parseAlignment` reads aligned FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF and PIR/NBRF. See [input formats](docs/reference/formats.md).
 
+The [quick start](docs/reference/quick-start.md) has complete pages for Vite, plain HTML with a module script, Next.js, SvelteKit and Deno.
+
 ## Developer reference
 
 | Page | Contents |
 |---|---|
+| [Quick start](docs/reference/quick-start.md) | Smallest working page for Vite, plain HTML with a module script from an ESM CDN, a Next.js client component, SvelteKit and Deno |
 | [React, Svelte, workers and Deno](docs/reference/frameworks.md) | React component, Svelte 5 component and action, callbacks, worker bundling, CSP, SSR, Deno and JSR |
 | [Wire format, schemas, HTML template and CLI](docs/reference/wire-format.md) | Versioned JSON document, `toJson` and `fromJson`, JSON Schemas, `dist/template.html`, the `msa-canvas` command |
 | [Python, R and other languages](docs/reference/languages.md) | Python `to_wire`, `to_html` and notebook widget, R htmlwidget for Shiny, Streamlit, Dash, Quarto, Observable, Rust and Julia |
 | [Input formats and parser warnings](docs/reference/formats.md) | Supported alignment formats, A3M handling, warning codes and repairs |
 | [Configuration, colors and themes](docs/reference/configuration.md) | `visibility` switches, JSON configuration and schema, palettes, colorblind-safe schemes, CSS properties |
-| [API, events and controls](docs/reference/api.md) | Viewer methods, events, options, mouse and keyboard controls, alphabet guard, tooltips |
+| [API, events and controls](docs/reference/api.md) | Every viewer method, event and option with type, range and default; mouse and keyboard controls, alphabet guard, tooltips |
+| [Standalone functions and types](docs/reference/functions.md) | Every export of the package by module: model, parsing, statistics, export, masks, annotations, variants, search, links, the `./pavi` entry and all types |
 | [Annotations](docs/reference/annotations.md) | Annotation model, GFF3/BED/GenBank/EMBL/UniProt import, annotation export |
 | [Coordinates and statistics](docs/reference/statistics.md) | Coordinate rules, row offsets, statistic definitions, column summary, consensus |
 | [Columns, rows and tracks](docs/reference/display.md) | Hidden columns, reverse complement, column marks, match dots, row hiding, groups, trees, tracks |
 | [Motif search](docs/reference/search.md) | IUPAC, PROSITE and regex search, strands, limits and timeouts |
 | [Export and shareable links](docs/reference/export.md) | FASTA, CLUSTAL, Stockholm, PHYLIP, NEXUS, SVG, PNG, copy and paste, view links |
+| [Architecture](docs/reference/architecture.md) | Source layers, the `viewer.ts` and `src/viewer/` split, renderer, worker protocol, framework wrappers, build entries |
+| [Contributing](CONTRIBUTING.md) | Setup, branch and pull request rules, test layers, documentation checks, dataset checks |
+| [Changelog](CHANGELOG.md) | Changes per release from 0.1.0, and upgrade notes |
+
+`npm run docs:api` generates a TypeDoc reference from the source comments into `demo/public/guide/api/`. The guide links to it once it exists.
 
 ## Deno and JSR
 
@@ -126,6 +137,7 @@ npm run benchmark      # Node model/statistics/index baseline (not browser FPS)
 npm run benchmark:browser # repeated browser startup, scrolling, memory and disposal measurements
 npm run preview:files  # self-contained local HTML demos
 npm run build:guide    # browsable user guide and palette previews
+npm run docs:api       # TypeDoc API pages in demo/public/guide/api/
 npm run screenshots    # capture docs images from a running local demo
 npm run release:check  # package preparation checks; does not publish
 ```
@@ -134,7 +146,7 @@ Install the test browsers with `npx playwright install chromium webkit` before r
 
 ## Citation
 
-If you use MSA Canvas in your work, please cite the software using its [Zenodo DOI](https://doi.org/10.5281/zenodo.23752287). To cite the specific 0.3.0 release, use [10.5281/zenodo.23752288](https://doi.org/10.5281/zenodo.23752288). Citation metadata is also available in [CITATION.cff](CITATION.cff).
+If you use MSA Canvas in your work, please cite the software using its [Zenodo DOI](https://doi.org/10.5281/zenodo.23752287). That DOI covers all versions and resolves to the latest release. To cite the specific 0.3.0 release, use [10.5281/zenodo.23752288](https://doi.org/10.5281/zenodo.23752288). Citation metadata is also available in [CITATION.cff](CITATION.cff).
 
 ## License
 
