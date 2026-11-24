@@ -2,16 +2,25 @@ import { parseAlignment } from './parsers';
 import { calculateStats, pairwiseIdentity, pairwiseMatrix } from './analysis';
 import { findHits, MAX_SEARCH_MS } from './search';
 import { analyzeColumns, type ColumnAnalysis } from './summary';
-import type { Alignment, AlignmentStats, ColumnScope, ParseOptions, Identity, SearchOptions, SearchResult } from './types';
+import type { Alignment, AlignmentStats, ColumnScope, ParseOptions, Identity, SearchOptions, SearchResult, WorkerSource } from './types';
 /** Grace after the in-worker 2 s budget for worker start-up and transfer; past it a regex stuck in one exec call is terminated. */
 export const SEARCH_TIMEOUT_MS=MAX_SEARCH_MS+500;
 /** Rejection name when a worker job runs past its hard timeout and is terminated. */
 export const TIMEOUT_ERROR='TimeoutError';
+/** Worker code as text. The global bundle and the offline previews set it with a build-time define; it is undeclared everywhere else. */
+declare const __MSA_CANVAS_WORKER__:string|undefined;
+let inlineUrl:string|undefined;
+/** A factory result, a module worker at `source`, the inlined worker from a blob URL, or the sibling worker.js, in that order. */
+export function spawnWorker(source?:WorkerSource):Worker {
+  if(typeof source==='function')return source();
+  if(source)return new Worker(source,{type:'module'});
+  return typeof __MSA_CANVAS_WORKER__==='string' ? new Worker(inlineUrl??=URL.createObjectURL(new Blob([__MSA_CANVAS_WORKER__],{type:'text/javascript'}))) : new Worker(new URL('./worker.js',import.meta.url),{type:'module'});
+}
 export class WorkerTask {
   private worker?:Worker;
   private reject?: (error:Error)=>void;
   private timer?:ReturnType<typeof setTimeout>;
-  constructor(private url?:string|URL, private enabled=true) {}
+  constructor(private url?:WorkerSource, private enabled=true) {}
   cancel() {this.worker?.terminate();this.worker=undefined;if(this.timer)clearTimeout(this.timer);this.reject?.(new DOMException('Operation cancelled','AbortError'));this.reject=undefined;}
   /** Run `payload` in a fresh module worker, or `fallback` on the main thread when workers are off. `timeout` terminates the worker and rejects with a TimeoutError; it cannot stop the main-thread fallback. */
   run<T>(payload:Record<string,unknown>,fallback:()=>T,timeout?:{ms:number;message:string}):Promise<T> {
@@ -24,7 +33,7 @@ export class WorkerTask {
         this.timer=setTimeout(()=>{try{finish(fallback());}catch(e){fail(e as Error);}},0);return;
       }
       try {
-        this.worker=this.url ? new Worker(this.url,{type:'module'}) : new Worker(new URL('./worker.js',import.meta.url),{type:'module'});
+        this.worker=spawnWorker(this.url);
         this.worker.onmessage=({data})=>data.error?fail(new Error(data.error)):finish(data.result);
         this.worker.onerror=()=>fail(new Error('The analysis worker could not start. Check the worker URL and your Content Security Policy, or explicitly use worker: false for small alignments.'));
         this.worker.postMessage(payload);
