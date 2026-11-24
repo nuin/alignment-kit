@@ -247,6 +247,7 @@ Replace `VERSION` with a release later than 0.5.2, the last one without these fi
 
 - `dist/msa-canvas.global.js` is one minified IIFE. `MsaCanvas` holds every export of the core entry plus `fromPavi`, `mountViewer` and `MsaCanvasElement`, and the script registers `<msa-canvas>`.
 - The bundle holds the worker code as a string. With `workerUrl` unset it starts workers from one `blob:` URL, so no second file is fetched. That works from a CDN, a `file:` page and an iframe (Jupyter, Shiny, Streamlit). Under a CSP without `worker-src blob:` see the [CSP matrix](#content-security-policy).
+- `npm run check:package` loads the packed bundle from a plain HTML file with workers on and runs each blob worker in a Node thread (jsdom has no `Worker`). `tests/package.spec.ts` opens the same file from a `file:` URL in Chromium and WebKit and requires every worker URL to start with `blob:`.
 - `dist/style.inline.css` is `style.css` with both font files as `data:` URLs (about 190 kB). A single-file host can paste it into a `<style>` tag. On a CDN `dist/style.css` also works, since its fonts sit beside it.
 - A bundler can inline the worker the same way: define the global constant `__MSA_CANVAS_WORKER__` as the text of `dist/msa-canvas.worker.js`. `scripts/preview.mjs` builds the offline demo files this way.
 - The ESM files load from a CDN too (`import { createViewer } from 'https://cdn.jsdelivr.net/npm/@nuin/msa-canvas@VERSION/dist/index.js'`), but browsers refuse a worker script from another origin. Pass a same-origin `workerUrl`, a blob factory or `worker: false`.
