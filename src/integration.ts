@@ -16,6 +16,14 @@ export interface IntegrationProps {
   /** The parser warnings of each loaded alignment; empty when it had none. */
   onWarnings?:(warnings:ParseWarning[])=>void;
 }
+const plain=(x:unknown):x is Record<string,unknown>=>{if(typeof x!=='object'||x===null)return false;const p=Object.getPrototypeOf(x);return p===Object.prototype||p===null;};
+/** Equal values in plain objects and arrays at any depth. Functions, typed arrays and class instances compare by identity. */
+function sameOptions(a:unknown,b:unknown):boolean {
+  if(Object.is(a,b))return true;
+  if(Array.isArray(a))return Array.isArray(b)&&a.length===b.length&&a.every((x,i)=>sameOptions(x,b[i]));
+  if(!plain(a)||!plain(b))return false;
+  const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(k=>k in b&&sameOptions(a[k],b[k]));
+}
 /** A single lifecycle controller shared by framework integrations. */
 export function mountViewer(element:HTMLElement,initial:IntegrationProps={}) {
   let props=initial,alignment=initial.alignment,options=initial.options;
@@ -34,7 +42,8 @@ export function mountViewer(element:HTMLElement,initial:IntegrationProps={}) {
     viewer,
     update(next:IntegrationProps) {
       props=next;
-      if(next.options!==options){options=next.options;viewer.setOptions(options??{});}
+      // Equal options are skipped, so an inline object does not re-lay out on every parent render. A rejected object is kept as the baseline too, so it is not applied again until it changes; setOptions has already emitted its error.
+      if(!sameOptions(next.options,options)){options=next.options;try{viewer.setOptions(options??{});}catch{}}
       if(next.alignment!==alignment){alignment=next.alignment;if(alignment)void viewer.setAlignment(alignment).catch(()=>{});else viewer.clear();}
     },
     destroy(){viewer.destroy();}
