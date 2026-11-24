@@ -2,7 +2,7 @@
   "name": "@nuin/msa-canvas",
   "version": "0.5.2",
   "type": "module",
-  "description": "An annotation-aware, virtualized multiple sequence alignment viewer for JavaScript, React and Svelte",
+  "description": "An annotation-aware, virtualized multiple sequence alignment viewer for JavaScript, React, Svelte, Vue and Web Components",
   "files": [
     "dist",
     "README.md",
@@ -18,34 +18,52 @@
     "config",
     "LICENSE"
   ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/msa-canvas.global.js",
+  "jsdelivr": "./dist/msa-canvas.global.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./react": {
       "types": "./dist/react.d.ts",
-      "import": "./dist/react.js"
+      "default": "./dist/react.js"
     },
     "./svelte": {
       "types": "./dist/svelte.d.ts",
-      "import": "./dist/svelte.js"
+      "default": "./dist/svelte.js"
     },
     "./svelte/AlignmentViewer.svelte": {
       "types": "./dist/svelte/AlignmentViewer.svelte.d.ts",
       "svelte": "./dist/svelte/AlignmentViewer.svelte",
       "default": "./dist/svelte/AlignmentViewer.svelte"
     },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "default": "./dist/vue.js"
+    },
+    "./element": {
+      "types": "./dist/element.d.ts",
+      "default": "./dist/element.js"
+    },
     "./pavi": {
       "types": "./dist/pavi.d.ts",
-      "import": "./dist/pavi.js"
+      "default": "./dist/pavi.js"
     },
+    "./worker.js": "./dist/worker.js",
+    "./msa-canvas.global.js": "./dist/msa-canvas.global.js",
+    "./msa-canvas.worker.js": "./dist/msa-canvas.worker.js",
     "./style.css": "./dist/style.css",
+    "./style.inline.css": "./dist/style.inline.css",
     "./config.schema.json": "./config/viewer-config.schema.json",
     "./config.example.json": "./config/viewer-config.example.json"
   },
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "./dist/element.js",
+    "./dist/msa-canvas.global.js"
   ],
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -60,24 +78,29 @@
     "benchmark": "node --expose-gc scripts/benchmark.mjs",
     "benchmark:browser": "npm run build && node scripts/benchmark-browser.mjs",
     "check:package": "node scripts/check-package.mjs",
+    "check:size": "node scripts/check-size.mjs",
     "preview:files": "node scripts/preview.mjs",
     "check:datasets": "node scripts/check-datasets.mjs",
     "build:guide": "node scripts/build-guide.mjs",
     "predev": "npm run build:guide",
     "prebuild:demo": "npm run build:guide",
     "prepack": "npm run build",
-    "release:check": "npm test && npm run check && npm run build && npm run check:datasets && npm run build:demo && npm run check:package",
+    "release:check": "npm test && npm run check && npm run build && npm run check:size && npm run check:datasets && npm run build:demo && npm run check:package",
     "screenshots": "node scripts/capture-docs.mjs"
   },
   "peerDependencies": {
     "react": ">=18",
-    "svelte": "^5.0.0"
+    "svelte": "^5.0.0",
+    "vue": "^3.3.0"
   },
   "peerDependenciesMeta": {
     "react": {
       "optional": true
     },
     "svelte": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   },
@@ -118,7 +141,10 @@
     "rna",
     "protein",
     "react",
-    "svelte"
+    "svelte",
+    "vue",
+    "web-components",
+    "custom-element"
   ],
   "license": "MIT",
   "publishConfig": {
