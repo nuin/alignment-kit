@@ -10,7 +10,7 @@ test('visibility changes collapse layout, close menus, and preserve the alignmen
   await expect(page.locator('.ak-scheme-label')).toBeHidden();
   await expect(page.locator('.ak-tracks')).toBeHidden();
   await expect(page.locator('.ak-overview-wrap')).toBeHidden();
-  await expect(page.locator('[data-tab=annotations]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('[data-tab=annotations]')).toHaveAttribute('aria-selected','true');
   expect(await page.evaluate(()=>({gutter:getComputedStyle(document.querySelector('.ak-viewer')!).getPropertyValue('--ak-gutter'),rows:(window as any).alignmentDemo.viewer.getStatistics().total,selection:(window as any).alignmentDemo.viewer.getState().selection}))).toEqual({gutter:'0px',rows:838,selection:{start:3,end:5}});
   await page.evaluate(()=>{const viewer=(window as any).alignmentDemo.viewer;viewer.setOptions({visibility:Object.fromEntries(Object.keys(viewer.getVisibility()).map(k=>[k,false]))});});
   for(const selector of ['.ak-toolbar','.ak-tools','.ak-inspector','.ak-status','.ak-grid'])await expect(page.locator(selector)).toBeHidden();
@@ -25,10 +25,10 @@ test('visibility changes collapse layout, close menus, and preserve the alignmen
 test('individual hidden controls and inspector tabs stay hidden after rerenders',async({page})=>{
   await page.goto('/');await page.waitForFunction(()=>(window as any).alignmentDemo?.viewer.getStatistics()?.total===838);
   await page.evaluate(()=>{const v=(window as any).alignmentDemo.viewer;v.setOptions({visibility:{positionTab:false,featureType:false,featurePagination:false,rowSelection:false,rowPinning:false,alphabet:false,export:false}});v.setFilter('Q');v.setSelection({start:1,end:1});});
-  await expect(page.locator('[data-tab=annotations]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('[data-tab=annotations]')).toHaveAttribute('aria-selected','true');
   for(const selector of ['.ak-feature-pagination','[data-select-row]','[data-pin]','[role=combobox][aria-label="Sequence alphabet"]','[role=combobox][aria-label="Export alignment"]','[role=combobox][aria-label="Feature type"]'])await expect(page.locator(selector).first()).toBeHidden();
   await page.evaluate(()=>(window as any).alignmentDemo.viewer.setOptions({visibility:{positionTab:false,featuresTab:false,compareTab:false,colorsTab:false,hitsTab:false,summaryTab:false}}));
   await expect(page.locator('.ak-inspector')).toBeHidden();
   await page.evaluate(()=>(window as any).alignmentDemo.viewer.setOptions({visibility:{colorsTab:true}}));
-  await expect(page.locator('.ak-inspector')).toBeVisible();await expect(page.locator('[data-tab=legend]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.ak-inspector')).toBeVisible();await expect(page.locator('[data-tab=legend]')).toHaveAttribute('aria-selected','true');
 });

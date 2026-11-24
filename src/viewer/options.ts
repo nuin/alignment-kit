@@ -62,7 +62,7 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   $<HTMLSelectElement>(v.root,'[aria-label="FASTA letter case"]').value=f.letterCase??'original';$<HTMLSelectElement>(v.root,'[aria-label="FASTA header"]').value=f.header??'name';$<HTMLInputElement>(v.root,'[aria-label="Visible columns only"]').checked=v.options.export.columns==='visible';
   v.labelKey='';v.overviewDirty=true;v.inspectorDirty=true;v.layout();
   if(masked){v.scroll.scrollLeft=columnPos(v.columns,Math.min(anchor,Math.max(0,v.columns.width-1)))*v.options.cellWidth;v.emit('state',v.getState());}
-  const focused=v.root.ownerDocument.activeElement as HTMLElement|null;
+  const focused=(v.root.getRootNode() as Document|ShadowRoot).activeElement as HTMLElement|null;
   if(focused&&v.root.contains(focused)&&focused.closest('[hidden]')){const target=v.visibility.alignment?v.scroll:v.root;if(target===v.root)target.tabIndex=-1;target.focus();}
   if(refiltered&&v.a){v.inspectorDirty=true;if(v.options.statisticsScope==='filtered'&&oldScope===v.options.statisticsScope)void v.updateStats().catch(()=>{});v.emit('state',v.getState());}
   if(oldScope!==v.options.statisticsScope&&v.a)void v.updateStats().catch(()=>{});

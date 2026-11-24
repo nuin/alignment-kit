@@ -43,7 +43,7 @@ test('filter and theme are usable at narrow widths',async({page})=>{
   await page.getByLabel('Filter sequences').fill('no-such-sequence');
   await expect(page.locator('.ak-status')).toContainText('0 filtered');
   await page.getByLabel('Filter sequences').fill('');
-  await page.getByRole('button',{name:'Toggle theme'}).click();
+  await page.getByRole('button',{name:'Dark theme'}).click();
   await expect(page.locator('.ak-viewer')).toHaveAttribute('data-theme','dark');
   await page.screenshot({path:'test-results/viewer-narrow.png',fullPage:true});
 });

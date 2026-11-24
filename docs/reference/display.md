@@ -148,3 +148,41 @@ createViewer(element, { tracks: [{ id: 'ss', label: 'Structure', type: 'text', v
 ### Stockholm tracks
 
 Stockholm `#=GC` lines become tracks when `visibility.stockholmTracks` is on (default). Each key (`SS_cons`, `RF`, `seq_cons` and others) is a 20 px text track; `PP_cons` is grey shading from `0` to `9`. `#=GR` lines draw for the selected row, or the pinned reference when no row is selected, labelled `<feature> <row name>`; `PP` is shaded. Selecting another row swaps the `#=GR` tracks. These tracks are not listed by `getTracks()`.
+
+## Toolbar groups and narrow layouts
+
+The tools bar under the main toolbar holds labelled groups. Each group is a `role="group"` element whose `aria-label` is also drawn as its caption.
+
+| Group | Controls |
+|---|---|
+| Navigate | Go to, motif search with Previous and Find next, variant navigation |
+| Rows | Order, Show hidden |
+| Columns | Hide selected columns, Show all columns |
+| Display | Residues to color, Dots for matches, Frequency logo, Reverse complement, Alphabet |
+
+**More** opens a panel with the rarely used groups. It is a button with `aria-expanded` and `aria-controls`, closed by default.
+
+| Group in More | Controls |
+|---|---|
+| Thresholds | Consensus, Color threshold |
+| Row filters | Minimum identity, Minimum coverage |
+| Statistics and ruler | Statistics, Ruler |
+
+Accessible names are unchanged from earlier releases (for example `Minimum identity to reference`, `Statistics scope`, `Sequence alphabet`), and each name contains its visible label. A group with every control hidden through `visibility` disappears, and **More** disappears when its panel has nothing to show.
+
+The **Dark theme** and **Inspector** buttons are toggles with `aria-pressed`, set from the `theme` and `showInspector` options. Error messages use `role="alert"`; other messages use `role="status"`.
+
+The inspector tabs form a `role="tablist"`. One tab is in the Tab order; Left, Right, Home and End move between tabs and select them. The panel is a `role="tabpanel"` named by the selected tab.
+
+The grid is named **Alignment residues**; its key list is a description (`aria-describedby`). Keys in the grid: arrows move the active cell, Shift with arrows selects columns, Page Up and Page Down move one screen of rows, Home and End go to the first and last column, Control (or Command) with Home and End go to the first and last row, plus and minus zoom, `[` and `]` step through variants, Escape clears the selection.
+
+Layout follows the width of the viewer element, measured with CSS container queries, so a narrow viewer on a wide page gets the narrow layout:
+
+| Viewer width | Change |
+|---|---|
+| under 1240 px | Full screen shows its icon only |
+| 800 px and under | The inspector overlays the grid; status details are hidden |
+| 700 px and under | The tools bar becomes one horizontally scrolling strip, with the More groups in the same strip |
+| 480 px and under | The Color menu fills its row, the overview title is hidden, the inspector takes the full width |
+
+The label column width comes from the `labelWidth` option (100 to 420 px) at every width, because the canvas shares it. Pass a smaller `labelWidth` for a narrow viewer; the demo uses 150 px at 480 px and under.
