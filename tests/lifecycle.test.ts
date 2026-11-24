@@ -45,7 +45,8 @@ it('uses current callbacks and replaces data without remounting',async()=>{
   const b=parseAlignment('>new\nGG',{alphabet:'dna'});
   controller.update({alignment:b,options:{worker:false,theme:'dark'},onSelectionChange:second});
   await vi.waitFor(()=>expect(controller.viewer.getStatistics()?.width).toBe(2));
-  controller.viewer.setSelection({start:2,end:2});expect(second).toHaveBeenCalledOnce();expect(first).toHaveBeenCalledOnce();
+  expect(second.mock.calls).toEqual([[null]]);
+  controller.viewer.setSelection({start:2,end:2});expect(second.mock.calls).toEqual([[null],[{start:2,end:2}]]);expect(first).toHaveBeenCalledOnce();
   expect(document.querySelectorAll('.ak-viewer')).toHaveLength(1);
 });
 it('cancels stale loads and removes listeners and DOM on destroy',async()=>{
