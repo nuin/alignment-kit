@@ -3,21 +3,19 @@ on:
   push:
     tags: ['v*']
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 jobs:
-  release:
+  verify:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with: { node-version: 22, cache: npm, registry-url: https://registry.npmjs.org }
-      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
-        with: { deno-version: v2.x }
-      - name: Tag matches package.json and deno.json
+        with: { node-version: 22, cache: npm }
+      - name: Tag matches package.json, package-lock.json and deno.json
         run: |
           tag=${GITHUB_REF_NAME#v}
           test "$tag" = "$(node -p "require('./package.json').version")"
+          test "$tag" = "$(node -p "require('./package-lock.json').version")"
           test "$tag" = "$(node -p "require('./deno.json').version")"
       - run: npm ci
       - run: npm run release:check
@@ -27,9 +25,22 @@ jobs:
           printf 'https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttps://security.ubuntu.com/ubuntu/\tpriority:2\n' | sudo tee /etc/apt/apt-mirrors.txt
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:browser
-      - name: npm 11.5.1 or later for trusted publishing
-        run: npm install -g npm@^11.5.1
-      - run: npm publish --access public
+  publish:
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 22, cache: npm, registry-url: https://registry.npmjs.org }
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with: { deno-version: v2.x }
+      - run: npm ci
+      - name: npm 11.5.1, the first version with trusted publishing
+        run: npm install -g npm@11.5.1
+      - run: npm publish --access public --provenance
       - run: deno publish
       - run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
         env: { GH_TOKEN: '${{ github.token }}' }
