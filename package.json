@@ -102,7 +102,8 @@
     "svelte-check": "^4.4.6",
     "typescript": "^5.9.3",
     "vite": "^7.3.7",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "vue": "^3.5.46"
   },
   "repository": {
     "type": "git",
