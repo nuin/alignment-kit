@@ -1,64 +1,212 @@
 # API, events and controls
 
-## API and controls
+`createViewer(element, options?)` returns an `AlignmentViewer`. This page lists its methods, events and options, then the mouse and keyboard controls. Functions that work without a viewer are in [Standalone functions and types](functions.md).
+
+```ts
+import { createViewer } from '@nuin/msa-canvas';
+import '@nuin/msa-canvas/style.css';
+
+const viewer = createViewer(document.querySelector('#alignment'), { height: 600 });
+await viewer.load(text);
+const off = viewer.on('selection', selection => console.log(selection));
+off();
+viewer.destroy();
+```
+
+Coordinates are one-based, inclusive alignment columns. Row arguments are row IDs. After `destroy()`, most methods throw `This viewer has been destroyed.`
+
+## Viewer methods
+
+The tables in this section hold `AlignmentViewer` members only. `viewer.element` is the host element passed to `createViewer`.
+
+### Data and lifecycle
 
 | Method | Purpose |
 |---|---|
-| `load(input, parseOptions?)` | Parse text, a file or bytes; await exact statistics |
-| `loadUrl(url, parseOptions?)` | Fetch and load with cancellation/CORS diagnostics |
-| `setAlignment(alignment)` | Replace data; await exact statistics |
-| `clear()` / `destroy()` | Clear data / permanently dispose resources |
-| `setOptions(options)` | Update visual/analysis options |
-| `setReference(rowId)` | Pin a stable row as reference |
-| `setFilter(query)` | Filter names and species |
-| `setSort(sort, column?)` | Stable ordering by `'input'`, `'name'`, `'identity'`, `'gaps'` (fewest gaps first), `'length'` (longest ungapped first), `'residue'` (residue at `column`, default the selected column, gaps last; rejects without a valid column), `'annotations'` (most annotated first), `'manual'` or `'tree'`; identity calculation is asynchronous; `tree` needs `setTree` first. `gaps` and `length` give the same order |
-| `setRowOrderFromNames(names)` | Put the rows named in `names` (row name, then ID) first in that order, keep the rest in their current order, switch to manual order; returns names that matched no row |
-| `hideRows(ids)` / `showRows(ids?)` | Hide rows from the grid / restore some or all hidden rows |
-| `hideColumns(start, end)` / `showColumns(start?, end?)` | Hide columns by one-based range / show a range, or everything when called with no arguments (see [Hide columns](display.md#hide-columns)) |
-| `markColumns(ranges, color?)` / `unmarkColumns(ranges?)` / `getColumnMarks()` | Mark columns, remove marks (all when called with no argument), read the marks (see [Mark columns](display.md#mark-columns)) |
-| `getColumnMask()` | `Uint8Array` with 1 for each visible column and 0 for each hidden one |
-| `moveRow(id, index)` / `getRowOrder()` | Move a row to a zero-based position and switch to manual order / read all row IDs in the current order |
-| `removeRows(ids)` | Delete rows from a copy of the alignment and recompute statistics |
-| `setGroups(map \| null)` / `toggleGroup(name, collapsed?)` | Group rows by an ID-to-name map / collapse or expand a group |
-| `setTree(newick \| null)` | Show a Newick tree and order rows by it / remove it |
-| `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range |
-| `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif in the search worker; highlight hits; resolve `{ hits, truncated }`. Rejects on an invalid pattern, with `AbortError` when replaced and with `TimeoutError` when stopped |
-| `getSearchHits()` / `clearSearch()` | Read the current hits / remove the search and its highlights |
-| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; resolves a boolean, `true` when it started a new search, and reports errors through the status line and `error`. Auto mode applies, so in IUPAC text `N` (DNA/RNA) and `X` (protein) match any residue |
-| `addAnnotations(list)` / `removeAnnotations(ids?)` | Add annotations / remove some by ID (all when omitted) |
-| `exportAnnotationsGff3`, `exportAnnotationsTsv`, `exportAnnotationsJson` | Functions of `(alignment, options?)`; see [Export annotations](annotations.md#export-annotations) |
-| `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
-| `addVariants(variants, options?)` | Map variant records (row, position or protein HGVS) onto rows and add them as annotations; returns `{ annotations, warnings }`. See [Variants](annotations.md#variants) |
-| `nextVariant(direction?)` | Select the next (`1`, default) or previous (`-1`) shown variant by start column then display row, wrapping; returns the annotation or `null` |
-| `setAnnotationFilter(filter)` | Replace type/consequence/evidence/row-visibility filters |
-| `getState()` / `setState(state)` | Serialize/restore view state for the same dataset |
-| `getAlignment()` / `getStatistics()` | Read model / current exact statistics (may be pending) |
-| `getDetectedAlphabet()` | Alphabet suggested by the residues (`protein`, `dna` or `rna`), whatever alphabet the alignment is shown as. Throws before a load. `detectAlphabet(alignment)` is exported for use without a viewer |
-| `getSelectedRowIds()` | Read checked sequence IDs |
-| `copySelection()` / `getSelectionText()` | Copy the selection to the clipboard as gapped FASTA / return that text |
-| `getViewLink()` / `applyViewLink(link)` | Encode the view as URL parameters / apply a link, skipping settings that do not fit |
-| `goToResidue(rowId, position)` | Select residue `position` of the row with that ID (numbered as in the ruler); returns `false` and shows a message if the row or residue does not exist |
-| `addTrack(track)` / `removeTrack(id)` / `getTracks()` | Register, remove and list custom tracks (see [Tracks](display.md#tracks)) |
+| `load(input, parseOptions?)` | Parse text, a `Blob` or an `ArrayBuffer`; resolves when exact statistics are ready |
+| `loadUrl(url, parseOptions?)` | Fetch and load a URL. The error names CORS when the request fails |
+| `setAlignment(alignment)` | Replace the data with an `Alignment`; resolves when exact statistics are ready |
+| `clear()` | Remove the alignment and show the empty state |
+| `destroy()` | Cancel every worker job, remove every listener and remove the viewer from the page. A second call does nothing |
+| `getAlignment()` | The loaded `Alignment`, or `undefined` |
+| `getStatistics()` | The current `AlignmentStats`, or `undefined` while they are pending |
+| `getDetectedAlphabet()` | Alphabet suggested by the residues (`protein`, `dna` or `rna`), whatever alphabet the alignment is shown as. Throws before a load |
 | `getWarnings()` | Copies of the parser warnings of the loaded alignment (see [Parser warnings](formats.md#parser-warnings)) |
-| `getResidue(rowId, column)` | Upper-case residue at a one-based column; `null` for a gap, an unknown row or a column outside the alignment |
+| `on(event, callback)` | Subscribe to an event; returns an unsubscribe function. See [Events](#events) |
+
+### Options and view state
+
+| Method | Purpose |
+|---|---|
+| `setOptions(options)` | Update options. Omitted keys keep their value. See [Options](#options) |
+| `getVisibility()` | A copy of all 80 resolved `visibility` flags (see [Configure the interface](configuration.md#configure-the-interface)) |
+| `getState()` | The view as a serializable `ViewState` with `version: 1` |
+| `setState(state)` | Restore a `ViewState` on the same dataset; returns a promise |
+| `getViewLink()` | The view as URL parameters, with `src` when the alignment came from `loadUrl` |
+| `applyViewLink(link)` | Apply a link string or a `ViewLink`; resolves the names of settings that did not fit and were skipped |
+
+### Rows
+
+| Method | Purpose |
+|---|---|
+| `setReference(rowId)` | Pin a row as the reference |
+| `setFilter(query)` | Filter rows by name and species |
+| `setSort(sort, column?)` | Order rows by `'input'`, `'name'`, `'identity'`, `'gaps'` (fewest gaps first), `'length'` (longest ungapped first), `'residue'` (residue at `column`, default the selected column, gaps last; rejects without a valid column), `'annotations'` (most annotated first), `'manual'` or `'tree'`. Returns a promise, because identity runs in a worker. `'tree'` needs `setTree` first. `gaps` and `length` give the same order |
+| `setRowOrderFromNames(names)` | Put the rows named in `names` (row name, then ID) first in that order, keep the rest in their current order, switch to manual order; returns names that matched no row |
+| `hideRows(ids)` | Hide rows from the grid, the filtered statistics scope and exports of visible rows |
+| `showRows(ids?)` | Show the given hidden rows, or every hidden row when `ids` is omitted |
+| `moveRow(id, index)` | Move a row to a zero-based position of `getRowOrder()` and switch to manual order |
+| `getRowOrder()` | All row IDs in the current order, hidden and filtered rows included |
+| `removeRows(ids)` | Delete rows from a copy of the alignment and recompute statistics. The alignment ID changes |
+| `setGroups(map \| null)` | Group rows by an ID-to-name map; `null` falls back to the `groupBy` option |
+| `toggleGroup(name, collapsed?)` | Collapse or expand a group; omit `collapsed` to toggle |
+| `setTree(newick \| null)` | Show a Newick tree and order rows by it; `null` removes it |
+| `getSelectedRowIds()` | IDs of the checked rows |
+| `getVisibleRows()` | Row IDs shown in the grid in display order: the pinned reference first, then rows that are not hidden, filtered out or collapsed |
+| `scrollToRow(rowId)` | Scroll the row to the top without changing the selection; `false` for an unknown, hidden, filtered or collapsed row |
+| `setRowStrand(rowId, strand)` | Flag a row as reverse strand (`'-'`) or forward (`'+'`). A flagged row is drawn complemented in place. Throws for an unknown row ID; shows a message on protein (see [Reverse complement view](display.md#reverse-complement-view)) |
+| `getRowStrand(rowId)` | `'-'` when the row is flagged as reverse strand, else `'+'` |
+
+### Columns
+
+| Method | Purpose |
+|---|---|
+| `hideColumns(start, end)` | Hide a column range without changing the alignment. Throws when the range is invalid or would leave no column (see [Hide columns](display.md#hide-columns)) |
+| `showColumns(start?, end?)` | Show a range, or every hidden column when called with no arguments |
+| `getColumnMask()` | `Uint8Array` with 1 for each visible column and 0 for each hidden one |
+| `markColumns(ranges, color?)` | Mark columns with an outline box and a ruler marker (see [Mark columns](display.md#mark-columns)) |
+| `unmarkColumns(ranges?)` | Remove marks from the ranges, or every mark with no argument |
+| `getColumnMarks()` | The marks as sorted `{ start, end, color }` ranges |
+| `getVisibleColumns()` | `{ start, end }`, the original columns at the viewport edges; `{ start: 0, end: 0 }` before a load |
+| `scrollToColumn(column)` | Scroll the column to the left edge without changing the selection; `false` for a hidden or out-of-range column |
+| `setReverseComplement(on)` | Show the alignment reverse-complemented. Columns run right to left and every residue is complemented. Shows a message on protein and changes nothing |
+| `getReverseComplement()` | `true` while the reverse-complement view is active; always `false` for protein |
+
+### Selection and data access
+
+| Method | Purpose |
+|---|---|
+| `setSelection({ start, end, rowId? } \| null)` | Select and reveal an inclusive range; `null` clears the selection |
+| `goToResidue(rowId, position)` | Select residue `position` of the row with that ID (numbered as in the ruler); returns `false` and shows a message if the row or residue does not exist |
+| `getResidue(rowId, column)` | Upper-case residue at a column; `null` for a gap, an unknown row or a column outside the alignment |
 | `getColumn(column)` | `{ rowId, residue }[]` for every row in input order (`-` for gaps); `[]` outside the alignment |
 | `getSelectionSequences({ gaps? })` | `{ id, name, sequence }[]` for the checked rows (display order), else the selected row, cut to the selected columns; `gaps: 'remove'` drops gap characters; `[]` with no selection |
-| `getVisibleRows()` | Row IDs shown in the grid in display order: the pinned reference first, then rows that are not hidden, filtered out or collapsed |
-| `getVisibleColumns()` | `{ start, end }`, the one-based original columns at the viewport edges |
-| `scrollToRow(rowId)` / `scrollToColumn(column)` | Scroll the row to the top or the column to the left edge without changing the selection; `false` for unknown, hidden, filtered, collapsed or out-of-range targets |
-| `getSummary(options?)` / `getVariableColumns(options?)` | Column-class counts, identity and GC / variable columns versus the reference. See [Column summary](statistics.md#column-summary) |
+| `getSelectionText()` | Gapped FASTA for the rows and columns that Ctrl/Cmd+C copies |
+| `copySelection()` | Write that text to the clipboard; returns a promise |
 | `getConsensus({ threshold? })` | Consensus sequence over all columns from the current statistics |
-| `on(event, callback)` | Subscribe; returns an unsubscribe function |
 
-Events: `ready`, `warnings` (the parser warnings of each loaded alignment, an empty array when there are none), `selection`, `search` (`{ hits, truncated }` when a scan finishes, or `null` after `clearSearch()`, a new alignment or a stopped scan), `viewport`, `annotation`, `hover` (`{ rowId, column, residue, position }`, or `null` when the pointer leaves a cell), `cellclick` (the same plus `shiftKey`), `state`, `error`. The `viewport` event reports alignment columns and visible row offsets. `state` represents user selection/filter/reference/order changes; call `getState()` when persisting the latest scroll/zoom state.
+### Search and statistics
 
-Options: `reverseComplement` (default `false`, see [Reverse complement view](display.md#reverse-complement-view)), `height`, `theme`, `colorScheme`, `colorMode`, `matchDisplay` (`letter` or `dot`, default `letter`), `cellWidth` (3–32), `rowHeight` (18–48, default 36), `labelWidth` (100–420), `showLogo`, `showInspector`, `showToolbar`, `statisticsScope`, `consensusThreshold` (0–1, default 0), `colorThreshold` (0–1, default 0), `minIdentity` (0–100, default 0), `minCoverage` (0–100, default 0), `logoMode`, `conservationWindow`, `tracks`, `groupBy`, `treeWidth` (0–400, default 120), `hideGapColumns` (0–1 or `null`, default `null`), `hideAllGapColumns` (default `false`), `rulerCoordinates` (`'alignment'` or `'reference'`, default `'alignment'`), `fasta`, `export` (`{ columns: 'all' | 'visible' }`), `workerUrl`, `worker`, `urlSync`, `focusFirstVariant` (default `false`: select and reveal the first variant when new data loads), `textView` (default `false`, see [Text view](display.md#text-view)). Compare coloring supports matches/differences against reference or consensus. Both light and dark surfaces are provided; biological palettes keep their meaning. Rows below 32px hide the secondary species line to avoid overlap.
+| Method | Purpose |
+|---|---|
+| `search(pattern, { mode?, strands? })` | Search filtered rows for an IUPAC, regex or PROSITE motif in the search worker; highlight hits; resolve `{ hits, truncated }`. Rejects on an invalid pattern, with `AbortError` when replaced and with `TimeoutError` when stopped |
+| `getSearchHits()` | A copy of the current hits |
+| `clearSearch()` | Remove the search and its highlights |
+| `findMotif(text, direction?)` | Search if `text` is new, then select the next (`1`, default) or previous (`-1`) hit, wrapping around; resolves `true` when it started a new search, and reports errors through the status line and `error`. Auto mode applies, so in IUPAC text `N` (DNA/RNA) and `X` (protein) match any residue |
+| `getSummary(options?)` | Column-class counts, identity and GC as an `AlignmentSummary`. See [Column summary](statistics.md#column-summary) and the cache note below |
+| `getVariableColumns(options?)` | Variable columns versus the reference as a `VariableColumnResult` |
+
+Each distinct summary scope (rows, columns and reference) runs in its own worker and is cached. The cache holds 8 scopes. A ninth scope evicts the entry created first, and a pending promise of that entry rejects with an `AbortError`. A new alignment and `destroy()` cancel every pending summary.
+
+### Annotations, variants and tracks
+
+| Method | Purpose |
+|---|---|
+| `addAnnotations(list)` | Add annotations; throws for a duplicate ID |
+| `removeAnnotations(ids?)` | Remove annotations by ID, or all when `ids` is omitted |
+| `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
+| `setAnnotationFilter(filter)` | Replace the type, consequence, evidence and row-visibility filters |
+| `addVariants(variants, options?)` | Map variant records (row, position or protein HGVS) onto rows and add them as annotations; returns `{ annotations, warnings }`. See [Variants](annotations.md#variants) |
+| `nextVariant(direction?)` | Select the next (`1`, default) or previous (`-1`) shown variant by start column then display row, wrapping; returns the annotation or `null` |
+| `addTrack(track)` | Register a custom track below the built-in tracks (see [Tracks](display.md#tracks)) |
+| `removeTrack(id)` | Remove a custom track |
+| `getTracks()` | Copies of the registered tracks in drawing order |
+
+## Standalone exports
+
+These names are functions of the package, and the viewer has no method with these names, except `importAnnotations`. [Standalone functions and types](functions.md) lists every export with its arguments.
+
+| Export | Use |
+|---|---|
+| `createViewer(element, options?)` | Create the viewer |
+| `detectAlphabet(alignment)` | The check behind `getDetectedAlphabet()`, for use without a viewer |
+| `exportAnnotationsGff3`, `exportAnnotationsTsv`, `exportAnnotationsJson` | Functions of `(alignment, options?)`; see [Export annotations](annotations.md#export-annotations) |
+| `importAnnotations(alignment, text, options?)` | The standalone form returns the mapped annotations and adds nothing |
+| `exportFasta`, `exportSvg`, `exportPng` and the other exporters | Functions of `(alignment, region?, ...)`; see [Export and shareable links](export.md) |
+| `parseViewerConfig(input)` | Validate JSON options before `createViewer` or `setOptions` |
+
+## Events
+
+`viewer.on(event, callback)` subscribes and returns a function that unsubscribes.
+
+| Event | Payload | Fires when |
+|---|---|---|
+| `ready` | `Alignment` | An alignment and its statistics finished loading |
+| `warnings` | `ParseWarning[]` | Each alignment load; an empty array when the parser recorded none |
+| `selection` | `Selection` or `null` | The selection changes |
+| `search` | `SearchResult` or `null` | A scan finishes; `null` after `clearSearch()`, a new alignment or a stopped scan |
+| `viewport` | `Viewport` | The visible columns or rows change. Reports alignment columns and visible row offsets |
+| `annotation` | `Annotation` | The user clicks an annotation |
+| `hover` | `CellInfo` or `null` | The mouse or pen moves to a cell; `null` when it leaves. Not sent for touch |
+| `cellclick` | `CellClick` | Every click on a residue that is not a drag. `CellInfo` plus `shiftKey` |
+| `state` | `ViewState` | The user changes selection, filter, reference or order. Call `getState()` to persist the latest scroll and zoom |
+| `error` | `Error` | A load, an option or a worker job fails |
+
+## Options
+
+`createViewer(element, options)` and `setOptions(options)` take a `ViewerOptions` object. `setOptions` merges: an omitted key keeps its value. `setOptions` clamps a number outside its range to the nearest limit. `parseViewerConfig` throws for the same value.
+
+| Option | Type | Range | Default | Notes |
+|---|---|---|---|---|
+| `alignment` | `Alignment` | | none | Loaded by the constructor. `setOptions` ignores it; call `setAlignment` |
+| `height` | number | 360 to 2000 | `740` | Viewer height in pixels |
+| `theme` | `'light'` or `'dark'` | | `'light'` | Surface colors. Residue palettes keep their meaning in both |
+| `colorScheme` | string | a registered scheme ID | `'soft'` | A scheme that does not fit the alphabet falls back to `soft` or `soft-nucleotide`. See [Colors and themes](configuration.md#colors-and-themes) |
+| `colorMode` | `ColorMode` | 5 values | `'all'` | Color all residues, or only matches or differences against the reference or the consensus |
+| `matchDisplay` | `'letter'` or `'dot'` | | `'letter'` | `'dot'` draws residues identical to the comparison residue as `.` |
+| `cellWidth` | number | 3 to 32 | `16` | Column width in pixels; the zoom buttons change it |
+| `rowHeight` | number | 18 to 48 | `36` | Rows below 32 pixels hide the species line |
+| `labelWidth` | number | 100 to 420 | `230` | Width of the row label gutter in pixels |
+| `showLogo` | boolean | | `false` | Alias of `visibility.logo` |
+| `showInspector` | boolean | | `true` | Alias of `visibility.inspector` |
+| `showToolbar` | boolean | | `true` | Alias that sets `visibility.toolbar` and `visibility.tools` |
+| `visibility` | `ViewerVisibility` | 80 boolean keys | `defaultVisibility` | Keys merge one by one. See [Configure the interface](configuration.md#configure-the-interface) |
+| `statisticsScope` | `'all'` or `'filtered'` | | `'all'` | Rows that the statistics cover |
+| `rulerCoordinates` | `'alignment'` or `'reference'` | | `'alignment'` | Ruler numbering by column, or by residue of the pinned reference |
+| `consensusThreshold` | number | 0 to 1 | `0` | Consensus columns with a lower modal frequency become X or N |
+| `colorThreshold` | number | 0 to 1 | `0` | The `conservation` and `percent-identity` schemes leave lower columns uncolored |
+| `minIdentity` | number | 0 to 100 | `0` | Show only rows with at least this percent identity to the reference |
+| `minCoverage` | number | 0 to 100 | `0` | Show only rows with at least this percent of non-gap columns |
+| `logoMode` | `'frequency'` or `'bits'` | | `'frequency'` | `'bits'` scales each logo stack by information content |
+| `conservationWindow` | odd integer | 1 to 51 | `1` | Centered moving average for the entropy and quality bars |
+| `groupBy` | string | | `''` (no groups) | A `row.metadata` key, or `'species'`. An empty string turns grouping off |
+| `treeWidth` | number | 0 to 400 | `120` | Width of the tree column in pixels; 0 hides it |
+| `hideGapColumns` | number or `null` | 0 to 1 | `null` | Hide columns whose gap fraction is at least this value. See [Hide columns](display.md#hide-columns) |
+| `hideAllGapColumns` | boolean | | `false` | Hide columns that are gaps in every row |
+| `reverseComplement` | boolean | | `false` | DNA and RNA only. See [Reverse complement view](display.md#reverse-complement-view) |
+| `textView` | boolean | | `false` | Plain text blocks in place of the grid. See [Text view](display.md#text-view) |
+| `focusFirstVariant` | boolean | | `false` | Select and reveal the first variant when new data loads |
+| `dragToPan` | boolean | | `true` | Drag the residue grid to pan. See [Mouse](#mouse-and-keyboard) |
+| `tooltips` | boolean | | `true` | Hover cards for residues and annotation marks. See [Tooltips](#tooltips) |
+| `annotationLinks` | `Record<string, string>` | `http` or `https` templates with `{id}` | `{}` (no links) | URL templates keyed by `pubmed`, `evidence` or a source name. See [Tooltips](#tooltips) |
+| `tracks` | `CustomTrack[]` | | `[]` | Replaces the custom track list. See [Tracks](display.md#tracks) |
+| `fasta` | `FastaOptions` | | `{}` | Keys merge. Effective defaults: keep gaps, original case, 80 columns, name header, source orientation |
+| `export` | `ExportOptions` | | `{}` | `columns` is `'all'` (the effective default) or `'visible'`, which leaves hidden columns out of every export and copy |
+| `urlSync` | boolean | | `false` | Keep `location.hash` in sync with the view. Read once by the constructor |
+| `worker` | boolean | | `true` | `false` runs analysis on the main thread. Read once by the constructor |
+| `workerUrl` | string or `URL` | | the bundled `worker.js` | Read once by the constructor. See [Workers and bundlers](frameworks.md#workers-and-bundlers) |
+
+`showToolbar`, `showInspector` and `showLogo` are aliases from before the `visibility` option. They stay supported. An explicit `visibility` key in the same call wins over an alias.
+
+## Mouse and keyboard
 
 Mouse: press and drag the residue grid to pan horizontally and vertically (mouse, pen or touch). A press that moves under 4 px is a click and selects; a drag never changes the selection. Clicking a residue selects its column and row; clicking the same cell again, without Shift, while it is the whole selection clears the selection. The same applies to a track column. Panning stops on release. Labels, tracks, the tree and row drag handles do not start a pan. Set `dragToPan: false` to turn it off. No hover card shows while panning.
 
 Keyboard: arrows inspect adjacent residues/rows, Shift+arrows extends a range, Home/End jumps, +/− zooms, Escape clears selection, `]` and `[` select the next and previous variant, F toggles full screen (outside text fields), Ctrl/Cmd+C copies the selection as FASTA. Shift-click selects a range. The overview and label-width separator have keyboard controls. The canvas grid exposes one active cell with its row name, alignment column, residue or gap, and sequence position. The inspector is keyboard-focusable; Text view exposes readable alignment blocks and removes the covered grid from accessibility navigation. See [accessibility validation](../performance.md) for automated coverage and native screen-reader limits.
 
-Alphabet guard: the viewer detects the alphabet from the residues on load (`getDetectedAlphabet()`). Nucleotide means at least 90% of non-gap residues are A, C, G, T, U or N. When the **Type** select is changed across the protein/nucleotide line from the detected alphabet, the message area asks first, for example `This alignment looks like protein (83.3% of residues are not A, C, G, T/U, N). Treat it as DNA?`, with **Switch** and **Cancel** buttons. Switch reloads the alignment with the new alphabet; Cancel restores the select. DNA to RNA and back switch without asking. The prompt shows even when `visibility.messages` is off. Programmatic alphabets (`load`, `parseAlignment` or `createAlignment` with `alphabet`, then `setAlignment`) are not gated. The Color select lists only schemes for the current alphabet (`colorSchemes(alphabet)`), and a scheme that no longer fits falls back to `soft` (protein) or `soft-nucleotide` (DNA/RNA).
+## Alphabet guard
+
+The viewer detects the alphabet from the residues on load (`getDetectedAlphabet()`). Nucleotide means at least 90% of non-gap residues are A, C, G, T, U or N. When the **Type** select is changed across the protein/nucleotide line from the detected alphabet, the message area asks first, for example `This alignment looks like protein (83.3% of residues are not A, C, G, T/U, N). Treat it as DNA?`, with **Switch** and **Cancel** buttons. Switch reloads the alignment with the new alphabet; Cancel restores the select. DNA to RNA and back switch without asking. The prompt shows even when `visibility.messages` is off. Programmatic alphabets (`load`, `parseAlignment` or `createAlignment` with `alphabet`, then `setAlignment`) are not gated. The Color select lists only schemes for the current alphabet (`colorSchemes(alphabet)`), and a scheme that no longer fits falls back to `soft` (protein) or `soft-nucleotide` (DNA/RNA).
 
 ## Tooltips
 
