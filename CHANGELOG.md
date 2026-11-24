@@ -4,7 +4,7 @@ Each release has a `v<version>` git tag. The entries for 0.1.0 to 0.5.0 were wri
 
 ## Upgrading
 
-No release from 0.1.0 to 0.5.2 removed a value export of the main entry or a `ViewerOptions` key. Release 0.3.0 dropped the `name-truncated` parser warning code. Three older option names remain as aliases.
+No release from 0.1.0 to 0.5.2 removed a value export of the main entry, a type export or a `ViewerOptions` key. A diff of `src/index.ts` at the seven tags shows this. Value exports grew from 25 to 72 and `ViewerOptions` keys from 16 to 37. Three older option names remain as aliases.
 
 | Older name | Since | Replacement | Behavior today |
 |---|---|---|---|
