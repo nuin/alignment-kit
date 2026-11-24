@@ -3,6 +3,7 @@ import { rowMetrics, annotationCounts } from '../rowmetrics';
 import { createAlignment } from '../model';
 import { $ } from '../controls';
 import { type Core, bounded } from './core';
+import { carryOf } from './load';
 const groupColors=['#2463a6','#3a8a5f','#b5651d','#8a4fa3','#c0392b','#2a9d8f','#9c8a1d','#5c6bc0'];
 /** Every row index in the current sort order, ignoring filters, hiding, grouping and pinning. */
 export function orderAll(v:Core):number[] {
@@ -65,10 +66,12 @@ export async function setSort(v:Core, sort:SortKey, column?:number):Promise<void
   }
   if(sort==='tree'&&!v.tree)throw new Error('Load a tree with setTree before ordering by tree.');
   if(sort==='manual'&&!v.manualOrder&&v.a)v.manualOrder=v.orderAll().map(i=>v.a!.rows[i].id);
-  v.sort=sort;$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=sort;
+  const order=$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]'),prev=v.sort==='identity'?'input':v.sort;v.sort=sort;order.value=sort;
   if(sort==='identity'&&v.a) {
     const a=v.a,ref=v.reference;v.message('Comparing sequences with the reference…');
-    try{const ok=await v.loadIdentities();if(v.disposed)return;if(!ok||v.a!==a||v.reference!==ref||v.sort!==sort){v.message('');return;}v.message('');}catch(error){v.error(error);return;}
+    try{const ok=await v.loadIdentities();if(v.disposed)return;if(!ok||v.a!==a||v.reference!==ref||v.sort!==sort){v.message('');return;}v.message('');}
+    // A failed comparison restores the previous order and still rebuilds the rows: setState changes hidden rows and order before it sorts.
+    catch(error){v.error(error);if(v.disposed||v.a!==a||v.sort!==sort||v.reference!==ref)return;v.sort=prev;order.value=prev;}
   }
   v.rebuildRows();v.emit('state',v.getState());
 }
@@ -89,8 +92,7 @@ export async function removeRows(v:Core, ids:string[]):Promise<void> {
   v.assertAlive();const a=v.a;v.rowIndexes(ids);const drop=new Set(ids);
   if(!drop.size)return;if(drop.size>=a!.rows.length)throw new Error('At least one sequence must remain.');
   const next=createAlignment(a!.rows.filter(r=>!drop.has(r.id)),{name:a!.name,alphabet:a!.alphabet,metadata:dropWarnings(a!.metadata,drop),annotations:a!.annotations.filter(x=>!x.rowId||!drop.has(x.rowId))});
-  const filter=v.annotationFilter,selected=v.selection?.rowId;
-  await v.replace(next,{reference:a!.rows[v.reference].id,selection:selected&&drop.has(selected)?null:v.selection,selectedRows:[...v.selectedRows],query:v.query,sort:v.sort==='identity'?'input':v.sort,sortColumn:v.sortColumn,hidden:[...v.hidden],manualOrder:v.manualOrder,collapsed:[...v.collapsed],groupMap:v.groupMap,tree:v.tree?.layout,annotationFilter:{...filter,hiddenRowIds:filter.hiddenRowIds?.filter(id=>!drop.has(id))},hiddenColumns:v.manualHidden,columnMarks:v.columnMarks,strands:[...v.rowStrands].filter(id=>!drop.has(id))},true);
+  await v.replace(next,carryOf(v,drop),true);
   if(v.a===next&&v.tree?.note)v.message(v.tree.note);
 }
 export function setGroups(v:Core, groups:Record<string,string>|null):void {

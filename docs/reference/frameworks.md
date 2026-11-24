@@ -66,6 +66,18 @@ The Svelte component accepts `class`, `style` and `id`. It supports SSR and only
 
 Both framework integrations accept `alignment`, `options`, `onReady`, `onWarnings`, `onSelectionChange`, `onViewportChange`, `onAnnotationClick`, `onSearch` and `onError`. `onSearch` receives a copy of `{ hits, truncated }` when each search finishes, or `null` when the search is cleared. `onReady` receives the imperative viewer immediately after mounting; subscribe to its `ready` event when you need completed data/statistics. Replace alignment/options objects rather than mutating them in place. Clearing `alignment` to `undefined` clears the viewer. Callbacks are updated without recreating the engine. Worker configuration is fixed at mount; visual options are reactive.
 
+## Update semantics
+
+`options` is a patch. Each update merges the keys it carries into the current settings through `setOptions`. A key dropped from the next object keeps its last value; pass the default explicitly to reset it. `fasta` and `export` merge key by key, `visibility` merges its boolean keys, and `tracks` and `annotationLinks` replace the whole list or map.
+
+The wrappers compare the next `options` with the last one they applied, by value: plain objects and arrays at any depth, with functions, typed arrays and class instances compared by identity. An equal object is skipped, so an inline `options={{ height: 650 }}` does not re-lay out the viewer or close an open menu on each parent render. Mutating the same object in place is still not detected.
+
+`setOptions` validates every key before it changes anything. A rejected call throws, emits `error` (the wrappers pass it to `onError`) and leaves every setting as it was. The wrappers do not rethrow it, and they do not apply the same rejected value again until `options` changes.
+
+`viewport` (`onViewportChange`) fires when `start`, `end`, `firstRow`, `lastRow` or `totalRows` changes, and once after each loaded alignment. A redraw of an unchanged viewport emits nothing, so calling `setState` in the handler does not loop.
+
+`selection` (`onSelectionChange`) also fires with `null` when a new alignment or a row removal drops the current selection.
+
 ## Workers and bundlers
 
 Parsing, column statistics, reference identity, bounded pairwise comparison and motif search use module workers. Cancellation terminates obsolete work on replacement or disposal. The normal Vite source and packed-package builds recognize the static worker constructor and bundle it. A bundler that does not process worker URLs must copy the complete `dist` directory and pass `workerUrl` pointing to `dist/worker.js`, retaining its sibling chunks.

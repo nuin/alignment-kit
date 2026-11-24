@@ -23,21 +23,22 @@ export async function loadInput(v:Core, input:string|Blob|ArrayBuffer,options:Pa
 }
 export async function loadUrl(v:Core, url:string,options:ParseOptions={}):Promise<void> {
   v.assertAlive();v.request?.abort();v.parser.cancel();const request=new AbortController();v.request=request;const token=++v.loadRevision;
-  v.message('Fetching alignment…');
+  v.message('Fetching alignment…');let bytes:ArrayBuffer,href:string;
   try {
     const parsed=new URL(url,document.baseURI);if(/\.a3m(?:\.gz)?$/i.test(parsed.pathname))throw new Error('A3M insertion notation is not aligned FASTA. Convert it before loading.');if(!['https:','http:'].includes(parsed.protocol))throw new Error('Alignment URLs must use HTTP or HTTPS.');
     const response=await fetch(parsed,{signal:request.signal});if(!response.ok)throw new Error(`HTTP ${response.status}`);
-    const bytes=await response.arrayBuffer();if(token!==v.loadRevision||v.disposed)return;
+    bytes=await response.arrayBuffer();href=parsed.href;if(token!==v.loadRevision||v.disposed)return;
     v.request=undefined;
-    await v.loadInput(bytes,{...options,source:options.source??{url:parsed.href,retrieved:new Date().toISOString()}},parsed.href);
-  }catch(error){if((error as Error).name==='AbortError')return;const err=new Error(`Could not load this URL: ${(error as Error).message}. The server must allow browser CORS requests. Download the file and use Open alignment instead.`);if(token===v.loadRevision)v.error(err);throw err;}
+  }catch(error){if((error as Error).name==='AbortError')return;const err=new Error(`Could not load this URL: ${(error as Error).message}. The server must allow browser CORS requests. Download the file and use Open alignment instead.`);if(token===v.loadRevision){v.loading=false;v.error(err);}throw err;}
+  // Outside the try: a parse failure keeps its own message.
+  await v.loadInput(bytes,{...options,source:options.source??{url:href,retrieved:new Date().toISOString()}},href);
 }
 /** `quiet` skips the `warnings` event for edits of an already loaded alignment (row removal, alphabet switch). */
 export async function replace(v:Core, alignment:Alignment,carry?:Carry,quiet=false):Promise<void> {
   v.assertAlive();v.tip?.hide();++v.loadRevision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();cancelSummaries(v);const revision=++v.revision;
-  if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length)throw v.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));
+  if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length){v.loading=false;throw v.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));}
   v.sourceUrl=v.nextSource;v.nextSource=undefined;v.loading=true;
-  const index=new Map(alignment.rows.map((r,i)=>[r.id,i])),known=(id:string)=>index.has(id);
+  const index=new Map(alignment.rows.map((r,i)=>[r.id,i])),known=(id:string)=>index.has(id),was=v.selection;
   v.a=alignment;v.variantCursor=undefined;v.detected=detectAlphabet(alignment);v.trackErrors.clear();v.checkTracks();v.stats=undefined;v.fullStats=undefined;v.reference=index.get(carry?.reference??'')??0;v.selection=carry?.selection??null;v.selectedRows=new Set(carry?.selectedRows.filter(known));v.query=carry?.query??'';v.sort=carry?.sort??'input';v.sortColumn=carry?.sortColumn;v.identityJob=undefined;v.identities=undefined;v.identityDetails=undefined;v.annotationFilter=carry?.annotationFilter??{};v.featurePage=0;
   v.hidden=new Set(carry?.hidden.filter(known));v.manualOrder=carry?.manualOrder?.filter(known)??null;v.collapsed=new Set(carry?.collapsed);v.groupMap=carry?.groupMap??null;v.tree=carry?.tree?v.bindTree(carry.tree):undefined;v.manualHidden=carry?.hiddenColumns??[];v.columnMarks=carry?.columnMarks??[];v.colMap=undefined;v.rowStrands=new Set(carry?.strands?.filter(known));
   v.menus.close();const schemes=colorSchemes(alignment.alphabet);
@@ -48,6 +49,8 @@ export async function replace(v:Core, alignment:Alignment,carry?:Carry,quiet=fal
   $<HTMLSelectElement>(v.root,'[aria-label="Sequence alphabet"]').value=alignment.alphabet;
   $<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=v.sort;
   v.rebuildAnnotations();v.rebuildRows();v.inspectorDirty=true;v.overviewDirty=true;v.layout();
+  const now=v.selection;if(was?.start!==now?.start||was?.end!==now?.end||was?.rowId!==now?.rowId)v.emit('selection',now);
+  if(v.disposed||v.revision!==revision)return;
   v.message('Calculating exact column statistics…');
   try{await v.updateStats();}catch(error){if(v.revision===revision)v.loading=false;throw error;}
   if(!v.disposed&&v.revision===revision&&v.a===alignment){
@@ -65,7 +68,12 @@ export function requestAlphabet(v:Core, next:Alphabet):void {
   const target=$(v.root,'.ak-message'),button=(action:string,text:string)=>{const b=document.createElement('button');b.type='button';b.dataset.action=action;b.textContent=text;return b;};
   target.append(' ',button('alphabet-switch','Switch'),' ',button('alphabet-cancel','Cancel'));target.hidden=false;v.pendingAlphabet=next;$<HTMLSelectElement>(v.root,'[aria-label="Sequence alphabet"]').value=next;v.menus.sync();
 }
-export function applyAlphabet(v:Core, next:Alphabet):void {const old=v.a!;void v.replace(createAlignment(old.rows,{name:old.name,alphabet:next,annotations:old.annotations,metadata:old.metadata}),undefined,true).catch(()=>{});}
+/** The view state replace() restores after a quiet edit. Rows in `drop` lose their selection, feature-hiding and strand entries. Identity order falls back to input order, because replace() discards the identities. */
+export function carryOf(v:Core,drop:Set<string>=new Set()):Carry {
+  const filter=v.annotationFilter,selected=v.selection?.rowId;
+  return {reference:v.a!.rows[v.reference].id,selection:selected&&drop.has(selected)?null:v.selection,selectedRows:[...v.selectedRows],query:v.query,sort:v.sort==='identity'?'input':v.sort,sortColumn:v.sortColumn,hidden:[...v.hidden],manualOrder:v.manualOrder,collapsed:[...v.collapsed],groupMap:v.groupMap,tree:v.tree?.layout,annotationFilter:{...filter,hiddenRowIds:filter.hiddenRowIds?.filter(id=>!drop.has(id))},hiddenColumns:v.manualHidden,columnMarks:v.columnMarks,strands:[...v.rowStrands].filter(id=>!drop.has(id))};
+}
+export function applyAlphabet(v:Core, next:Alphabet):void {const old=v.a!;void v.replace(createAlignment(old.rows,{name:old.name,alphabet:next,annotations:old.annotations,metadata:old.metadata}),carryOf(v),true).catch(()=>{});}
 export async function openFile(v:Core, file:File):Promise<void> {
   if(v.a&&/\.(?:gff3?|bed|gb|gbk|genbank|embl)(?:\.gz)?$/i.test(file.name)){
     try{v.importAnnotations(await readAlignmentInput(file));}catch(error){v.error(error);}
@@ -84,7 +92,7 @@ export async function openFile(v:Core, file:File):Promise<void> {
 export function clear(v:Core):void {
   v.assertAlive();v.tip?.hide();++v.loadRevision;++v.statsRevision;++v.revision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();cancelSummaries(v);
   v.loading=false;v.pendingLink=undefined;v.identityJob=undefined;v.identities=undefined;v.identityDetails=undefined;
-  v.a=undefined;v.variantCursor=undefined;v.detected=undefined;v.stats=undefined;v.fullStats=undefined;v.rows=[];v.filteredRows=[];v.selection=null;v.dropSearch();v.selectedRows.clear();v.annotationFilter={};v.hidden.clear();v.manualHidden=[];v.columnMarks=[];v.colMap=undefined;v.rowStrands.clear();v.manualOrder=null;v.collapsed.clear();v.groupMap=null;v.groupList=[];v.tree=undefined;v.treeHits=[];v.rowPos=new Int32Array(0);if(v.sort==='tree'||v.sort==='manual'||v.sort==='residue'){v.sort='input';$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value='input';}
+  v.a=undefined;v.variantCursor=undefined;v.detected=undefined;v.stats=undefined;v.fullStats=undefined;v.rows=[];v.filteredRows=[];v.selection=null;v.dropSearch();v.selectedRows.clear();v.labelKey='';v.annotationFilter={};v.hidden.clear();v.manualHidden=[];v.columnMarks=[];v.colMap=undefined;v.rowStrands.clear();v.manualOrder=null;v.collapsed.clear();v.groupMap=null;v.groupList=[];v.tree=undefined;v.treeHits=[];v.rowPos=new Int32Array(0);if(v.sort==='tree'||v.sort==='manual'||v.sort==='residue'){v.sort='input';$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value='input';}
   v.rebuildAnnotations();v.labels.replaceChildren();v.inspector.replaceChildren();syncAccessibleCell(v);
   for(const canvas of v.root.querySelectorAll('canvas')){canvas.width=0;canvas.height=0;}
   $(v.root,'.ak-reference-label').textContent='Reference';$(v.root,'.ak-overview-window').style.width='0';$(v.root,'.ak-status-main').textContent='No alignment loaded';$(v.root,'.ak-status-detail').textContent='';$(v.root,'.ak-empty').textContent='Open an alignment file or paste alignment text (FASTA, Stockholm, CLUSTAL, PHYLIP, NEXUS, MSF or PIR).';v.message('');syncWarnings(v,false);v.layout();v.emit('selection',null);

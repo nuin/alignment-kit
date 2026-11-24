@@ -8,24 +8,28 @@ import { validateAnnotationLinks } from '../tooltip';
 import { type Core, bounded } from './core';
 export const protein='Reverse complement needs a DNA or RNA alignment. This one is protein.';
 export function setOptions(v:Core, options:ViewerOptions):void {
-  v.assertAlive();if(options.colorScheme)getColorScheme(options.colorScheme);
-  if(options.rulerCoordinates!==undefined&&!['alignment','reference'].includes(options.rulerCoordinates))throw new Error('Unknown ruler coordinate mode.');
-  const gap=options.hideGapColumns;
-  if(gap!==undefined&&gap!==null&&!(typeof gap==='number'&&gap>=0&&gap<=1))throw v.error(new Error('hideGapColumns must be null or a number from 0 to 1.'));
-  if(options.hideAllGapColumns!==undefined&&typeof options.hideAllGapColumns!=='boolean')throw v.error(new Error('hideAllGapColumns must be a boolean.'));
-  if(options.reverseComplement!==undefined&&typeof options.reverseComplement!=='boolean')throw v.error(new Error('reverseComplement must be a boolean.'));
+  v.assertAlive();
+  const {alignment:_,worker:__,workerUrl:___,visibility,fasta,export:exportOptions,tracks,groupBy,annotationLinks,...visual}=options,gap=options.hideGapColumns;
+  // Every check runs before the first assignment, so a rejected call changes nothing and always emits 'error'.
+  let links:Core['options']['annotationLinks']|undefined,validTracks:CustomTrack[]|undefined,mergedFasta:Core['options']['fasta'],mergedExport:Core['options']['export'];
+  try {
+    if(options.colorScheme)getColorScheme(options.colorScheme);
+    if(options.rulerCoordinates!==undefined&&!['alignment','reference'].includes(options.rulerCoordinates))throw new Error('Unknown ruler coordinate mode.');
+    if(gap!==undefined&&gap!==null&&!(typeof gap==='number'&&gap>=0&&gap<=1))throw new Error('hideGapColumns must be null or a number from 0 to 1.');
+    if(options.hideAllGapColumns!==undefined&&typeof options.hideAllGapColumns!=='boolean')throw new Error('hideAllGapColumns must be a boolean.');
+    if(options.reverseComplement!==undefined&&typeof options.reverseComplement!=='boolean')throw new Error('reverseComplement must be a boolean.');
+    if(visual.logoMode!==undefined&&visual.logoMode!=='frequency'&&visual.logoMode!=='bits')throw new Error('logoMode must be "frequency" or "bits".');
+    if(annotationLinks!==undefined)links=validateAnnotationLinks(annotationLinks);
+    if(tracks!==undefined)validTracks=validateTracks(tracks);
+    const {columns:fastaColumns,...rest}=fasta?validateFastaOptions({...v.options.fasta,...fasta}):v.options.fasta;mergedFasta=rest;
+    mergedExport=validateExportOptions({...v.options.export,...(exportOptions?validateExportOptions(exportOptions):fastaColumns?{columns:fastaColumns}:{})});
+  }catch(error){throw v.error(error);}
   const maskSig=()=>`${v.options.hideGapColumns}|${v.options.hideAllGapColumns}|${v.reversed}`,maskBefore=maskSig(),anchor=v.a?v.firstColumn():0;
   const oldScope=v.options.statisticsScope,filterSig=()=>`${v.options.minIdentity}|${v.options.minCoverage}`,filterBefore=filterSig();
   const wasPinned=v.pinned;
-  const {alignment:_,worker:__,workerUrl:___,visibility,fasta,export:exportOptions,tracks,groupBy,annotationLinks,...visual}=options;
-  if(annotationLinks!==undefined){try{v.options.annotationLinks=validateAnnotationLinks(annotationLinks);}catch(error){throw v.error(error);}}
-  if(visual.logoMode!==undefined&&visual.logoMode!=='frequency'&&visual.logoMode!=='bits')throw v.error(new Error('logoMode must be "frequency" or "bits".'));
+  if(links)v.options.annotationLinks=links;
   if(visual.reverseComplement&&v.a?.alphabet==='protein'){visual.reverseComplement=false;v.message(protein);}
-  let validTracks:CustomTrack[]|undefined;
-  if(tracks!==undefined){try{validTracks=validateTracks(tracks);}catch(error){throw v.error(error);}}
   if(validTracks){v.customTracks=validTracks;v.trackErrors.clear();v.checkTracks();v.trackKey='';}
-  const {columns:fastaColumns,...mergedFasta}=fasta?validateFastaOptions({...v.options.fasta,...fasta}):v.options.fasta;
-  const mergedExport=validateExportOptions({...v.options.export,...(exportOptions?validateExportOptions(exportOptions):fastaColumns?{columns:fastaColumns}:{})});
   if(options.showToolbar!==undefined){v.visibility.toolbar=options.showToolbar;v.visibility.tools=options.showToolbar;}
   if(options.showInspector!==undefined)v.visibility.inspector=options.showInspector;
   if(options.showLogo!==undefined)v.visibility.logo=options.showLogo;
