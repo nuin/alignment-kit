@@ -80,7 +80,7 @@ parseHgvsProtein('p.Arg123ProfsTer5'); // { start: 123, end: 123, ref: 'R', alt:
 - `addVariants` adds the annotations as `addAnnotations` does, returns `{ annotations, warnings }` and shows the count and the first warnings in the message area.
 - `fromPavi` maps PAVI variants through the same helpers: `type` comes from `seq_substitution_type`, `hgvs` from `hgvs_protein`, positions from `alignment_start_pos` and `alignment_end_pos`.
 
-`parseHgvsProtein(text)` reads protein HGVS with three-letter or one-letter residues, optional parentheses and an optional accession prefix: substitutions (`p.Arg123Trp`, `p.R123W`), stops (`p.Arg123Ter`, `p.Arg123*`, `p.R123X`), synonymous (`p.Arg123=`), frameshifts (`p.Arg123fs`, `p.Arg123ProfsTer5`, `p.Arg97ProfsTer`), deletions (`p.Arg123del`, `p.Arg123_Lys125del`), insertions (`p.Lys2_Leu3insGln`), delins (`p.Arg123delinsTrpGly`) duplications (`p.Arg123dup`), extensions (`p.Ter110GlnextTer17`, consequence `stop_lost`) and an unknown effect at one residue (`p.Met1?`, consequence `start_lost`; class `other`). It returns `{ start, end, ref, alt, type, consequence }` or `null`. Residue names are case-sensitive, so `p.arg123trp` is rejected. A whole-protein unknown (`p.?`) and nucleotide HGVS are not parsed.
+`parseHgvsProtein(text)` reads protein HGVS with three-letter or one-letter residues, optional parentheses and an optional accession prefix: substitutions (`p.Arg123Trp`, `p.R123W`), stops (`p.Arg123Ter`, `p.Arg123*`, `p.R123X`), synonymous (`p.Arg123=`), frameshifts (`p.Arg123fs`, `p.Arg123ProfsTer5`, `p.Arg97ProfsTer`), deletions (`p.Arg123del`, `p.Arg123_Lys125del`), insertions (`p.Lys2_Leu3insGln`), delins (`p.Arg123delinsTrpGly`) duplications (`p.Arg123dup`), extensions (`p.Ter110GlnextTer17`, consequence `stop_lost`) and an unknown effect at one residue (`p.Met1?`, consequence `start_lost`). Both consequences give class `startstop`. It returns `{ start, end, ref, alt, type, consequence }` or `null`. Residue names are case-sensitive, so `p.arg123trp` is rejected. A whole-protein unknown (`p.?`) and nucleotide HGVS are not parsed.
 
 ### Consequence classes and colors
 
@@ -90,6 +90,7 @@ parseHgvsProtein('p.Arg123ProfsTer5'); // { start: 123, end: 123, ref: 'R', alt:
 |---|---|---|
 | `nonsense` | `stop_gained` | vermillion `#D55E00` |
 | `frameshift` | `frameshift_variant` | reddish purple `#CC79A7` |
+| `startstop` | `stop_lost`, `start_lost`, `initiator_codon_variant` | yellow `#F0E442` |
 | `missense` | `missense_variant` | blue `#0072B2` |
 | `inframe` | `inframe_insertion`, `inframe_deletion`, `protein_altering_variant` | orange `#E69F00` |
 | `splice` | `splice_*` | sky blue `#56B4E9` |
@@ -100,7 +101,7 @@ parseHgvsProtein('p.Arg123ProfsTer5'); // { start: 123, end: 123, ref: 'R', alt:
 
 ### Variant track and navigation
 
-- The `variants` track sits directly above the pinned reference row, below the other tracks. It shows one marker per mapped variant that passes the annotation filter on a shown row. Markers are diamonds (substitutions, missense, other), triangles (deletions), chevrons (insertions and duplications) and squares (frameshift and nonsense), filled with the class color.
+- The `variants` track sits directly above the pinned reference row, below the other tracks. It shows one marker per mapped variant that passes the annotation filter on a shown row. Markers are diamonds (substitutions, missense, start or stop lost, other), triangles (deletions), chevrons (insertions and duplications) and squares (frameshift and nonsense), filled with the class color.
 - Overlapping variants stack in lanes of 12 px, at most 8. Lane assignment stops at 8 lanes; the track label shows `+n` for the variants left over, which `nextVariant` still reaches. Below 9 px cell width markers merge into 4 px bins per lane. Hidden columns and the reverse-complement view apply as in the other tracks.
 - Hover a marker for its annotation card. Click it to select the variant's columns and row, scroll to the row (expanding a collapsed group) and pin the card. The overview strip shows a tick per variant in its class color while the variant track is on; `visibility.variantTrack: false` removes the ticks too.
 - `viewer.nextVariant(direction = 1)` selects the next (`1`) or previous (`-1`) shown variant, ordered by display column (left to right on screen, so in the reverse-complement view it moves to lower source columns) then display row, wrapping around, and returns the annotation or `null`. Variants whose columns are all hidden are skipped. A row inside a collapsed group ranks at its group header, so expanding the group on selection does not revisit a variant. `]` and `[` do the same on the focused grid, and the secondary toolbar has **Previous variant** and **Next variant** buttons with a `k / n` counter.

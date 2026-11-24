@@ -1,6 +1,6 @@
 import type { Alignment, Annotation } from './types';
 import { isGap, rowOffset } from './model';
-export type VariantClass='nonsense'|'frameshift'|'missense'|'inframe'|'splice'|'synonymous'|'other';
+export type VariantClass='nonsense'|'frameshift'|'startstop'|'missense'|'inframe'|'splice'|'synonymous'|'other';
 export type VariantType='substitution'|'deletion'|'insertion'|'delins'|'duplication'|'frameshift'|'other';
 export type VariantShape='diamond'|'triangle'|'chevron'|'square';
 /** Stored as `annotation.metadata.variant`. `ref` and `alt` are one-letter residues, `*` for a stop. */
@@ -12,9 +12,9 @@ export interface VariantOptions { coordinates?:'sequence'|'residue'|'alignment' 
 export interface VariantResult { annotations:Annotation[]; warnings:string[] }
 /** `start` and `end` are protein positions; `ref` lists the residues HGVS names (one, or the first and last of a range). */
 export interface HgvsProtein { start:number; end:number; ref:string; alt:string; type:VariantType; consequence:string }
-/** Okabe-Ito colors per consequence class: vermillion, reddish purple, blue, orange, sky blue, bluish green and grey. */
-export const variantColors:Readonly<Record<VariantClass,string>>=Object.freeze({nonsense:'#D55E00',frameshift:'#CC79A7',missense:'#0072B2',inframe:'#E69F00',splice:'#56B4E9',synonymous:'#009E73',other:'#999999'});
-export const variantClassLabels:Readonly<Record<VariantClass,string>>=Object.freeze({nonsense:'Nonsense (stop gained)',frameshift:'Frameshift',missense:'Missense',inframe:'In-frame insertion or deletion',splice:'Splice',synonymous:'Synonymous',other:'Other or unknown'});
+/** Okabe-Ito colors per consequence class: vermillion, reddish purple, yellow, blue, orange, sky blue, bluish green and grey. */
+export const variantColors:Readonly<Record<VariantClass,string>>=Object.freeze({nonsense:'#D55E00',frameshift:'#CC79A7',startstop:'#F0E442',missense:'#0072B2',inframe:'#E69F00',splice:'#56B4E9',synonymous:'#009E73',other:'#999999'});
+export const variantClassLabels:Readonly<Record<VariantClass,string>>=Object.freeze({nonsense:'Nonsense (stop gained)',frameshift:'Frameshift',startstop:'Start or stop lost',missense:'Missense',inframe:'In-frame insertion or deletion',splice:'Splice',synonymous:'Synonymous',other:'Other or unknown'});
 const hex=/^#[0-9a-f]{6}$/i;
 /** True when the annotation carries `metadata.variant`; `kind` alone does not make a variant. */
 export const isVariant=(a:Annotation):boolean=>!!(a.metadata&&typeof a.metadata.variant==='object'&&a.metadata.variant);
@@ -57,6 +57,7 @@ export function consequenceClass(consequences?:string|readonly string[],type?:st
   const has=(re:RegExp)=>terms.some(t=>re.test(t));
   if(has(/^(stop_gained|nonsense)/))return 'nonsense';
   if(has(/^frameshift/))return 'frameshift';
+  if(has(/^(stop_lost|start_lost|initiator_codon)/))return 'startstop';
   if(has(/^missense/))return 'missense';
   if(has(/^(inframe_|disruptive_inframe_|conservative_inframe_|protein_altering)/))return 'inframe';
   if(has(/^splice/))return 'splice';

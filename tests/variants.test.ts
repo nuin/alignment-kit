@@ -1,5 +1,5 @@
 import {it,expect,describe} from 'vitest';
-import {parseHgvsProtein,variantsToAnnotations,consequenceClass,assignLanes,isVariant,variantColors,annotationColor,variantShape,variantOf} from '../src/variants';
+import {parseHgvsProtein,variantsToAnnotations,consequenceClass,assignLanes,isVariant,variantColors,annotationColor,variantShape,variantOf,variantClassLabels} from '../src/variants';
 import {createAlignment} from '../src/model';
 import {fromPavi} from '../src/pavi';
 
@@ -45,6 +45,14 @@ describe('consequenceClass',()=>{
     expect(consequenceClass(['intron_variant'])).toBe('other');
     expect(consequenceClass([])).toBe('other');
   });
+  it('puts a lost start or stop in its own class, below frameshift and above missense',()=>{
+    expect(consequenceClass('stop_lost')).toBe('startstop');expect(consequenceClass(['Start Lost'])).toBe('startstop');expect(consequenceClass('initiator_codon_variant')).toBe('startstop');
+    expect(consequenceClass(['missense_variant','start_lost'])).toBe('startstop');expect(consequenceClass(['stop_lost','frameshift_variant'])).toBe('frameshift');expect(consequenceClass(['stop_lost','stop_gained'])).toBe('nonsense');
+    const a=createAlignment([{id:'r',name:'r',sequence:'MKV*'}],{alphabet:'protein'}),{annotations}=variantsToAnnotations(a,[{rowId:'r',hgvs:'p.Met1?'},{rowId:'r',hgvs:'p.Ter4GlnextTer17'},{rowId:'r',hgvs:'p.Lys2?'}]);
+    expect(annotations.map(x=>variantOf(x)!.consequenceClass)).toEqual(['startstop','startstop','inframe']);
+    expect(variantShape(variantOf(annotations[1])!)).toBe('diamond');expect(annotationColor(annotations[0])).toBe(variantColors.startstop);expect(variantClassLabels.startstop).toBe('Start or stop lost');
+    expect(variantOf({id:'x',label:'x',mapping:'unmapped',metadata:{variant:{type:'other',consequenceClass:'startstop'}}})!.consequenceClass).toBe('startstop');
+  });
   it('falls back to the variant type',()=>{
     expect(consequenceClass(undefined,'frameshift')).toBe('frameshift');
     expect(consequenceClass(undefined,'deletion')).toBe('inframe');
@@ -52,7 +60,7 @@ describe('consequenceClass',()=>{
     expect(consequenceClass(undefined,'substitution')).toBe('other');
   });
   it('uses distinct hex colors and the annotation color when valid',()=>{
-    expect(new Set(Object.values(variantColors)).size).toBe(7);
+    expect(new Set(Object.values(variantColors)).size).toBe(8);
     for(const c of Object.values(variantColors))expect(c).toMatch(/^#[0-9A-F]{6}$/);
     const base={id:'x',label:'x',mapping:'mapped' as const,start:1,end:1};
     const variant={type:'substitution'};
