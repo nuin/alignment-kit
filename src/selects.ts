@@ -8,8 +8,10 @@ export class ThemedSelects {
   constructor(private root:HTMLElement){
     const signal=this.controller.signal;
     root.ownerDocument.addEventListener('pointerdown',event=>{
-      const a=this.active,target=event.target as Node;
-      if(a&&!a.button.contains(target)&&!a.menu.contains(target))this.close();
+      const a=this.active;if(!a)return;
+      // composedPath crosses open shadow roots; event.target alone is retargeted to the host there.
+      const path=event.composedPath?.()??[],inside=path.length?path.includes(a.button)||path.includes(a.menu):a.button.contains(event.target as Node)||a.menu.contains(event.target as Node);
+      if(!inside)this.close();
     },{signal});
     root.ownerDocument.defaultView?.addEventListener('resize',()=>this.close(),{signal});
     root.addEventListener('scroll',event=>{if(this.active&&!this.active.menu.contains(event.target as Node))this.close();},{capture:true,signal});

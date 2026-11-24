@@ -1,13 +1,15 @@
 import { nextVariant } from './variants';
 
 import type { Core, On } from './core';
+/** True when the user has text selected. A shadow root has its own selection in Chromium; elsewhere the document selection covers it. */
+const textSelected=(root:HTMLElement)=>{const scope=root.getRootNode() as (Document|ShadowRoot)&{getSelection?:()=>Selection|null};return !!(scope.getSelection?.()??root.ownerDocument.getSelection())?.toString();};
 export function bindKeys(v:Core,on:On):void {
   on(v.scroll,'keydown',(event:KeyboardEvent)=>{
     if(!v.a)return;const key=event.key,start=v.selection?.start??v.firstColumn()+1;
     if(['+','=','-','_'].includes(key)){event.preventDefault();v.zoom(v.options.cellWidth+(key==='+'||key==='='?2:-2));return;}
     if(key==='Escape'){v.setSelection(null);return;}
     if((key===']'||key==='[')&&!event.ctrlKey&&!event.metaKey&&!event.altKey){event.preventDefault();nextVariant(v,key===']'?1:-1);return;}
-    if((event.ctrlKey||event.metaKey)&&!event.shiftKey&&!event.altKey&&(key.toLowerCase()==='c'||event.code==='KeyC')&&!v.root.ownerDocument.getSelection()?.toString()){event.preventDefault();void v.copySelection().catch(()=>{});return;}
+    if((event.ctrlKey||event.metaKey)&&!event.shiftKey&&!event.altKey&&(key.toLowerCase()==='c'||event.code==='KeyC')&&!textSelected(v.root)){event.preventDefault();void v.copySelection().catch(()=>{});return;}
     if(['ArrowLeft','ArrowRight','Home','End','ArrowUp','ArrowDown'].includes(key)){
       event.preventDefault();let column=start,rowId=v.selection?.rowId;
       const tail=v.selection?.end??start,flipped=!!v.columns.reversed;if(key==='ArrowLeft')column=v.stepColumn(flipped&&event.shiftKey?tail:start,-1);if(key==='ArrowRight')column=v.stepColumn(!flipped&&event.shiftKey?tail:start,1);if(key==='Home')column=v.columns.cols[0]+1;if(key==='End')column=v.columns.cols[v.columns.count-1]+1;
