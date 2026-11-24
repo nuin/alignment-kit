@@ -33,7 +33,7 @@ Authentication is checked with `npm whoami`. No credentials are stored in the re
 
 ## 0.6.0 size budgets
 
-Variant cards and the expanded Position inspector increase the shared viewer and stylesheet. The measured gzip sizes are 111,821 bytes for the Vue entry and its static chunks, and 7,217 bytes for the stylesheet. Their budgets are 112,640 bytes (110 KiB, previously 109 KiB) and 7,680 bytes (7.5 KiB, previously 7 KiB). Other entry budgets are unchanged. `npm run check:size` continues to enforce every entry limit.
+Variant cards and the expanded Position inspector increase the shared viewer and stylesheet. React, Svelte and Vue each have a budget of 112,640 bytes (110 KiB, previously 109 KiB), including static chunks. The Node 22 CI run measured React at 111,976 bytes and Svelte at 111,756 bytes; gzip sizes vary with the Node/zlib version. The local Vue measurement was 111,821 bytes. The stylesheet measured 7,217 bytes and has a budget of 7,680 bytes (7.5 KiB, previously 7 KiB). Other entry budgets are unchanged. `npm run check:size` continues to enforce every entry limit.
 
 ## Reproduce the release candidate
 
