@@ -55,12 +55,12 @@ A page with no build step imports `dist/index.js` from an ESM CDN. Pin the versi
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@nuin/msa-canvas@0.5.2/dist/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@nuin/msa-canvas@0.6.0/dist/style.css">
 </head>
 <body>
   <div id="alignment"></div>
   <script type="module">
-    import { createViewer } from 'https://cdn.jsdelivr.net/npm/@nuin/msa-canvas@0.5.2/dist/index.js';
+    import { createViewer } from 'https://cdn.jsdelivr.net/npm/@nuin/msa-canvas@0.6.0/dist/index.js';
 
     const viewer = createViewer(document.querySelector('#alignment'), { worker: false });
     viewer.on('error', error => console.error(error.message));

@@ -31,6 +31,10 @@ To release: bump `version` in `package.json`, `package-lock.json` and `deno.json
 
 Authentication is checked with `npm whoami`. No credentials are stored in the repository.
 
+## 0.6.0 size budgets
+
+Variant cards and the expanded Position inspector increase the shared viewer and stylesheet. The measured gzip sizes are 111,821 bytes for the Vue entry and its static chunks, and 7,217 bytes for the stylesheet. Their budgets are 112,640 bytes (110 KiB, previously 109 KiB) and 7,680 bytes (7.5 KiB, previously 7 KiB). Other entry budgets are unchanged. `npm run check:size` continues to enforce every entry limit.
+
 ## Reproduce the release candidate
 
 Use Node 22.20 or later and the committed lockfile:

@@ -487,6 +487,11 @@
           "description": "Variant track above the pinned reference row; shown only while a mapped variant passes the annotation filter.",
           "default": true
         },
+        "variantCards": {
+          "type": "boolean",
+          "description": "Collapsible cards for mapped and unmapped variants; hidden when the alignment has no variants.",
+          "default": true
+        },
         "variantNav": {
           "type": "boolean",
           "description": "Previous variant and Next variant buttons with a k / n counter; hidden when the alignment has no mapped variants.",

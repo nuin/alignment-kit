@@ -5,6 +5,8 @@ import type { Core, On } from './core';
 import { variantOf, variantClassLabels } from '../variants';
 import { variantAt } from './variants';
 import { $ } from '../controls';
+import { renderAnnotationDetails } from '../annotation-details';
+import { residueDescription } from '../residue-details';
 
 const DELAY=300;
 const el=(tag:string,text?:string,cls?:string):HTMLElement=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
@@ -26,12 +28,13 @@ export function bindTooltip(v:Core,on:On):void {
     if(pin){const close=el('button','×','ak-tip-close') as HTMLButtonElement;close.type='button';close.setAttribute('aria-label','Close annotation details');close.addEventListener('click',event=>{event.stopPropagation();hide();});c.append(close);}
     c.append(el('div',a.rows[row].name,'ak-tip-title'));
     line(c,'Residue',info.residue==='-'?'gap':info.residue);line(c,'Column',String(info.column));line(c,'Position',info.position===null?'gap':String(info.position));
+    if(a.alphabet==='protein')line(c,'Amino acid',residueDescription(info.residue));
     if(v.options.rulerCoordinates==='reference'){const ref=columnToResidue(a,v.reference,info.column);if(ref!==null)line(c,'Reference residue',String(ref));}
     for(const n of found.slice(0,cap)){
-      const box=el('div',undefined,'ak-tip-note'),d=annotationDetails(n),flags=[n.disease&&'disease',n.phenotype&&'phenotype'].filter(Boolean).join(', ');
+      const box=el('div',undefined,'ak-tip-note'),d=annotationDetails(n);
       box.append(el('div',n.label,'ak-tip-title'));
       const vi=variantOf(n);if(vi){if(vi.hgvs&&vi.hgvs!==n.label)line(box,'HGVS',vi.hgvs);if(vi.ref||vi.alt)line(box,'Change',`${vi.ref||'–'} → ${vi.alt||'–'}`);line(box,'Class',variantClassLabels[vi.consequenceClass]);}
-      if(n.kind)line(box,'Kind',n.kind);if(n.consequence?.length)line(box,'Consequence',n.consequence.join(', '));if(flags)line(box,'Evidence of',flags);
+      if(n.kind)line(box,'Kind',n.kind);renderAnnotationDetails(box,n);
       list(box,'Evidence codes',d.evidence.map(text=>({text,href:annotationLink(links,['evidence','eco'],text)})));
       list(box,'Source',d.source.map(text=>({text,href:annotationLink(links,[text],n.id)})));
       list(box,'PubMed',d.pubmed.map(text=>({text,href:/^\d+$/.test(text)?annotationLink(links,['pubmed','pmid'],text):undefined})));

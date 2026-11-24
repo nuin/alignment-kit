@@ -9,6 +9,7 @@ import { type Core } from './core';
 import { variantLayout, drawnLanes, syncVariantNav } from './variants';
 import { syncText } from './textview';
 import { syncAccessibleCell, isDark } from './accessibility';
+import { syncVariantCards } from './cards';
 /** Last emitted viewport per viewer, so a redraw of an unchanged viewport emits nothing. */
 const sent=new WeakMap<Core,string>();
 export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:isDark(v),selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,marks:v.columnMarks,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,variants:v.visibility.variantTrack?variantLayout(v):undefined,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
@@ -19,8 +20,9 @@ export function layout(v:Core):void {
   showColumns.dataset.empty=String(!hiddenColumns);showColumns.textContent=`Show all columns (${hiddenColumns.toLocaleString()} hidden)`;
   const showHidden=$(v.root,'[data-action="show-hidden"]');showHidden.dataset.empty=String(!v.hidden.size);showHidden.textContent=`Show hidden (${v.hidden.size})`;
   $(v.root,'.ak-tree-canvas').dataset.empty=String(!v.treeW);$<HTMLOptionElement>(v.root,'select[aria-label="Sequence order"] option[value="tree"]').hidden=!v.tree;
-  syncVariantNav(v);v.menus.sync();applyVisibility(v.root,v.visibility);
+  syncVariantNav(v);syncVariantCards(v);v.menus.sync();applyVisibility(v.root,v.visibility);
   v.root.style.setProperty('--ak-tree',v.treeW+'px');v.root.style.setProperty('--ak-gutter',gutter+'px');v.root.style.setProperty('--ak-row-height',rh+'px');
+  v.root.style.setProperty('--ak-workspace-min-height',((v.options.textView?0:tracks.height)+(v.visibility.alignment?3*rh+16:0))+'px');
   v.root.dataset.compactRows=String(rh<32);
   $(v.root,'.ak-gutter-resize').setAttribute('aria-valuenow',String(v.options.labelWidth));
   $(v.root,'.ak-tracks').style.height=tracks.height+'px';$(v.root,'.ak-tracks').hidden=tracks.height===0;
@@ -42,7 +44,7 @@ export function layout(v:Core):void {
   v.schedule();
 }
 export function render(v:Core):void {
-  if(!v.a||v.disposed)return;syncVariantNav(v);const width=$(v.root,'.ak-main').clientWidth,height=v.scroll.clientHeight;if(width<1)return;
+  if(!v.a||v.disposed)return;syncVariantNav(v);syncVariantCards(v);const width=$(v.root,'.ak-main').clientWidth,height=v.scroll.clientHeight;if(width<1)return;
   const rv=v.view();if(drawnLanes(v)!==v.variantLanes){v.layout();return;}v.renderer.body($(v.root,'.ak-body-canvas'),rv,width,height);v.renderer.tracks($(v.root,'.ak-tracks canvas'),rv,width);
   const overview=$(v.root,'.ak-overview');if(v.overviewDirty&&v.visibility.overview){v.renderer.overview($(overview,'canvas'),rv,overview.clientWidth);v.overviewDirty=false;}
   const win=$(overview,'.ak-overview-window');const visible=Math.max(1,(width-v.gutter)/rv.cw),count=v.columns.count,left=rv.x/rv.cw/count;

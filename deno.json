@@ -1,6 +1,6 @@
 {
   "name": "@nuin/msa-canvas",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "exports": "./src/index.ts",
   "unstable": ["sloppy-imports"],
   "compilerOptions": { "lib": ["ES2022", "DOM", "DOM.Iterable", "deno.ns"] },

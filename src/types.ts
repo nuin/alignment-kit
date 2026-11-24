@@ -122,6 +122,8 @@ export interface ViewerVisibility {
   variantTrack?:boolean;
   /** Previous variant and Next variant buttons with a k / n counter; hidden when the alignment has no mapped variants. */
   variantNav?:boolean;
+  /** Collapsible, paged cards for mapped and unmapped variants; hidden when no variants exist. */
+  variantCards?:boolean;
   /** Text toggle button that swaps the residue grid for plain text blocks. */
   textView?:boolean;
 }

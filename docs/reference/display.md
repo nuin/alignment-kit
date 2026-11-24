@@ -1,5 +1,13 @@
 # Columns, rows and tracks
 
+The variant card strip is controlled by `visibility.variantCards` (default
+`true`). It appears above the overview only when variant annotations exist.
+Collapse it to leave more room for the alignment; its cards and page controls
+follow the current filters. See [variant cards and navigation](annotations.md#variant-track-and-navigation).
+The sequence grid keeps room for at least three rows. When cards, details and
+tracks exceed the configured viewer height, the viewer scrolls vertically to
+keep the alignment reachable; the grid still scrolls through rows and columns.
+
 ## Hide columns
 
 Column masking hides columns without changing the alignment. Hidden columns leave the grid, the tracks and the overview; the remaining columns close up. Coordinates stay original: selections, `getState().selection`, search hits, annotations, go-to, the Position tab, `hit.start`/`hit.end` and the ruler all use alignment columns (or reference residues in reference mode). Statistics and the consensus are still computed over all columns.
@@ -186,3 +194,9 @@ Layout follows the width of the viewer element, measured with CSS container quer
 | 480 px and under | The Color menu fills its row, the overview title is hidden, the inspector takes the full width |
 
 The label column width comes from the `labelWidth` option (100 to 420 px) at every width, because the canvas shares it. Pass a smaller `labelWidth` for a narrow viewer; the demo uses 150 px at 480 px and under.
+
+## Position inspection
+
+For protein alignments, the Position inspector and residue cards show the amino acid's full name and broad chemical class. Ambiguous residues identify their alternatives; gaps, stops and unknown residues have no chemical class. These classes do not predict charge at a particular pH. DNA and RNA residues do not receive amino-acid descriptions.
+
+**Sequences at this column** lists each visible sequence's displayed residue and ungapped position, including its `metadata.start` offset. Gaps show no position. The list follows the grid's row order, pinned reference, filters, hidden rows and collapsed groups, independently of the statistics scope. It uses 25-row pages and a scrollable table. In a reverse-complement view it shows the displayed letter while positions retain their source numbering.

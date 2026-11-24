@@ -97,7 +97,7 @@ The page fills the iframe when `height` is omitted. It posts `selection` and `st
 
 ```sh
 R CMD build r/msacanvas
-R CMD INSTALL msacanvas_0.5.2.tar.gz
+R CMD INSTALL msacanvas_0.6.0.tar.gz
 ```
 
 The package imports htmlwidgets and jsonlite. `DESCRIPTION` has no maintainer e-mail yet, which `R CMD check` requires.

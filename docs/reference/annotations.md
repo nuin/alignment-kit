@@ -105,7 +105,50 @@ parseHgvsProtein('p.Arg123ProfsTer5'); // { start: 123, end: 123, ref: 'R', alt:
 
 `variantColors` exports the table. A variant cell is outlined in its `color` when that is a six-digit hex color, else in its class color; other annotations keep `#a63d59`. SVG and PNG figures use the same colors. The Colors tab lists the classes when the alignment has variants.
 
+### Application detail fields
+
+Annotations can supply an ordered list of plain-text fields in `metadata.details`:
+
+```js
+metadata: {
+  details: [
+    { label: 'Impact', value: 'MODERATE' },
+    { label: 'Genomic location', value: 'chr2:101' },
+    { label: 'Genomic change', value: 'C → T' },
+  ],
+}
+```
+
+The Position and Features inspectors and annotation hover/pinned cards display these fields. Values can be non-empty strings or finite numbers (including zero); missing values and objects are omitted. Labels and values are rendered as text. Consequences and disease/phenotype evidence appear alongside them. Unmapped annotations remain available in Features.
+
+`fromPavi` supplies variant ID, impact, genomic location and genomic change when available. Entries in `non_coding_variants` receive a **Non-coding** label and stay unmapped even if the input contains alignment coordinates. These are supplied annotations, not impact predictions made by the viewer. The original PAVI fields remain in metadata and its JSON export.
+
 ### Variant track and navigation
+
+The collapsible **Variants** strip shows mapped variants in navigation order,
+followed by unmapped variants. Cards show the change, sequence and species,
+consequence, and supplied impact and evidence fields. Evidence badges appear
+only for confirmed `true` flags; absent evidence stays unknown. Large lists use
+pages of 20 cards, with horizontal scrolling on narrow screens.
+
+Selecting a mapped card selects its row and columns, reveals its position and
+opens the Position inspector. Track clicks and Previous/Next update the active
+card. Unmapped cards open a detail panel without changing the residue selection.
+They say **No protein position** for proteins or **No alignment position** for
+nucleotides; **Noncoding** appears only when `metadata.details` supplies
+`{ label: 'Region', value: 'Non-coding' }`.
+
+Cards share annotation, row and column filters with variant navigation. An empty
+message remains when filters exclude all variants. Collapse and focused card
+identity survive evidence updates. `visibility.variantCards: false` hides the
+strip independently of the track and navigation buttons; alignments with no
+variants hide it automatically.
+
+For evidence arriving after loading, call `viewer.updateAnnotations(list)` with
+complete annotations carrying existing IDs. It validates the entire batch,
+updates those annotations, and keeps selection, filters, unrelated annotations
+and card focus intact. Replacing the alignment with `setAlignment` intentionally
+starts a new view and can apply `focusFirstVariant` again.
 
 - The `variants` track sits directly above the pinned reference row, below the other tracks. It shows one marker per mapped variant that passes the annotation filter on a shown row. Markers are diamonds (substitutions, missense, start or stop lost, other), triangles (deletions), chevrons (insertions and duplications) and squares (frameshift and nonsense), filled with the class color.
 - Overlapping variants stack in lanes of 12 px, at most 8. Lane assignment stops at 8 lanes; the track label shows `+n` for the variants left over, which `nextVariant` still reaches. Below 9 px cell width markers merge into 4 px bins per lane. Hidden columns and the reverse-complement view apply as in the other tracks.

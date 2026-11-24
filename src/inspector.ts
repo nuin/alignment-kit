@@ -6,7 +6,10 @@ import { hitCount } from './search';
 import { displayCode } from './strand';
 import { variantColors, variantClassLabels, type VariantClass } from './variants';
 import type { ColumnAnalysis } from './summary';
-export interface InspectorInput { a:Alignment;stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;marked?:boolean;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number;reverse?:boolean;strands?:Set<string>;summary?:SummaryView;/** The alignment has variant annotations: the Colors tab adds the consequence legend. */ variants?:boolean}
+import { renderAnnotationDetails } from './annotation-details';
+import { renderColumnRows } from './column-inspector';
+import { residueDescription } from './residue-details';
+export interface InspectorInput { a:Alignment;rows?:number[];stats?:AlignmentStats;selection:Selection|null;scheme:string;reference:number;selectedRows:Set<string>;annotations:Annotation[];annotationFilter:AnnotationFilter;unknown:number;excluded:number;tab:string;page:number;marked?:boolean;scope:string;identity?:Identity;hits:Hit[];truncated:boolean;pattern:string;hit:number;reverse?:boolean;strands?:Set<string>;summary?:SummaryView;/** The alignment has variant annotations: the Colors tab adds the consequence legend. */ variants?:boolean}
 interface SummaryView { block?:{start:number;end:number};data?:ColumnAnalysis;error?:string;page:number }
 const SUMMARY_PAGE=20;
 const HIT_LIST_LIMIT=200;
@@ -29,7 +32,7 @@ export function renderInspector(target:HTMLElement,v:InspectorInput) {
   const action=(parent:HTMLElement,label:string,name:string,disabled=false)=>{const b=el('button',label);b.type='button';b.dataset.action=name;b.disabled=disabled;parent.append(b);return b;};
   const actions=()=>add(target,'div',undefined,'ak-inspector-actions');
   const stat=(grid:HTMLElement,value:string,label:string)=>{const box=add(grid,'div');add(box,'strong',value);add(box,'span',label);};
-  const feature=(parent:HTMLElement,index:number,label:string,detail:string,small?:string)=>{const b=el('button',undefined,'ak-feature');b.type='button';b.dataset.feature=String(index);add(b,'strong',label);add(b,'span',detail);if(small!==undefined)add(b,'small',small);parent.append(b);};
+  const feature=(parent:HTMLElement,index:number,label:string,detail:string,small?:string,annotation?:Annotation)=>{const b=el('button',undefined,'ak-feature');b.type='button';b.dataset.feature=String(index);add(b,'strong',label);add(b,'span',detail);if(small!==undefined)add(b,'small',small);parent.append(b);if(annotation)renderAnnotationDetails(parent,annotation);};
   target.replaceChildren();
   if(v.tab==='legend') {
     const scheme=getColorScheme(v.scheme);add(target,'h3',scheme.label);add(target,'p',scheme.description);
@@ -72,7 +75,7 @@ export function renderInspector(target:HTMLElement,v:InspectorInput) {
     filter('Type','Feature type',types,v.annotationFilter.types,'All types');filter('Consequence','Feature consequence',consequences,v.annotationFilter.consequences,'All consequences');
     const checks=add(target,'div',undefined,'ak-checks');for(const [label,aria,checked] of [['Disease evidence','Features with disease evidence',v.annotationFilter.disease],['Phenotype evidence','Features with phenotype evidence',v.annotationFilter.phenotype]] as const){const l=el('label'),input=el('input');input.type='checkbox';input.setAttribute('aria-label',aria);input.checked=!!checked;l.append(input,` ${label}`);checks.append(l);}
     add(target,'p',`${v.annotations.length.toLocaleString()} shown · ${v.excluded.toLocaleString()} excluded${v.unknown?` · ${v.unknown.toLocaleString()} with unknown evidence`:''}`);
-    const list=add(target,'div',undefined,'ak-feature-list');for(const [i,a] of items.entries())feature(list,start+i,a.label,`${a.kind??'variant'} · ${a.mapping==='mapped'?`columns ${a.start}–${a.end}`:'Unmapped'}`,a.rowId?v.a.rows.find(r=>r.id===a.rowId)?.name??a.rowId:'Global feature');if(!items.length)add(list,'p','No features match these filters.');
+    const list=add(target,'div',undefined,'ak-feature-list');for(const [i,a] of items.entries())feature(list,start+i,a.label,`${a.kind??'variant'} · ${a.mapping==='mapped'?`columns ${a.start}–${a.end}`:'Unmapped'}`,a.rowId?v.a.rows.find(r=>r.id===a.rowId)?.name??a.rowId:'Global feature',a);if(!items.length)add(list,'p','No features match these filters.');
     const bar=actions();bar.classList.add('ak-feature-pagination');action(bar,'Previous','features-prev',v.page===0);add(bar,'span',`${v.page+1} / ${Math.max(1,Math.ceil(v.annotations.length/pageSize))}`);action(bar,'Next','features-next',start+pageSize>=v.annotations.length);return;
   }
   if(!v.selection) {
@@ -83,14 +86,16 @@ export function renderInspector(target:HTMLElement,v:InspectorInput) {
   const position=row>=0?columnToResidue(v.a,row,col):null,ref=columnToResidue(v.a,v.reference,col),residue=row>=0?String.fromCharCode(v.a.codes[row*v.a.width+col-1]):null,shown=row>=0&&residue!==null?String.fromCharCode(displayCode(v.a.alphabet,v.a.codes[row*v.a.width+col-1],!!v.reverse,!!v.strands?.has(v.a.rows[row].id))):null;
   const heading=add(target,'div',undefined,'ak-position-heading');add(heading,'span','Alignment position');add(heading,'h2',`Column ${col}`);if(v.selection.end!==col)add(heading,'p',`Selected range ${col}–${v.selection.end}`);add(heading,'p',`Reference ${v.a.rows[v.reference].name}: ${ref===null?'gap':`residue ${ref}`}`,'ak-reference-position');
   const mark=action(actions(),`${v.marked?'Unmark':'Mark'} column${v.selection.end!==col?'s':''}`,'mark-columns');mark.setAttribute('aria-pressed',String(!!v.marked));
-  if(row>=0){const selected=add(target,'div',undefined,'ak-selected-residue');add(selected,'b',shown==='-'?'—':shown!);const info=add(selected,'div');add(info,'strong',v.a.rows[row].name);if(shown!==residue)add(info,'span',`Source residue ${residue}`);add(info,'span',position===null?'Alignment gap':`Sequence position ${position}`);if(v.a.rows[row].species)add(info,'small',v.a.rows[row].species);const bar=actions();action(bar,'Pin reference','pin-selected');action(bar,`${v.annotationFilter.hiddenRowIds?.includes(v.a.rows[row].id)?'Show':'Hide'} row features`,'toggle-row-features');}
+  if(row>=0){const selected=add(target,'div',undefined,'ak-selected-residue');add(selected,'b',shown==='-'?'—':shown!);const info=add(selected,'div');add(info,'strong',v.a.rows[row].name);if(v.a.alphabet==='protein')add(info,'span',residueDescription(shown!),'ak-residue-description');if(shown!==residue)add(info,'span',`Source residue ${residue}`);add(info,'span',position===null?'Alignment gap':`Sequence position ${position}`);if(v.a.rows[row].species)add(info,'small',v.a.rows[row].species);const bar=actions();action(bar,'Pin reference','pin-selected');action(bar,`${v.annotationFilter.hiddenRowIds?.includes(v.a.rows[row].id)?'Show':'Hide'} row features`,'toggle-row-features');}
   if(v.identity){const p=add(target,'p');p.append('Identity to reference: ',el('strong',percent(v.identity.identity)),el('br'),`${v.identity.matches.toLocaleString()} matches / ${v.identity.compared.toLocaleString()} canonical positions compared`);}
-  if(!v.stats){add(target,'p','Calculating exact column statistics…');return;}
+  const columnRows=()=>renderColumnRows(target,v.a,col,v.rows??v.a.rows.map((_,i)=>i),v.reverse,v.strands);
+  if(!v.stats){add(target,'p','Calculating exact column statistics…');columnRows();return;}
   const d=columnDetail(v.stats,col),grid=add(target,'div',undefined,'ak-stat-grid');
   for(const [value,label] of [[percent(d.frequency),'Modal frequency'],[percent(d.gapFraction),'Gap fraction'],[percent(d.support),'Consensus support'],[d.tied?'Tied':d.consensus??'—','Consensus'],[bits(d.entropy),'Entropy'],[bits(d.information),'Information']])stat(grid,value,label);
   if(v.a.alphabet==='protein')stat(grid,d.quality===null?'Unavailable':d.quality.toFixed(2),'Quality');
   add(target,'h4','Residue distribution');add(target,'p',`${d.total.toLocaleString()} ${v.scope} rows · ${d.gapCount.toLocaleString()} gaps`,'ak-caption');const distribution=add(target,'div',undefined,'ak-distribution');for(const x of d.counts){const line=add(distribution,'div');add(line,'b',x.residue);const bar=add(line,'div',undefined,'ak-bar'),fill=add(bar,'span');fill.style.width=`${x.count/Math.max(1,d.total)*100}%`;fill.style.background=residueColor(x.residue,getColorScheme(v.scheme),d.support??undefined);add(line,'span',x.count.toLocaleString());}
   add(target,'p','Frequency excludes gaps. Support includes all rows in the statistics scope. Ambiguity symbols are counted separately. Entropy and information are in bits over non-gap residues; information subtracts the small-sample correction. Quality is the mean pairwise BLOSUM62 score scaled to 0 to 1.','ak-definition');
   const features=v.annotations.filter(a=>a.mapping==='mapped'&&a.start!<=col&&a.end!>=col&&(!v.selection!.rowId||!a.rowId||a.rowId===v.selection!.rowId));
-  if(features.length){add(target,'h4',`Features at this position (${features.length})`);for(const a of features.slice(0,20))feature(target,v.annotations.indexOf(a),a.label,a.kind??'variant');if(features.length>20)add(target,'p','Open Features to browse all annotations.');}
+  if(features.length){add(target,'h4',`Features at this position (${features.length})`);for(const a of features.slice(0,20))feature(target,v.annotations.indexOf(a),a.label,a.kind??'variant',undefined,a);if(features.length>20)add(target,'p','Open Features to browse all annotations.');}
+  columnRows();
 }

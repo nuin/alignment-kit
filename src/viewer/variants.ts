@@ -12,8 +12,8 @@ interface VariantMark { a:Annotation; info:VariantInfo; lane:number; color:strin
 /** A mark with its display interval [left, right) under the current column map. */
 interface NavMark { k:VariantMark; left:number; right:number }
 /** `marks` are the mapped variants that pass the annotation filter on shown rows, sorted by start column then row rank. `lanes` counts drawn lanes (at most 8); `overflow` counts marks beyond them. `total` counts mapped variants in the alignment. `nav` caches the navigation order for one column map. */
-export interface VariantLayout { marks:VariantMark[]; lanes:number; overflow:number; total:number; nav?:{columns:ColumnMap;list:NavMark[]} }
-const empty:VariantLayout={marks:[],lanes:0,overflow:0,total:0};
+export interface VariantLayout { marks:VariantMark[]; unmapped:Annotation[]; lanes:number; overflow:number; total:number; cardTotal:number; nav?:{columns:ColumnMap;list:NavMark[];cards:Annotation[]} }
+const empty:VariantLayout={marks:[],unmapped:[],lanes:0,overflow:0,total:0,cardTotal:0};
 export function variantLayout(v:Core):VariantLayout {
   const a=v.a;if(!a)return empty;
   const keys=[a,a.annotations,v.filteredAnnotations.visible,v.filteredRows,v.rows,v.pinned,v.reference],c=v.variantCache;
@@ -26,16 +26,18 @@ export function variantLayout(v:Core):VariantLayout {
     const g=v.grouped?v.groupName(r):null,h=g===null?undefined:headers.get(g);
     return h===undefined?1e6+s:h+(s+1)/(shown.size+2);
   };
-  const marks:VariantMark[]=[];
+  const marks:VariantMark[]=[],unmapped:{a:Annotation;rank:number}[]=[];
   for(const n of v.filteredAnnotations.visible){
-    if(n.mapping!=='mapped'||n.start===undefined||n.end===undefined)continue;const info=variantOf(n);if(!info)continue;
+    const info=variantOf(n);if(!info)continue;
     const k=rank(n.rowId);if(Number.isNaN(k))continue;
+    if(n.mapping!=='mapped'||n.start===undefined||n.end===undefined){unmapped.push({a:n,rank:k});continue;}
     marks.push({a:n,info,lane:0,color:annotationColor(n),shape:variantShape(info),rank:k});
   }
   marks.sort((x,y)=>x.a.start!-y.a.start!||x.rank-y.rank||x.a.end!-y.a.end!);
   const {lanes,count,overflow}=assignLanes(marks.map(k=>({start:k.a.start!,end:k.a.end!})));marks.forEach((k,i)=>k.lane=lanes[i]);
-  let total=0;for(const n of a.annotations)if(n.mapping==='mapped'&&variantOf(n))total++;
-  const value:VariantLayout={marks,lanes:count,overflow,total};
+  let total=0,cardTotal=0;for(const n of a.annotations)if(variantOf(n)){cardTotal++;if(n.mapping==='mapped')total++;}
+  unmapped.sort((x,y)=>x.rank-y.rank);
+  const value:VariantLayout={marks,unmapped:unmapped.map(k=>k.a),lanes:count,overflow,total,cardTotal};
   v.variantCache={keys,value};v.overviewDirty=true;return value;
 }
 /** Lanes the variant track takes in the layout: 0 when it is switched off or no variant is shown. */
@@ -65,8 +67,9 @@ function navigable(v:Core):NavMark[] {
   const list:NavMark[]=[];
   for(const k of l.marks){const [left,right]=columnSpan(m,k.a.start!,k.a.end!);if(right>left)list.push({k,left,right});}
   list.sort((x,y)=>x.left-y.left||x.k.rank-y.k.rank||x.right-y.right);
-  l.nav={columns:m,list};return list;
+  l.nav={columns:m,list,cards:[...list.map(({k})=>k.a),...l.unmapped]};return list;
 }
+export function variantCardItems(v:Core):Annotation[] {navigable(v);return variantLayout(v).nav!.cards;}
 const current=(v:Core,list:NavMark[]):number=>{const s=v.selection;if(!s||!v.variantCursor)return -1;return list.findIndex(({k})=>k.a.id===v.variantCursor&&k.a.start===s.start&&k.a.end===s.end&&(k.a.rowId??undefined)===s.rowId);};
 export function nextVariant(v:Core,direction:number=1):Annotation|null {
   v.assertAlive();if(!v.a)return null;const list=navigable(v),n=list.length;if(!n)return null;

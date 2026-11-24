@@ -6,6 +6,7 @@ import { bindLabels } from './labels';
 import { bindTooltip } from './tooltip';
 import { bindHints } from './hints';
 import { $ } from '../controls';
+import { selectVariantCard } from './cards';
 
 export function bind(v:Core):void {
   const signal=v.controller.signal,on:On=(target,event,handler)=>target.addEventListener(event,handler,{signal});
@@ -16,7 +17,8 @@ export function bind(v:Core):void {
     event.preventDefault();void v.load(text,{name:'Pasted alignment'}).catch(()=>{});
   });
   on(v.root,'click',(event:MouseEvent)=>{
-    const target=event.target as HTMLElement,button=target.closest<HTMLElement>('[data-action],[data-tab],[data-row],[data-pin],[data-feature],[data-hit],[data-group],[data-hide],[data-strand]');if(!button)return;
+    const target=event.target as HTMLElement,button=target.closest<HTMLElement>('[data-action],[data-tab],[data-row],[data-pin],[data-feature],[data-hit],[data-group],[data-hide],[data-strand],[data-variant-card]');if(!button)return;
+    if(button.dataset.variantCard){selectVariantCard(v,button.dataset.variantCard);return;}
     if(button.dataset.hit)v.goToHit(Number(button.dataset.hit));
     if(button.dataset.action)void v.action(button.dataset.action);
     if(button.dataset.tab){v.tab=button.dataset.tab;v.inspectorDirty=true;v.schedule();}

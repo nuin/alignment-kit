@@ -67,6 +67,10 @@ export function buildShell(root:HTMLElement) {
     <label>Header <select aria-label="FASTA header"><option value="name">Name</option><option value="name-species">Name and species</option><option value="id-name">ID and name</option></select></label>
     <button type="button" data-action="close-fasta-options">Done</button></div>
   <div class="ak-message" role="status" hidden></div>
+  <section class="ak-variant-cards" aria-label="Variant cards" data-empty="true" hidden>
+    <div class="ak-variant-cards-header"><button type="button" data-action="variant-cards-toggle" aria-expanded="true" aria-controls="${activeCellId}-variants">Variants <span aria-hidden="true">▾</span></button><span class="ak-variant-cards-count" role="status"></span><span class="ak-variant-cards-pages"><button type="button" data-action="variant-cards-prev" aria-label="Previous page of variant cards">‹</button><output aria-label="Variant card page"></output><button type="button" data-action="variant-cards-next" aria-label="Next page of variant cards">›</button></span></div>
+    <div class="ak-variant-cards-content" id="${activeCellId}-variants"><div class="ak-variant-card-list" role="group" aria-label="Browse variants"></div><p class="ak-variant-cards-empty" hidden>No variants match the current filters.</p><div class="ak-variant-details" hidden><button type="button" data-action="variant-cards-close">Close details</button><div class="ak-variant-details-body"></div></div></div>
+  </section>
   <div class="ak-overview-wrap"><span class="ak-overview-title">Alignment overview<small>Drag to explore</small></span><div class="ak-overview" role="slider" tabindex="0" aria-label="Alignment overview position" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"><canvas aria-hidden="true"></canvas><div class="ak-overview-window"></div></div></div>
   <div class="ak-workspace">
     <div class="ak-main">

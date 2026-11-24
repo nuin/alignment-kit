@@ -14,10 +14,11 @@ export const defaultVisibility: Readonly<Required<ViewerVisibility>> = Object.fr
   pinReference:true, rowFeaturesToggle:true, featureType:true, featureConsequence:true,
   diseaseFilter:true, phenotypeFilter:true, featurePagination:true, calculateIdentity:true, clearRows:true,
   messages:true, emptyState:true, rowHiding:true, rowReordering:true, tree:true, columnMasking:true, reverseComplementToggle:true, rowStrand:true, columnMarks:true,
-  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true, tooltip:true, variantTrack:true, variantNav:true, textView:true,
+  consensusThreshold:true, colorThreshold:true, minIdentity:true, minCoverage:true, tooltip:true, variantTrack:true, variantNav:true, variantCards:true, textView:true,
 });
 
 const selectors: Partial<Record<keyof ViewerVisibility,string>> = {
+  variantCards:'.ak-variant-cards',
   toolbar:'.ak-toolbar',tools:'.ak-tools',overview:'.ak-overview-wrap',overviewTitle:'.ak-overview-title',alignment:'.ak-grid',
   inspector:'.ak-inspector',inspectorTabs:'.ak-tabs',status:'.ak-status',statusSummary:'.ak-status-main',statusDetails:'.ak-status-detail',warnings:'.ak-warnings',
   open:'[data-action="open"],.ak-toolbar-divider',search:'.ak-search',colorScheme:'.ak-scheme-label',zoom:'.ak-zoom',fit:'[data-action="fit"]',

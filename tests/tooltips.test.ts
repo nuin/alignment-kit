@@ -70,6 +70,11 @@ it('reads evidence, source and PubMed IDs from metadata',()=>{
   expect(annotationDetails(note)).toEqual({evidence:['ECO:0000269','IEA'],source:['ClinVar'],pubmed:['123456','x<y','99']});
   expect(annotationDetails({id:'x',label:'x',mapping:'unmapped',metadata:{pubmed:'PMID:7;8'}}).pubmed).toEqual(['7','8']);
 });
+it('includes application variant details in pinned cards as escaped text',async()=>{
+  const v=await make();v.addAnnotations([{id:'detail',rowId:'b',label:'Variant detail',start:2,end:2,mapping:'mapped',metadata:{details:[{label:'Impact',value:'HIGH'},{label:'Sample',value:'<script>bad()</script>'}]}}]);
+  click(v,2,0);const c=card(v)!;
+  expect(c.textContent).toContain('HIGH');expect(c.textContent).toContain('<script>bad()</script>');expect(c.querySelector('script')).toBeNull();
+});
 it('forwards hover and cellclick through the integration',async()=>{
   const hover=vi.fn(),click_=vi.fn(),m=mountViewer(host(),{options:{worker:false},onHover:hover,onCellClick:click_});disposers.push(()=>m.destroy());
   await m.viewer.setAlignment(createAlignment(rows,{alphabet:'dna'}));vi.useFakeTimers();const v=m.viewer as any;move(v,1,0);click(v,1,0);

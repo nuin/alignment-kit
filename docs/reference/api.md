@@ -39,7 +39,7 @@ The tables in this section hold `AlignmentViewer` members only. `viewer.element`
 | Method | Purpose |
 |---|---|
 | `setOptions(options)` | Update options. Omitted keys keep their value. See [Options](#options) |
-| `getVisibility()` | A copy of all 80 resolved `visibility` flags (see [Configure the interface](configuration.md#configure-the-interface)) |
+| `getVisibility()` | A copy of all 81 resolved `visibility` flags (see [Configure the interface](configuration.md#configure-the-interface)) |
 | `getState()` | The view as a serializable `ViewState` with `version: 1` |
 | `setState(state)` | Restore a `ViewState` on the same dataset; returns a promise |
 | `getViewLink()` | The view as URL parameters, with `src` when the alignment came from `loadUrl` |
@@ -113,6 +113,7 @@ Each distinct summary scope (rows, columns and reference) runs in its own worker
 | Method | Purpose |
 |---|---|
 | `addAnnotations(list)` | Add annotations; throws for a duplicate ID |
+| `updateAnnotations(list)` | Replace complete annotations by existing ID atomically, preserving selection, filters and unrelated annotations; rejects unknown/duplicate IDs and invalid coordinates |
 | `removeAnnotations(ids?)` | Remove annotations by ID, or all when `ids` is omitted |
 | `importAnnotations(text, options?)` | Parse GFF3, BED, GenBank, EMBL or UniProt JSON, add the result, return `{ annotations, warnings }` |
 | `setAnnotationFilter(filter)` | Replace the type, consequence, evidence and row-visibility filters |
@@ -170,7 +171,7 @@ These names are functions of the package, and the viewer has no method with thes
 | `showLogo` | boolean | | `false` | Alias of `visibility.logo` |
 | `showInspector` | boolean | | `true` | Alias of `visibility.inspector` |
 | `showToolbar` | boolean | | `true` | Alias that sets `visibility.toolbar` and `visibility.tools` |
-| `visibility` | `ViewerVisibility` | 80 boolean keys | `defaultVisibility` | Keys merge one by one. See [Configure the interface](configuration.md#configure-the-interface) |
+| `visibility` | `ViewerVisibility` | 81 boolean keys | `defaultVisibility` | Keys merge one by one. See [Configure the interface](configuration.md#configure-the-interface) |
 | `statisticsScope` | `'all'` or `'filtered'` | | `'all'` | Rows that the statistics cover |
 | `rulerCoordinates` | `'alignment'` or `'reference'` | | `'alignment'` | Ruler numbering by column, or by residue of the pinned reference |
 | `consensusThreshold` | number | 0 to 1 | `0` | Consensus columns with a lower modal frequency become X or N |

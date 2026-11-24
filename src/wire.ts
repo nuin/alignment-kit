@@ -15,7 +15,7 @@ export interface WireDocument {
 export interface WireExtras { annotations?:Annotation[]; tree?:string; config?:unknown; state?:ViewState }
 /** A validated document. `state.alignmentId` is the id of `alignment`. */
 export interface WireContent { alignment:Alignment; tree?:string; config?:ViewerConfig; state?:ViewState }
-export const WIRE_FORMAT:'msa-canvas'='msa-canvas',WIRE_VERSION:1=1;
+export const WIRE_FORMAT='msa-canvas' as const,WIRE_VERSION=1 as const;
 /** The one marker of dist/template.html. It is joined at run time so that the bundled copy of this module does not contain it. */
 export const WIRE_PLACEHOLDER:string=['{{MSA','PAYLOAD','JSON}}'].join('_');
 

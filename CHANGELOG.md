@@ -25,8 +25,13 @@ Saved view states stay readable. `getState()` writes `version: 1`. `setState()` 
 
 `removeRows()` gives the alignment a new ID, so a state saved before the removal no longer applies.
 
-## Unreleased
+## 0.6.0 (unreleased)
 
+- Add a collapsible variant-card strip with bounded paging, shared navigation and filters, and details for unmapped variants. `visibility.variantCards` controls it independently.
+- Add `updateAnnotations(list)` to replace complete annotations by existing ID atomically, preserving selection, filters, and card focus, including inside shadow roots.
+- Show amino-acid names and chemical classes, supplied variant metadata, and a paginated list of visible sequence residues and positions in the Position inspector.
+- Include coding and noncoding PAVI variants with genomic context and evidence fields.
+- Keep the alignment scrollable when cards and annotation tracks exceed the viewer height. Fix dark-theme input placeholders and headings.
 - Add `<msa-canvas>` (`./element`), a Vue 3 wrapper (`./vue`), the script-tag bundle `dist/msa-canvas.global.js` and `dist/style.inline.css`. `workerUrl` also accepts a function that returns a `Worker`.
 - Declarations resolve under TypeScript `moduleResolution` `node16` and `bundler`. Exports use the `default` condition, so `require()` works on Node 22.12 and later.
 - Add `theme: 'auto'`, which follows `prefers-color-scheme`. The tools bar has labelled groups, with rarely used controls behind More.
