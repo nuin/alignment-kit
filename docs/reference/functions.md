@@ -209,6 +209,20 @@ await createViewer(element).setAlignment(alignment);
 | `PaviVariant` | `variant_id`, `alignment_start_pos?`, `alignment_end_pos?`, `seq_start_pos?`, `seq_end_pos?`, `seq_substitution_type?`, `hgvs_protein?`, `molecular_consequences?`, plus any other key |
 | `PaviSequenceInfo` | `species?`, `embedded_variants?`, `non_coding_variants?`, `requested_variant_ids?`, `error?` |
 
+## Wire format (`wire.ts`)
+
+The JSON document that Python, R, the CLI and the HTML template send to the viewer. See [Wire format](wire-format.md).
+
+| Export | Purpose |
+|---|---|
+| `toJson(alignment, extras?)` | The alignment as a version 1 `WireDocument` of plain JSON values. `extras` takes `annotations`, `tree`, `config` and `state`, each validated |
+| `fromJson(input)` | Read a version 1 document from JSON text or a parsed value into a `WireContent`. Throws an `Error` naming the bad key. Sets `state.alignmentId` to the document's alignment |
+| `fillTemplate(template, doc)` | Put a `WireDocument` into `dist/template.html`, or any text holding `WIRE_PLACEHOLDER` exactly once, and return the page |
+| `escapeJson(json)` | JSON text with every `<` written as `\u003c`, so it is safe inside a script element |
+| `WIRE_FORMAT` | `'msa-canvas'`, the `format` field of every document |
+| `WIRE_VERSION` | `1`, the `version` field this release reads and writes |
+| `WIRE_PLACEHOLDER` | The one placeholder string in `dist/template.html` |
+
 ## Framework entries
 
 | Export | Entry | Purpose |
@@ -272,6 +286,8 @@ Every type is exported from `@nuin/msa-canvas` as a type-only export. `src/types
 | `ViewerOptions` | Constructor and `setOptions` argument. See the [options table](api.md#options) |
 | `ViewerConfig` | `ViewerOptions` without `alignment`, with `workerUrl` as a string. The result of `parseViewerConfig` |
 | `ViewerVisibility` | 80 optional boolean switches. See [Configure the interface](configuration.md#configure-the-interface) |
+| `WireDocument`, `WireRow`, `WireExtras`, `WireContent` | Shapes of the wire document, one of its rows, the `toJson` extras and the `fromJson` result |
+| `WorkerSource` | `workerUrl` value: a string, a `URL`, or a function that returns a `Worker` |
 | `ViewState` | Serializable view from `getState()`, with `version: 1` |
 | `ViewLink` | View fields a shareable link carries |
 | `Selection` | `{ start, end, rowId? }` |

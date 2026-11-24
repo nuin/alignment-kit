@@ -27,6 +27,17 @@ Saved view states stay readable. `getState()` writes `version: 1`. `setState()` 
 
 ## Unreleased
 
+- Add `<msa-canvas>` (`./element`), a Vue 3 wrapper (`./vue`), the script-tag bundle `dist/msa-canvas.global.js` and `dist/style.inline.css`. `workerUrl` also accepts a function that returns a `Worker`.
+- Declarations resolve under TypeScript `moduleResolution` `node16` and `bundler`. Exports use the `default` condition, so `require()` works on Node 22.12 and later.
+- Add `theme: 'auto'`, which follows `prefers-color-scheme`. The tools bar has labelled groups, with rarely used controls behind More.
+- The theme button is named Dark theme. Inspector tabs are a tablist and use `aria-selected`.
+- Residue letters use dark or white ink per fill, so every built-in palette entry reaches a 4.5:1 contrast.
+- Alphabet detection uses one rule everywhere: nucleotide when at least 90% of non-gap residues are A, C, G, T, U or N. DNA with more than 10% IUPAC ambiguity codes is now detected as protein.
+- `~` is a gap in FASTA, Stockholm, CLUSTAL and PIR.
+- `VariantClass` gains `startstop` for `start_lost` and `stop_lost`.
+- Tree leaves match the first word of a row name, so FASTA headers with a description match.
+- `viewport` fires only when the visible range or row count changes. `mountViewer` skips `setOptions` for an equal options object.
+- PNG export checks 16,384 px per side and 32,000,000 px area before it builds the figure. SVG and PNG follow the reverse-complement view.
 - Add the wire format, version 1: `toJson`, `fromJson`, `fillTemplate`, `escapeJson`, `WIRE_FORMAT`, `WIRE_VERSION` and `WIRE_PLACEHOLDER` from the package entry, and `MsaCanvas.mountWire` in the script-tag bundle.
 - Add the package exports `./wire.schema.json`, `./view-state.schema.json` and `./template.html`. `npm run build` writes `dist/template.html`, one self-contained page with a single JSON payload placeholder.
 - Add the `msa-canvas <file> -o view.html` command (`bin`), with `--config`, `--state`, `--theme`, `--height` and `--json`.

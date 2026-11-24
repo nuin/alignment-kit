@@ -160,7 +160,7 @@ These names are functions of the package, and the viewer has no method with thes
 |---|---|---|---|---|
 | `alignment` | `Alignment` | | none | Loaded by the constructor. `setOptions` ignores it; call `setAlignment` |
 | `height` | number | 360 to 2000 | `740` | Viewer height in pixels |
-| `theme` | `'light'` or `'dark'` | | `'light'` | Surface colors. Residue palettes keep their meaning in both |
+| `theme` | `'light'`, `'dark'` or `'auto'` | | `'light'` | Surface colors. `'auto'` follows `prefers-color-scheme`. Residue palettes keep their meaning in both |
 | `colorScheme` | string | a registered scheme ID | `'soft'` | A scheme that does not fit the alphabet falls back to `soft` or `soft-nucleotide`. See [Colors and themes](configuration.md#colors-and-themes) |
 | `colorMode` | `ColorMode` | 5 values | `'all'` | Color all residues, or only matches or differences against the reference or the consensus |
 | `matchDisplay` | `'letter'` or `'dot'` | | `'letter'` | `'dot'` draws residues identical to the comparison residue as `.` |
@@ -194,7 +194,7 @@ These names are functions of the package, and the viewer has no method with thes
 | `export` | `ExportOptions` | | `{}` | `columns` is `'all'` (the effective default) or `'visible'`, which leaves hidden columns out of every export and copy |
 | `urlSync` | boolean | | `false` | Keep `location.hash` in sync with the view. Read once by the constructor |
 | `worker` | boolean | | `true` | `false` runs analysis on the main thread. Read once by the constructor |
-| `workerUrl` | string or `URL` | | the bundled `worker.js` | Read once by the constructor. See [Workers and bundlers](frameworks.md#workers-and-bundlers) |
+| `workerUrl` | `WorkerSource`: string, `URL` or `() => Worker` | | the bundled `worker.js` | Read once by the constructor. See [Workers and bundlers](frameworks.md#workers-and-bundlers) |
 
 `showToolbar`, `showInspector` and `showLogo` are aliases from before the `visibility` option. They stay supported. An explicit `visibility` key in the same call wins over an alias.
 
