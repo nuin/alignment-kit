@@ -1,3 +1,4 @@
+/* global MsaCanvas */
 // anywidget front end. widget.py puts this text after msa-canvas.global.js in one module, so `MsaCanvas` is in scope and nothing is imported.
 function render({ model, el }) {
   const host = document.createElement('div');

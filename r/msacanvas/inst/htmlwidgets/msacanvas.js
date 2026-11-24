@@ -1,3 +1,4 @@
+/* global HTMLWidgets, MsaCanvas, Shiny */
 // htmlwidgets binding. x.wire is wire format 1 JSON text written by msacanvas() in R; MsaCanvas is the global bundle listed in msacanvas.yaml.
 HTMLWidgets.widget({
   name: 'msacanvas',
