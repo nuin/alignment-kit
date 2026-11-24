@@ -30,3 +30,5 @@ export { summarizeColumns, variableColumns, MAX_VARIABLE_COLUMNS } from './summa
 export { exportVariableColumns } from './export';
 export { isVariant, parseHgvsProtein, variantsToAnnotations, consequenceClass, variantColors, variantClassLabels, assignLanes } from './variants';
 export type { VariantClass, VariantType, VariantInfo, VariantInput, VariantOptions, VariantResult, HgvsProtein } from './variants';
+export { toJson, fromJson, fillTemplate, escapeJson, WIRE_FORMAT, WIRE_VERSION, WIRE_PLACEHOLDER } from './wire';
+export type { WireDocument, WireRow, WireExtras, WireContent } from './wire';

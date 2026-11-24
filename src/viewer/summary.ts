@@ -7,7 +7,7 @@ function request(v:Core,o:SummaryOptions):{scope:ColumnScope;key:string;limit:nu
   const mode=o.rows??v.options.statisticsScope,ref=o.referenceId===undefined?v.reference:a.rows.findIndex(r=>r.id===o.referenceId);
   if(ref<0)throw new Error(`Unknown reference row “${o.referenceId}”.`);
   if(mode==='filtered'&&!v.filteredRows.length)throw new Error('No sequences match the filter. Clear it or use rows: "all".');
-  const rows=mode==='filtered'?v.filteredRows:undefined,limit=Number.isFinite(o.limit)?Math.max(0,Math.floor(o.limit!)):MAX_VARIABLE_COLUMNS;
+  const rows=mode==='filtered'?v.filteredRows:undefined,limit=o.limit===Infinity?Infinity:Number.isFinite(o.limit)?Math.max(0,Math.floor(o.limit!)):MAX_VARIABLE_COLUMNS;
   let hash=2166136261;if(rows)for(const r of rows)hash=Math.imul(hash^r,16777619);
   const start=o.start??1,end=o.end??a.width;
   return {scope:{rows,start,end,reference:ref,limit},key:`${a.id}|${mode}|${rows?.length??''}|${hash>>>0}|${start}|${end}|${ref}`,limit};

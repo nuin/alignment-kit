@@ -11,9 +11,13 @@ The package is published to npm and JSR as `@nuin/msa-canvas`. The GitHub reposi
 
 ## Automated release
 
-`.github/workflows/release.yml` runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `deno.json`. It runs `release:check`, Knip/Aislop and the Chromium/WebKit suite before `npm publish` (trusted publishing, with provenance), `deno publish` and `gh release create --generate-notes`. Pull-request CI runs the same package, quality and browser checks plus `deno publish --dry-run`, and retains browser reports, failure screenshots and traces for 14 days.
+`.github/workflows/release.yml` runs when a `v*` tag is pushed. It has two jobs. `verify` holds a read-only token. It checks that the tag matches the version in `package.json`, `package-lock.json` and `deno.json`, then runs `release:check`, Knip/Aislop and the Chromium/WebKit suite. `publish` starts only after `verify` passes and is the only job with `contents: write` and `id-token: write`. It installs npm 11.5.1 exactly, then runs `npm publish --access public --provenance` (trusted publishing), `deno publish` and `gh release create --generate-notes`. Raise the npm pin by editing the workflow.
 
-Both workflows use Ubuntu 24.04, which is supported by the locked Playwright version. Update the runner image and browser tooling together; the Ubuntu 26.04 image behind `ubuntu-latest` cannot install this version's browser dependencies.
+Pull-request CI runs the same package, quality and browser checks plus `npm pack --dry-run` and `deno publish --dry-run`. The pack step prints the archive file list and size; it does not contact the registry, so a pull request that keeps an already published version still passes. CI retains browser reports, failure screenshots and traces for 14 days.
+
+CI also runs `npm run test:coverage` and keeps `coverage/lcov.info` for 14 days. `vitest.config.ts` fails the run below 90% statements, 85% branches, 90% functions and 95% lines of `src/`. These floors are the measured values (90.64, 85.00, 93.07 and 97.91) rounded down to a multiple of 5. The branch floor has no slack: 4705 of 5535 branches are covered, and 4704 reads as 84.99%. `tests/version-sync.test.ts` fails when the three version files disagree, so a partial bump fails in pull-request CI.
+
+Both workflows use Ubuntu 24.04, which is supported by Playwright 1.58.2. `package.json` pins `@playwright/test` to that exact version. Update the runner image and browser tooling together; the Ubuntu 26.04 image behind `ubuntu-latest` cannot install this version's browser dependencies.
 
 Before installing browser dependencies, both workflows select Ubuntu's official HTTPS archive and security mirror in the runner's APT mirror list. The runner's regional AWS mirror repeatedly downloaded packages at only tens of kilobytes per second during the 0.5.1 release. This override follows the [runner image's APT mirror configuration](https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt-sources.sh) and retains signed-package verification.
 
@@ -22,7 +26,7 @@ One-time setup:
 - On npmjs.com, open `@nuin/msa-canvas` > Settings > Trusted publishing and add GitHub Actions: owner `nuin`, repository `alignment-kit`, workflow `release.yml`. npm then accepts the workflow's OIDC token, so no npm token is stored.
 - Create the `@nuin/msa-canvas` package on jsr.io and link it to `nuin/alignment-kit` in its settings. JSR then accepts the workflow's GitHub OIDC token, so no JSR secret is stored.
 
-To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, add notes to `CHANGELOG.md`, merge to master after CI passes, then create and push the matching annotated tag on that merge commit (for example, `git tag -a v0.5.2 -m v0.5.2` followed by `git push origin v0.5.2`).
+To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, set the same version in the four binding files `python/pyproject.toml`, `python/msa_canvas/__init__.py` (`__version__`), `r/msacanvas/DESCRIPTION` (`Version:`) and `r/msacanvas/inst/htmlwidgets/msacanvas.yaml` (`version:` of the `msa-canvas` dependency), add notes to `CHANGELOG.md`, merge to master after CI passes, then create and push the matching annotated tag on that merge commit (for example, `git tag -a v0.5.2 -m v0.5.2` followed by `git push origin v0.5.2`).
 - Review the current [browser performance and accessibility evidence](performance.md) before tagging. Timing results are hardware-specific; native screen-reader testing has a separate status.
 
 Authentication is checked with `npm whoami`. No credentials are stored in the repository.
@@ -61,7 +65,7 @@ The packed-consumer check extracts the actual npm archive into a separate direct
 
 ## Publishing a version
 
-Bump the version in `package.json`, `package-lock.json` and `deno.json` together. Keep the file allowlist and third-party notices intact. Rebuild and rerun the checks against that exact version.
+Bump the version in `package.json`, `package-lock.json` and `deno.json` together. Set the same version in `python/pyproject.toml`, `python/msa_canvas/__init__.py` (`__version__`), `r/msacanvas/DESCRIPTION` (`Version:`) and `r/msacanvas/inst/htmlwidgets/msacanvas.yaml` (`version:` of the `msa-canvas` dependency). `scripts/sync-bindings.mjs` exits with status 1 and names each file that differs from `package.json`; `npm test` runs it, so `release:check` fails on a partial bump. The Python and R packages are not published by `release.yml`. Keep the file allowlist and third-party notices intact. Rebuild and rerun the checks against that exact version.
 
 Check the intended account and inspect the archive before the irreversible registry step:
 

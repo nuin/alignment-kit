@@ -8,8 +8,10 @@ import { trackHeight } from '../tracks';
 import { type Core } from './core';
 import { variantLayout, drawnLanes, syncVariantNav } from './variants';
 import { syncText } from './textview';
-import { syncAccessibleCell } from './accessibility';
-export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:v.options.theme==='dark',selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,marks:v.columnMarks,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,variants:v.visibility.variantTrack?variantLayout(v):undefined,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
+import { syncAccessibleCell, isDark } from './accessibility';
+/** Last emitted viewport per viewer, so a redraw of an unchanged viewport emits nothing. */
+const sent=new WeakMap<Core,string>();
+export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:isDark(v),selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,marks:v.columnMarks,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,variants:v.visibility.variantTrack?variantLayout(v):undefined,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
 export function layout(v:Core):void {
   if(v.disposed)return;const rh=v.options.rowHeight,gutter=v.gutter;
   const extra=v.drawnTracks(),lanes=drawnLanes(v),tracks=trackLayout(v.visibility,rh,extra.map(t=>({height:trackHeight(t)})),v.a?.alphabet,lanes);v.variantLanes=lanes;
@@ -48,7 +50,8 @@ export function render(v:Core):void {
   v.treeHits=v.tree&&v.treeW?v.renderer.tree($(v.root,'.ak-tree-canvas'),rv,v.tree.layout,v.tree.leafRow,v.rowPos,v.treeW,height):[];
   const ref=$(v.root,'.ak-reference-label');ref.textContent=v.a.rows[v.reference]?.name??'Reference';ref.title='Pinned reference: '+ref.textContent;
   const first=Math.max(0,Math.floor(rv.y/rv.rh)),last=Math.min(v.rows.length,Math.ceil((rv.y+height)/rv.rh));
-  const key=[first,last,v.rows.slice(first,last).join(','),[...v.selectedRows].join(','),v.a.alphabet,[...v.rowStrands].join(',')].join(':');
+  // Row checks and strand flags are not in the key: every site that changes them clears labelKey.
+  const key=[first,last,v.rows.slice(first,last).join(','),v.a.alphabet].join(':');
   if(v.labelKey!==key){v.labelKey=key;buildLabels(v,first,last);}
   for(const label of v.labels.children as HTMLCollectionOf<HTMLElement>)label.style.transform=`translateY(${Number(label.dataset.index)*rv.rh-rv.y}px)`;
   if(v.inspectorDirty)renderPanel(v);
@@ -58,5 +61,6 @@ export function render(v:Core):void {
   $(v.root,'.ak-status-main').textContent=`${v.a.rows.length.toLocaleString()} sequences${v.query||v.options.minIdentity||v.options.minCoverage?` · ${v.filteredRows.length.toLocaleString()} filtered`:''}${v.hidden.size?` · ${v.hidden.size.toLocaleString()} hidden`:''} · ${v.a.width.toLocaleString()} columns${m.count<m.width?` · ${(m.width-m.count).toLocaleString()} hidden`:''}${v.searchState?` · ${hitCount(v.searchState.result)}`:''}`;
   $(v.root,'.ak-status-detail').textContent=`${v.reversed?`${end}–${start}`:`${start}–${end}`} · ${v.stats?`${v.options.statisticsScope} rows`:'statistics pending'} · ${v.a.alphabet.toUpperCase()}${v.reversed?' · reverse complement':''}`;
   v.scroll.setAttribute('aria-rowcount',String(v.a.rows.length));v.scroll.setAttribute('aria-colcount',String(v.a.width));syncAccessibleCell(v);
-  v.emit('viewport',{start,end,firstRow:first,lastRow:last,visibleRows:last-first,totalRows:v.a.rows.length});
+  const total=v.a.rows.length,port=[v.revision,start,end,first,last,total].join(':');
+  if(sent.get(v)!==port){sent.set(v,port);v.emit('viewport',{start,end,firstRow:first,lastRow:last,visibleRows:last-first,totalRows:total});}
 }

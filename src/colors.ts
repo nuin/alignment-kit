@@ -54,10 +54,16 @@ export function residueColor(residue:string,scheme:ColorScheme,support?:number):
   }
   return scheme.colors[residue.toUpperCase()]??'#e9edf2';
 }
-export function textColor(hex:string) {
+const luminance=(hex:string)=>{
   const h=hex.length===4?'#'+Array.from(hex.slice(1),x=>x+x).join(''):hex;
   const rgb=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(c=>c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4);
-  return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2]>0.24?'#172737':'#ffffff';
+  return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
+};
+const INK='#172737',INK_L=luminance(INK);
+/** Letter ink for a fill, at 4.5:1 or more on any fill: white below luminance 0.179 (where white and black tie), the viewer ink where it reaches 4.5:1, black on the mid-luminance fills in between. */
+export function textColor(hex:string) {
+  const l=luminance(hex);
+  return l<0.1791?'#ffffff':(l+0.05)/(INK_L+0.05)>=4.5?INK:'#000000';
 }
 /** Color of one cell for a statistics-dependent scheme. `column` is the 0-based alignment column; `threshold` is colorThreshold (conservation, percent-identity) and consensusThreshold (blosum62). */
 export function dynamicColor(scheme:ColorScheme,residue:string,stats:AlignmentStats|undefined,column:number,colorThreshold:number,consensusThreshold:number):string {

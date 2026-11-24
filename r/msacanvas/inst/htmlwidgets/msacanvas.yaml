@@ -1,0 +1,7 @@
+# lib/msa-canvas is filled by scripts/sync-bindings.mjs from the npm build.
+dependencies:
+  - name: msa-canvas
+    version: 0.5.2
+    src: htmlwidgets/lib/msa-canvas
+    script: msa-canvas.global.js
+    stylesheet: style.inline.css

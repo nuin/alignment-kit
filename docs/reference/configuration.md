@@ -147,7 +147,7 @@ The `colorScheme` default applies to protein. A DNA or RNA alignment replaces `s
 
 ## Colors and themes
 
-Protein alignments default to **Residue classes** (`soft`); DNA/RNA default to **Nucleotide · muted** (`soft-nucleotide`), with A green, C gold, G rose and T/U blue. Ambiguity symbols have a neutral background. The original vivid mapping remains **Nucleotide · classic** (`nucleotide`). The Color menu lists schemes compatible with the loaded alphabet; changing Type or loading a different alphabet replaces an incompatible scheme with its default. Type changes interpretation, not the underlying sequence letters—it does not translate proteins or convert T to U.
+Protein alignments default to **Residue classes** (`soft`); DNA/RNA default to **Nucleotide · muted** (`soft-nucleotide`), with A green, C gold, G rose and T/U blue. Ambiguity symbols have a neutral background. The original vivid mapping remains **Nucleotide · classic** (`nucleotide`). The Color menu lists schemes compatible with the loaded alphabet; changing **Alphabet** (labelled Type before the tools bar was grouped) or loading a different alphabet replaces an incompatible scheme with its default. Alphabet changes interpretation and leaves the sequence letters as they are. It does not translate proteins or convert T to U.
 
 Colorblind-safe and high-contrast schemes: `cvd-protein` (**Residue classes · colorblind-safe**), `cvd-nucleotide` (**Nucleotide · colorblind-safe**, Okabe-Ito based), `hc-protein` and `hc-nucleotide` (**… · high contrast**). The protein schemes use seven classes (aliphatic AVLIM, aromatic FWY, polar STNQ, positive KRH, negative DE, glycine and proline GP, cysteine C); the nucleotide schemes color A, C, G and T/U. All four keep every pair of class colors, and the neutral color of ambiguity symbols (B, Z, X, J, U, O and * in protein; R, Y, S, W, K, M, B, D, H, V, N in nucleotides), at a CIELAB distance of 25 or more under normal vision and under simulated deuteranopia and protanopia (Machado 2009 matrices, checked in `tests/palettes.test.ts`). The high-contrast schemes also give every letter at least 7:1 contrast against its fill. The nucleotide schemes are limited to DNA and RNA, the protein schemes to protein. The Colors tab lists each class with its residues. `ColorScheme` has the optional fields `classes`, `cvdSafe` and `highContrast`. No other built-in scheme is claimed to be colorblind-safe; the Nightingale schemes, Clustal, Zappo and the muted defaults rely on red-green or similar hue differences.
 
@@ -157,4 +157,59 @@ All dropdowns use viewer-themed menus with keyboard navigation (arrows, Home/End
 
 `registerColorScheme({ id, label, description, colors, alphabets? })` adds a palette before constructing a viewer. Colors must be hex values. An optional `alphabets` array restricts a custom scheme to `protein`, `dna` and/or `rna`; omitting it allows every alphabet. `colorSchemes(alphabet?)` lists available schemes. Existing schemes and the Colors tab provide legends. See [third-party notices](../../THIRD_PARTY_NOTICES.md).
 
-Override scoped CSS properties (`--ak-bg`, `--ak-panel`, `--ak-ink`, `--ak-muted`, `--ak-line`, `--ak-accent`, `--ak-hover`, `--ak-font`) on `.ak-viewer`. IBM Plex Sans is bundled under the OFL; residue text currently uses the platform monospace fallback. Fonts and page styling do not alter input data.
+### Themes
+
+`theme` takes `'light'` (default), `'dark'` or `'auto'`. `'auto'` follows the system setting through `prefers-color-scheme` and switches live when the system changes. The value is written to `data-theme` on `.ak-viewer`. The **Dark theme** button reports the resolved theme through `aria-pressed`. Clicking it sets the opposite of the resolved theme as an explicit `'light'` or `'dark'`, which ends `'auto'`. The canvases (body, ruler, tracks, labels and overview) use the same resolved theme and redraw when the system setting changes under `'auto'`.
+
+```ts
+createViewer(el, { theme: 'auto' });
+viewer.setOptions({ theme: 'dark' });
+```
+
+Residue fills on the canvas come from the color scheme and are the same in every theme.
+
+### CSS properties
+
+Override these on `.ak-viewer`. The seven color properties from earlier releases keep their names and meaning.
+
+| Property | Light | Dark | Used for |
+|---|---|---|---|
+| `--ak-bg` | `#fff` | `#172333` | Viewer and control background |
+| `--ak-panel` | `#f6f8fb` | `#1d2b3c` | Tools bar, tab strip, status bar |
+| `--ak-ink` | `#243447` | `#e3ecf5` | Text |
+| `--ak-muted` | `#586b80` | `#a5b7c8` | Labels, captions, secondary text |
+| `--ak-line` | `#d7e0e7` | `#354356` | Borders and dividers |
+| `--ak-line-strong` | `#bfd0e0` | `#4d6078` | Hovered and pressed control borders |
+| `--ak-accent` | `#2463a6` | `#82b5ef` | Focus ring, selected tab, pressed buttons, links |
+| `--ak-accent-soft` | `#2463a61a` | `#82b5ef2e` | Overview window fill, label resize handle |
+| `--ak-hover` | `#eaf1f8` | `#293e55` | Hover and pressed backgrounds, messages |
+| `--ak-danger`, `--ak-danger-bg` | `#9b2843`, `#fff0f1` | `#ff9fb2`, `#3a1f2a` | Error messages |
+| `--ak-warn` | `#b96f00` | `#f0b04a` | Current search hit |
+| `--ak-feature` | `#a63d59` | `#e58aa3` | Feature card edge |
+| `--ak-scrollbar` | `#aebfce` | `#52657c` | Scrollbar thumbs |
+| `--ak-shadow`, `--ak-shadow-sm` | | | Menu and card shadows |
+
+Sizes, radii and fonts are shared by both themes:
+
+| Property | Default | Used for |
+|---|---|---|
+| `--ak-text-xs`, `--ak-text-sm`, `--ak-text-md`, `--ak-text-lg`, `--ak-text-xl` | 11, 12, 13, 17, 26 px | Text sizes. No viewer text is smaller than `--ak-text-xs`. |
+| `--ak-radius-sm`, `--ak-radius`, `--ak-radius-lg` | 3, 5, 10 px | Swatches and tabs, controls, the viewer frame |
+| `--ak-control` | 32 px (44 px with a coarse pointer) | Height of toolbar buttons, inputs and menus |
+| `--ak-mono` | `ui-monospace, "SF Mono", Menlo, Consolas, monospace` | Residue badges, legends, text view |
+| `--ak-font` | IBM Plex Sans (bundled, OFL) | Interface text |
+
+A host that sets a color property in its own rule must set it for the dark theme as well, for example under `.ak-viewer[data-theme=dark]`.
+
+### Letter contrast
+
+`textColor(fill)` picks the letter ink for a residue fill: white on fills with relative luminance below 0.179, the viewer ink `#172737` where it reaches 4.5:1, and black on the mid-luminance fills in between. Every entry of the Nightingale palettes (339) and every built-in scheme reaches 4.5:1; `tests/ink-contrast.test.ts` walks them all. Custom schemes get the same rule.
+
+### Preferences and input
+
+- `prefers-reduced-motion: reduce` removes transitions, animations and smooth scrolling.
+- `forced-colors: active` outlines the selected tab, pressed buttons, the open **More** button, the active menu option and the current hit, because forced colors remove their backgrounds.
+- `pointer: coarse` raises `--ak-control` to 44 px and gives row checkboxes, row buttons, the label resize handle and tab buttons larger targets. Row height stays with the `rowHeight` option, which the canvas shares.
+- Layout breakpoints measure the viewer, through a CSS container named `ak` on `.ak-viewer`. See [Toolbar groups and narrow layouts](display.md#toolbar-groups-and-narrow-layouts).
+
+Fonts and page styling do not alter input data.

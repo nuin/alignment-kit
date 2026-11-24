@@ -11,14 +11,14 @@ async function audit(page:Page) {
 for(const theme of ['light','dark'])test(`accessible controls, contrast and open menus in ${theme} theme`,async({page})=>{
   await page.goto('/');
   await expect(page.locator('.ak-status')).toContainText('838 sequences');
-  if(theme==='dark')await page.getByRole('button',{name:'Toggle theme'}).click();
+  if(theme==='dark')await page.getByRole('button',{name:'Dark theme'}).click();
   await audit(page);
   const menu=page.getByRole('combobox',{name:'Color scheme',exact:true});
   await menu.focus();await page.keyboard.press('Enter');
   await expect(menu).toHaveAttribute('aria-expanded','true');
   await audit(page);
   await page.keyboard.press('Escape');await expect(menu).toBeFocused();
-  await page.getByRole('button',{name:'Colors',exact:true}).click();await audit(page);
+  await page.getByRole('tab',{name:'Colors',exact:true}).click();await audit(page);
   await page.getByRole('button',{name:'Text',exact:true}).click();
   await expect(page.getByLabel('Alignment as text',{exact:true})).toBeVisible();
   await audit(page);
@@ -55,7 +55,7 @@ test('all inspector tabs fit inside the pane at desktop and narrow widths',async
     for(const tab of await page.locator('.ak-tabs button').all()) {
       const box=await tab.boundingBox();expect(box).toBeTruthy();
       expect(box!.x+box!.width).toBeLessThanOrEqual(pane!.x+pane!.width);
-      await tab.focus();await page.keyboard.press('Enter');await expect(tab).toHaveAttribute('aria-pressed','true');
+      await tab.focus();await page.keyboard.press('Enter');await expect(tab).toHaveAttribute('aria-selected','true');
     }
   }
 });

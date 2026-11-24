@@ -4,6 +4,7 @@ const ready=async(page:any)=>{await page.goto('/');await page.waitForFunction(()
 
 test('threshold sliders and filters change the view',async({page})=>{
   await ready(page);
+  await page.getByRole('button',{name:'More',exact:true}).click();
   for(const label of ['Consensus threshold','Color threshold','Minimum identity to reference','Minimum coverage'])await expect(page.getByLabel(label,{exact:true})).toBeVisible();
   await expect(page.getByLabel('Color threshold',{exact:true})).toBeDisabled();
   await page.evaluate(()=>(window as any).alignmentDemo.viewer.setOptions({colorScheme:'percent-identity'}));

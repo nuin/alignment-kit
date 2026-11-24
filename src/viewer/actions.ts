@@ -3,6 +3,7 @@ import { $ } from '../controls';
 import { type Core } from './core';
 import { showWarnings } from './warnings';
 import { nextVariant } from './variants';
+import { isDark } from './accessibility';
 const cell=(tag:'th'|'td',text:string,title?:string)=>{const node=document.createElement(tag);node.textContent=text;if(title)node.title=title;return node;};
 /** Pairwise identity table built from DOM nodes, so sequence names are never parsed as markup. */
 function identityMatrix(a:Alignment,rows:number[],matrix:Identity[][]):HTMLElement {
@@ -23,7 +24,7 @@ export async function action(v:Core, action:string):Promise<void> {
     if(action==='zoom-in')v.zoom(v.options.cellWidth+2);
     if(action==='zoom-out')v.zoom(v.options.cellWidth-2);
     if(action==='fit'&&v.a)v.zoom(Math.max(3,Math.floor((v.scroll.clientWidth-v.gutter)/v.columns.count)));
-    if(action==='theme')v.setOptions({theme:v.options.theme==='light'?'dark':'light'});
+    if(action==='theme')v.setOptions({theme:isDark(v)?'light':'dark'});
     if(action==='text-view')v.setOptions({textView:!v.options.textView});
     if(action==='inspect')v.setOptions({showInspector:!v.options.showInspector});
     if(action==='fullscreen'){if(document.fullscreenElement)await document.exitFullscreen();else if(v.root.requestFullscreen)await v.root.requestFullscreen();else v.message('Full screen is unavailable in this browser.');}

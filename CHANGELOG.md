@@ -25,6 +25,14 @@ Saved view states stay readable. `getState()` writes `version: 1`. `setState()` 
 
 `removeRows()` gives the alignment a new ID, so a state saved before the removal no longer applies.
 
+## Unreleased
+
+- Add the wire format, version 1: `toJson`, `fromJson`, `fillTemplate`, `escapeJson`, `WIRE_FORMAT`, `WIRE_VERSION` and `WIRE_PLACEHOLDER` from the package entry, and `MsaCanvas.mountWire` in the script-tag bundle.
+- Add the package exports `./wire.schema.json`, `./view-state.schema.json` and `./template.html`. `npm run build` writes `dist/template.html`, one self-contained page with a single JSON payload placeholder.
+- Add the `msa-canvas <file> -o view.html` command (`bin`), with `--config`, `--state`, `--theme`, `--height` and `--json`.
+- Add the Python package `msa_canvas` (`python/`) and the R htmlwidgets package `msacanvas` (`r/msacanvas`) to the repository. Neither is in the npm archive. `npm run sync:bindings` copies the built bundle, CSS and template into both.
+- A release now sets the version in four binding files as well; see `docs/RELEASE.md`.
+
 ## 0.5.2 (2026-11-18)
 
 - Publish the accessibility, safety and validation improvements prepared in 0.5.1.

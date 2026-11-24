@@ -1,4 +1,4 @@
-import type { Core } from './core';
+import type { Core, On } from './core';
 import type { Alignment } from '../types';
 import { $ } from '../controls';
 import { rowOffset, isGap } from '../model';
@@ -31,4 +31,41 @@ export function syncAccessibleCell(v:Core):void {
   cell.setAttribute('aria-colindex',String(column));cell.setAttribute('aria-selected',String(selected));
   v.scroll.setAttribute('aria-activedescendant',cell.id);
   activeCells.set(v,{a,row,column,position,selected,reverse,strand});
+}
+
+/** Mark the active inspector tab: one tab stop for the list, and the panel named by its tab. */
+export function syncTabs(v:Core):void {
+  const panel=$(v.root,'.ak-inspector-content');
+  for(const tab of v.root.querySelectorAll<HTMLElement>('.ak-tabs [role=tab]')){const on=tab.dataset.tab===v.tab;tab.setAttribute('aria-selected',String(on));tab.tabIndex=on?0:-1;if(on)panel.setAttribute('aria-labelledby',tab.id);}
+}
+const darkQuery=(root:HTMLElement)=>root.ownerDocument.defaultView?.matchMedia?.('(prefers-color-scheme: dark)');
+/** Resolved theme: 'auto' reads prefers-color-scheme. The CSS shell, the canvas, the toggle and its pressed state all use this value. */
+export const isDark=(v:Core):boolean=>v.options.theme==='dark'||(v.options.theme==='auto'&&!!darkQuery(v.root)?.matches);
+/** Pressed state of the theme and inspector toggles, and the message role, follow the root attributes that setOptions and message() write, so API changes are reflected too. */
+function syncState(v:Core):void {
+  const message=$(v.root,'.ak-message');
+  $(v.root,'[data-action="theme"]').setAttribute('aria-pressed',String(isDark(v)));
+  $(v.root,'[data-action="inspect"]').setAttribute('aria-pressed',String(v.root.dataset.inspector==='true'));
+  message.setAttribute('role',message.dataset.error==='true'?'alert':'status');
+}
+export function bindAccessibility(v:Core,on:On):void {
+  const sync=()=>syncState(v),signal=v.controller.signal;sync();
+  if(typeof MutationObserver!=='undefined'){
+    const observer=new MutationObserver(sync);
+    observer.observe(v.root,{attributes:true,attributeFilter:['data-theme','data-inspector']});
+    observer.observe($(v.root,'.ak-message'),{attributes:true,attributeFilter:['data-error']});
+    signal.addEventListener('abort',()=>observer.disconnect());
+  }
+  darkQuery(v.root)?.addEventListener?.('change',()=>{sync();if(v.options.theme==='auto'){v.overviewDirty=true;v.schedule();}},{signal});
+  on(v.root,'click',(event:MouseEvent)=>{
+    const toggle=(event.target as Element|null)?.closest?.<HTMLElement>('.ak-more-toggle');if(!toggle)return;
+    const panel=$(v.root,'.ak-more'),open=panel.hidden;panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));v.menus.close();
+  });
+  on(v.root,'keydown',(event:KeyboardEvent)=>{
+    const tab=(event.target as Element|null)?.closest?.<HTMLElement>('.ak-tabs [role=tab]');
+    if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)||event.ctrlKey||event.metaKey||event.altKey)return;
+    const tabs=[...v.root.querySelectorAll<HTMLElement>('.ak-tabs [role=tab]')].filter(t=>!t.hidden),i=tabs.indexOf(tab);if(i<0)return;
+    const next=tabs[event.key==='Home'?0:event.key==='End'?tabs.length-1:(i+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length];
+    event.preventDefault();v.tab=next.dataset.tab!;v.inspectorDirty=true;syncTabs(v);next.focus();v.schedule();
+  });
 }

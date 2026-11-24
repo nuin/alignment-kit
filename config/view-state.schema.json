@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bioinformat.org/msa-canvas/schema/view-state.schema.json",
+  "x-version": 1,
+  "title": "msa-canvas view state, version 1",
+  "description": "The value of getState() and setState(). Columns are one-based and inclusive. Inside a wire document alignmentId may be omitted; the reader sets it to the id of the document alignment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "referenceId",
+    "query",
+    "sort",
+    "start",
+    "rowOffset",
+    "cellWidth",
+    "selection",
+    "colorScheme",
+    "colorMode",
+    "statisticsScope",
+    "annotationFilter"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "alignmentId": {
+      "type": "string"
+    },
+    "referenceId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "query": {
+      "type": "string"
+    },
+    "sort": {
+      "enum": [
+        "input",
+        "name",
+        "identity",
+        "gaps",
+        "length",
+        "residue",
+        "annotations",
+        "manual",
+        "tree"
+      ]
+    },
+    "start": {
+      "type": "number"
+    },
+    "rowOffset": {
+      "type": "number"
+    },
+    "cellWidth": {
+      "type": "number"
+    },
+    "selection": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start",
+            "end"
+          ],
+          "properties": {
+            "start": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "end": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "rowId": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "colorScheme": {
+      "type": "string"
+    },
+    "colorMode": {
+      "enum": [
+        "all",
+        "reference-differences",
+        "reference-matches",
+        "consensus-differences",
+        "consensus-matches"
+      ]
+    },
+    "matchDisplay": {
+      "enum": [
+        "letter",
+        "dot"
+      ]
+    },
+    "statisticsScope": {
+      "enum": [
+        "all",
+        "filtered"
+      ]
+    },
+    "rulerCoordinates": {
+      "enum": [
+        "alignment",
+        "reference"
+      ]
+    },
+    "annotationFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "consequences": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "disease": {
+          "type": "boolean"
+        },
+        "phenotype": {
+          "type": "boolean"
+        },
+        "hiddenRowIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "visibility": {
+      "type": "object",
+      "description": "Visibility switches; the keys are those of visibility in viewer-config.schema.json.",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "hiddenColumns": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "integer",
+            "minimum": 1
+          },
+          {
+            "type": "integer",
+            "minimum": 1
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "sortColumn": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "consensusThreshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "colorThreshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "minIdentity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "minCoverage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "find": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findMode": {
+      "enum": [
+        "auto",
+        "literal",
+        "iupac",
+        "regex",
+        "prosite"
+      ]
+    },
+    "strands": {
+      "enum": [
+        "both",
+        "forward"
+      ]
+    },
+    "hiddenRowIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "manualOrder": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "collapsedGroups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reverseComplement": {
+      "type": "boolean"
+    },
+    "reverseStrandRowIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "columnMarks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "start",
+          "end",
+          "color"
+        ],
+        "properties": {
+          "start": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
