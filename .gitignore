@@ -7,3 +7,15 @@ playwright-report/
 .preview/
 /demo/public/guide/
 .playwright-mcp/
+# Language bindings: copies made by scripts/sync-bindings.mjs, and Python build state
+/python/msa_canvas/static/msa-canvas.global.js
+/python/msa_canvas/static/style.inline.css
+/python/msa_canvas/static/template.html
+/python/.venv/
+/python/dist/
+/python/.pytest_cache/
+__pycache__/
+*.egg-info/
+/r/msacanvas/inst/htmlwidgets/lib/
+/r/msacanvas/inst/template/
+/r/*.tar.gz

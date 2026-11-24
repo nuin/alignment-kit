@@ -52,3 +52,9 @@ it('exits with 1 and one clear line on bad input',()=>{
   }
   expect(cli('--help').stdout).toContain('Usage: msa-canvas <file>');expect(cli('--version').stdout.trim()).toBe(pkg.version);
 });
+it('copies the bundle, CSS and template into the Python and R package trees',()=>{
+  const out=join(dir,'sync'),result=spawnSync('node',['scripts/sync-bindings.mjs',out],{encoding:'utf8'});expect(result.stderr).toBe('');expect(result.status).toBe(0);expect(result.stdout).toContain(`Copied 6 files of version ${pkg.version}`);
+  for(const [target,file] of [['python/msa_canvas/static','msa-canvas.global.js'],['python/msa_canvas/static','style.inline.css'],['python/msa_canvas/static','template.html'],['r/msacanvas/inst/htmlwidgets/lib/msa-canvas','msa-canvas.global.js'],['r/msacanvas/inst/htmlwidgets/lib/msa-canvas','style.inline.css'],['r/msacanvas/inst/template','template.html']])expect(readFileSync(join(out,target,file),'utf8'),`${target}/${file}`).toBe(readFileSync(`dist/${file}`,'utf8'));
+  const ignored=readFileSync('.gitignore','utf8');for(const line of ['/python/msa_canvas/static/template.html','/python/.venv/','/r/msacanvas/inst/htmlwidgets/lib/'])expect(ignored).toContain(line);
+  const knip=JSON.parse(readFileSync('knip.json','utf8')),tsconfig=JSON.parse(readFileSync('tsconfig.json','utf8'));expect(knip.ignore).toEqual(expect.arrayContaining(['python/**','r/**']));expect(tsconfig.exclude).toEqual(expect.arrayContaining(['python','r']));
+});
