@@ -74,7 +74,8 @@ export async function exportKind(v:Core, kind:string):Promise<void> {
     if(kind==='consensus')download(v.consensusFasta(region.start!,region.end!,v.options.export.columns==='visible'),'consensus.fasta');
     if(kind==='variants'){const block=v.selection&&v.selection.end>v.selection.start?{start:v.selection.start,end:v.selection.end}:{};download(exportVariableColumns(await getVariableColumns(v,{...block,limit:2**31})),`variable-columns${block.start?`-${block.start}-${block.end}`:''}.tsv`,'text/tab-separated-values');}
     if(kind==='tsv')download(exportStatistics(v.stats!,v.fastaRegion({})),'column-statistics.tsv','text/tab-separated-values');
-    if(kind==='svg')download(exportSvg({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,masked,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,colorThreshold:v.options.colorThreshold,consensusThreshold:v.options.consensusThreshold,referenceId:v.a.rows[v.reference].id}),'alignment.svg','image/svg+xml');
-    if(kind==='png')download(await exportPng({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,masked,v.options.colorScheme,{colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,colorThreshold:v.options.colorThreshold,consensusThreshold:v.options.consensusThreshold,referenceId:v.a.rows[v.reference].id}),'alignment.png');
+    const figure=()=>({colorMode:v.options.colorMode,matchDisplay:v.options.matchDisplay,colorThreshold:v.options.colorThreshold,consensusThreshold:v.options.consensusThreshold,referenceId:v.a!.rows[v.reference].id,reverse:v.reversed,strands:v.rowStrands});
+    if(kind==='svg')download(exportSvg({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,masked,v.options.colorScheme,figure()),'alignment.svg','image/svg+xml');
+    if(kind==='png')download(await exportPng({...v.a,annotations:v.filteredAnnotations.visible},v.stats!,masked,v.options.colorScheme,figure()),'alignment.png');
   }catch(error){v.error(error);}
 }
