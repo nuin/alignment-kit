@@ -15,6 +15,14 @@ it('writes per-row sequence coordinates in GFF3 and skips what has none',()=>{
   expect(lines.slice(1).map(l=>l.split('\t')).map(x=>[x[0],x[2],x[3],x[4]])).toEqual([['a','domain','2','4'],['b one','variant','2','4']]);
   expect(w).toHaveLength(3);expect(w.join(' ')).toMatch(/unmapped/);expect(w.join(' ')).toMatch(/no residue/);
 });
+it('names the cause of each skipped GFF3 annotation',()=>{
+  const a=base(),[ra,,rc]=a.rows.map(r=>r.id),w:string[]=[];
+  const aln=createAlignment(a.rows,{name:'aln',alphabet:'dna',annotations:[note('global',undefined,2,3),note('gap',ra,2,2),note('none',rc,undefined,undefined)]});
+  expect(exportAnnotationsGff3(aln,{warnings:w}).trim()).toBe('##gff-version 3');
+  expect(w).toEqual(["L global (global) skipped: no sequence row, so no sequence coordinates; export with coordinates: 'alignment'.",'L gap (gap) skipped: no residue of its sequence in the mapped columns.','L none (none) skipped: unmapped.']);
+  const c:string[]=[],lines=exportAnnotationsGff3(aln,{coordinates:'alignment',warnings:c}).trim().split('\n');
+  expect(lines.slice(1).map(l=>l.split('\t').slice(0,5).join(' '))).toEqual(['aln msa-canvas domain 2 3','a msa-canvas domain 2 2']);expect(c).toEqual(['L none (none) skipped: unmapped.']);
+});
 it('writes alignment columns when asked',()=>{
   const a=withNotes(),f=exportAnnotationsGff3(a,{coordinates:'alignment',seqid:'id',annotations:a.annotations.slice(0,2)}).trim().split('\n').slice(1).map(l=>l.split('\t'));
   expect(f.map(x=>[x[0],x[3],x[4]])).toEqual([[a.rows[0].id,'3','5'],[a.rows[1].id,'2','4']]);

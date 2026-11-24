@@ -1,6 +1,16 @@
 import type { Alignment, Alphabet, Sequence, SequenceInput, ParseOptions, Annotation, AlignmentMetadata } from './types';
 
 export const isGap = (c:string|number) => c === '-' || c === '.' || c === 45 || c === 46;
+const kinds=new Uint8Array(128).fill(4);
+for(let c=65;c<=90;c++)kinds[c]=kinds[c+32]=0;
+for(const [letters,k] of [['ACGNacgn',1],['Tt',2],['Uu',3]] as const)for(const ch of letters)kinds[ch.charCodeAt(0)]=k;
+/** Tally slot of a character code: 0 a letter outside A, C, G, T, U, N; 1 A, C, G or N; 2 T; 3 U; 4 not a residue (gaps, `*`, anything else). */
+export const residueKind=(code:number):number=>code<128?kinds[code]:4;
+/** Alphabet from a tally indexed by `residueKind`. Nucleotide when at least 90% of the letters are A, C, G, T, U or N (RNA when U appears without T), so a protein made of IUPAC letters such as ASDHKVNM is protein. `other` is the share of letters outside that set. A tally with no letters gives dna and 0. */
+export function alphabetOf(tally:ArrayLike<number>):{alphabet:Alphabet;other:number} {
+  const residues=tally[0]+tally[1]+tally[2]+tally[3],other=residues?tally[0]/residues:0;
+  return {alphabet:other>0.1?'protein':tally[3]&&!tally[2]?'rna':'dna',other};
+}
 export function createAlignment(input:SequenceInput[], options:ParseOptions & {annotations?:Annotation[];metadata?:AlignmentMetadata} = {}):Alignment {
   if (!input.length) throw new Error('An alignment needs at least one sequence.');
   const width = input[0].sequence.length;
@@ -8,7 +18,7 @@ export function createAlignment(input:SequenceInput[], options:ParseOptions & {a
   if (width * input.length > 250_000_000) throw new Error('This alignment exceeds the 250 million cell input limit. Load a subset.');
   const codes = new Uint8Array(width * input.length);
   const ids = new Set<string>();
-  let hash = 2166136261, nucleotide = true, hasU = false, hasT = false;
+  let hash = 2166136261; const tally = [0,0,0,0,0];
   const rows = input.map((row, r) => {
     if(row.sequence.length !== width) throw new Error(`Sequence “${row.name}” has length ${row.sequence.length}; expected ${width}. Supply aligned sequences of equal length.`);
     const id = row.id ?? `seq-${r+1}`;
@@ -21,14 +31,12 @@ export function createAlignment(input:SequenceInput[], options:ParseOptions & {a
       if(!((code>=65 && code<=90)||code===42||code===45)) throw new Error(`Invalid residue symbol in “${row.name}”, column ${c+1}.`);
       codes[r*width+c] = code;
       hash = Math.imul(hash ^ code,16777619);
-      if(!'ACGTUNRYKMSWBDHV-'.includes(String.fromCharCode(code))) nucleotide = false;
-      if(code===85) hasU=true;
-      if(code===84) hasT=true;
+      tally[kinds[code]]++;
     }
     for(const ch of id+row.name) hash = Math.imul(hash ^ ch.charCodeAt(0),16777619);
     return {...row,id};
   });
-  const alphabet = options.alphabet ?? (nucleotide ? (hasU && !hasT ? 'rna':'dna') : 'protein');
+  const alphabet = options.alphabet ?? alphabetOf(tally).alphabet;
   const annotations = (options.annotations ?? []).map(a=>({...a}));
   for (const a of annotations) {
     if(a.rowId && !ids.has(a.rowId)) throw new Error(`Annotation “${a.id}” refers to unknown sequence “${a.rowId}”.`);
@@ -66,10 +74,9 @@ export function columnToResidue(a:Alignment,row:number,column:number):number|nul
 export function residueToColumn(a:Alignment,row:number,residue:number):number|null {
   validateRow(a,row);if(!Number.isInteger(residue))return null;const p=residue-rowOffset(a.rows[row])+1;return p<1?null:sequenceToAlignment(a,row,p);
 }
-/** Alphabet the residues suggest, ignoring the alphabet set on the alignment. Nucleotide when at least 90% of non-gap residues are A, C, G, T, U or N (RNA when U appears without T). `other` is the fraction of non-gap residues outside that set. Large alignments are sampled at about one million cells. */
+/** Alphabet the residues suggest, ignoring the alphabet set on the alignment; the rule is `alphabetOf`. Gaps and `*` are not residues. Large alignments are sampled at about one million cells. */
 export function detectAlphabet(a:Pick<Alignment,'codes'>):{alphabet:Alphabet;other:number} {
-  const codes=a.codes,step=Math.max(1,Math.floor(codes.length/1_000_000));let residues=0,other=0,t=0,u=0;
-  for(let i=0;i<codes.length;i+=step){const c=codes[i];if(c===45)continue;residues++;if(c===84)t++;else if(c===85)u++;else if(c!==65&&c!==67&&c!==71&&c!==78)other++;}
-  const share=residues?other/residues:0;
-  return {alphabet:share>0.1?'protein':u&&!t?'rna':'dna',other:share};
+  const codes=a.codes,step=Math.max(1,Math.floor(codes.length/1_000_000)),tally=[0,0,0,0,0];
+  for(let i=0;i<codes.length;i+=step)tally[residueKind(codes[i])]++;
+  return alphabetOf(tally);
 }

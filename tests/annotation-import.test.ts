@@ -100,6 +100,18 @@ it('imports annotations from an opened file instead of replacing the alignment',
   expect(viewer.getAlignment()!.rows).toHaveLength(2);expect(viewer.getAlignment()!.annotations).toHaveLength(0);
   viewer.destroy();
 });
+it('matches Stockholm NAME/START-END rows by the name before the slash and warns on a shared token',()=>{
+  const a=parseAlignment('# STOCKHOLM 1.0\nQ9XYZ/51-120 ACGT\nP2/7-10 A-GT\nQ9XYZ/200-203 ACGA\nsp|P3|N_HUMAN/1-4 ACGT\n//\n',{alphabet:'dna'});
+  const gff=(...ids:string[])=>'##gff-version 3\n'+ids.map((id,i)=>`${id}\tsrc\tsite\t2\t3\t.\t+\t.\tID=f${i}`).join('\n')+'\n';
+  const one=importAnnotations(a,gff('P2','N_HUMAN','P3','P2/7-10'));
+  expect(one.annotations.map(x=>[x.rowId,x.start,x.end,x.mapping])).toEqual([['seq-2',3,4,'mapped'],['seq-4',2,3,'mapped'],['seq-4',2,3,'mapped'],['seq-2',3,4,'mapped']]);expect(one.warnings).toEqual([]);
+  const two=importAnnotations(a,gff('Q9XYZ','Q9XYZ','Q9XYZ/200-203','nope'));
+  expect(two.annotations.map(x=>x.rowId)).toEqual(['seq-1','seq-1','seq-3',undefined]);
+  expect(two.warnings).toHaveLength(2);expect(two.warnings[0]).toMatch(/“Q9XYZ” matches part of 2 row names; its features attach to “Q9XYZ\/51-120”, the first\. Use the full row name or the row ID as seqid/);expect(two.warnings[1]).toMatch(/no sequence matches “nope”/);
+  expect(importAnnotations(a,gff('Q9XYZ'),{rowId:'seq-3'}).annotations[0].rowId).toBe('seq-1');
+  const named=parseAlignment('>x/y z\nACGT\n>10/2-3\nACGT\n',{alphabet:'dna'});
+  expect(importAnnotations(named,gff('x','10','x/y')).annotations.map(x=>x.rowId)).toEqual([undefined,'seq-2','seq-1']);
+});
 it('matches described FASTA headers by first token and pipe segments',()=>{
   const a=parseAlignment('>P12345 desc here\nACGT\n>sp|Q9XYZ|NAME_HUMAN other\nACGA',{alphabet:'dna'});
   const r=importAnnotations(a,'P12345\t0\t2\tx\nQ9XYZ\t0\t2\ty\nNAME_HUMAN\t0\t2\tz\n');

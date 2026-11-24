@@ -34,6 +34,14 @@ it('matches leaves to rows by id, then name, once each',()=>{
   expect([...match.leafRow]).toEqual([-1,1,2,-1,-1,0]);
   expect(match.unmatchedLeaves).toEqual(['Beta','gone']);expect(match.unmatchedRows).toBe(1);
 });
+it('matches leaves to the first word of a described FASTA header, after id and full name',()=>{
+  const rows=[{id:'seq-1',name:'sp|P1 human'},{id:'seq-2',name:'sp|P2 mouse'}],match=matchLeaves(layoutTree(parseNewick('(sp|P1:1,sp|P2:1);')),rows);
+  expect([...match.leafRow]).toEqual([-1,0,1]);expect(match.unmatchedLeaves).toEqual([]);expect(match.unmatchedRows).toBe(0);
+  const dup=matchLeaves(layoutTree(parseNewick('(x,x,x);')),[{id:'a',name:'x one'},{id:'b',name:'x two'}]);
+  expect([...dup.leafRow]).toEqual([-1,0,1,-1]);expect(dup.unmatchedLeaves).toEqual(['x']);expect(dup.unmatchedRows).toBe(0);
+  const exact=matchLeaves(layoutTree(parseNewick('(x,y);')),[{id:'a',name:'x one'},{id:'b',name:'x'},{id:'y',name:'x two'}]);
+  expect([...exact.leafRow]).toEqual([-1,1,2]);expect(exact.unmatchedRows).toBe(1);
+});
 it('positions internal nodes between their present children and skips absent leaves',()=>{
   const layout=layoutTree(parseNewick('((A,B),(C,D));')),heights:Record<string,number>={A:10,B:30,C:50},leafY=new Float64Array(layout.nodes.length).fill(NaN);
   layout.nodes.forEach((n,k)=>{if(!n.children.length)leafY[k]=heights[n.name]??NaN;});
