@@ -17,7 +17,7 @@ const stated={
   'r/msacanvas/inst/htmlwidgets/msacanvas.yaml':(await read('r/msacanvas/inst/htmlwidgets/msacanvas.yaml')).match(/^\s+version: (\S+)/m)?.[1],
 };
 const stale=Object.entries(stated).filter(([,found])=>found!==version);
-if(stale.length){console.error(`Version ${version} of package.json differs in: ${stale.map(([file,found])=>`${file} (${found??'none'})`).join(', ')}.`);process.exit(1);}
+if(stale.length){console.error(`Version ${version} of package.json differs in: ${stale.map(([file,found])=>`${file} (${found??'none'})`).join(', ')}. Set all four to ${version} (docs/RELEASE.md).`);process.exit(1);}
 let count=0;
 for(const [dir,files] of Object.entries(targets)){
   await mkdir(join(root,dir),{recursive:true});

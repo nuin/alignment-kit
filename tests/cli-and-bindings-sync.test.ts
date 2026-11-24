@@ -1,6 +1,6 @@
 import {it,expect,beforeAll} from 'vitest';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {existsSync,mkdtempSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
+import {existsSync,mkdirSync,mkdtempSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -57,4 +57,15 @@ it('copies the bundle, CSS and template into the Python and R package trees',()=
   for(const [target,file] of [['python/msa_canvas/static','msa-canvas.global.js'],['python/msa_canvas/static','style.inline.css'],['python/msa_canvas/static','template.html'],['r/msacanvas/inst/htmlwidgets/lib/msa-canvas','msa-canvas.global.js'],['r/msacanvas/inst/htmlwidgets/lib/msa-canvas','style.inline.css'],['r/msacanvas/inst/template','template.html']])expect(readFileSync(join(out,target,file),'utf8'),`${target}/${file}`).toBe(readFileSync(`dist/${file}`,'utf8'));
   const ignored=readFileSync('.gitignore','utf8');for(const line of ['/python/msa_canvas/static/template.html','/python/.venv/','/r/msacanvas/inst/htmlwidgets/lib/'])expect(ignored).toContain(line);
   const knip=JSON.parse(readFileSync('knip.json','utf8')),tsconfig=JSON.parse(readFileSync('tsconfig.json','utf8'));expect(knip.ignore).toEqual(expect.arrayContaining(['python/**','r/**']));expect(tsconfig.exclude).toEqual(expect.arrayContaining(['python','r']));
+});
+it('names every binding version file of the sync script in the release bump steps',()=>{
+  const files=[...readFileSync('scripts/sync-bindings.mjs','utf8').matchAll(/^  '([^']+)':\(await read/gm)].map(match=>match[1]),steps=readFileSync('docs/RELEASE.md','utf8').split('\n').filter(line=>/^(To release: bump|Bump the version)/.test(line));
+  expect(files).toEqual(['python/pyproject.toml','python/msa_canvas/__init__.py','r/msacanvas/DESCRIPTION','r/msacanvas/inst/htmlwidgets/msacanvas.yaml']);expect(steps).toHaveLength(2);
+  for(const step of steps)for(const file of ['package.json','package-lock.json','deno.json',...files])expect(step,file).toContain(`\`${file}\``);
+});
+it('stops with the stale file names when a binding version differs from package.json',()=>{
+  const work=join(dir,'stale'),copy=(file:string,text=readFileSync(file,'utf8'))=>{mkdirSync(join(work,file,'..'),{recursive:true});writeFileSync(join(work,file),text);};
+  copy('package.json',JSON.stringify({version:'9.9.9'}));for(const file of ['python/pyproject.toml','python/msa_canvas/__init__.py','r/msacanvas/DESCRIPTION','r/msacanvas/inst/htmlwidgets/msacanvas.yaml'])copy(file);
+  const result=spawnSync('node',[join(process.cwd(),'scripts/sync-bindings.mjs'),join(work,'out')],{encoding:'utf8',cwd:work});expect(result.status).toBe(1);expect(existsSync(join(work,'out'))).toBe(false);
+  expect(result.stderr).toContain(`python/pyproject.toml (${pkg.version})`);expect(result.stderr).toContain(`r/msacanvas/inst/htmlwidgets/msacanvas.yaml (${pkg.version})`);expect(result.stderr).toContain('Set all four to 9.9.9 (docs/RELEASE.md).');
 });

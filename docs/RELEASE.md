@@ -22,7 +22,7 @@ One-time setup:
 - On npmjs.com, open `@nuin/msa-canvas` > Settings > Trusted publishing and add GitHub Actions: owner `nuin`, repository `alignment-kit`, workflow `release.yml`. npm then accepts the workflow's OIDC token, so no npm token is stored.
 - Create the `@nuin/msa-canvas` package on jsr.io and link it to `nuin/alignment-kit` in its settings. JSR then accepts the workflow's GitHub OIDC token, so no JSR secret is stored.
 
-To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, add notes to `CHANGELOG.md`, merge to master after CI passes, then create and push the matching annotated tag on that merge commit (for example, `git tag -a v0.5.2 -m v0.5.2` followed by `git push origin v0.5.2`).
+To release: bump `version` in `package.json`, `package-lock.json` and `deno.json` together, set the same version in the four binding files `python/pyproject.toml`, `python/msa_canvas/__init__.py` (`__version__`), `r/msacanvas/DESCRIPTION` (`Version:`) and `r/msacanvas/inst/htmlwidgets/msacanvas.yaml` (`version:` of the `msa-canvas` dependency), add notes to `CHANGELOG.md`, merge to master after CI passes, then create and push the matching annotated tag on that merge commit (for example, `git tag -a v0.5.2 -m v0.5.2` followed by `git push origin v0.5.2`).
 - Review the current [browser performance and accessibility evidence](performance.md) before tagging. Timing results are hardware-specific; native screen-reader testing has a separate status.
 
 Authentication is checked with `npm whoami`. No credentials are stored in the repository.
@@ -61,7 +61,7 @@ The packed-consumer check extracts the actual npm archive into a separate direct
 
 ## Publishing a version
 
-Bump the version in `package.json`, `package-lock.json` and `deno.json` together. Keep the file allowlist and third-party notices intact. Rebuild and rerun the checks against that exact version.
+Bump the version in `package.json`, `package-lock.json` and `deno.json` together. Set the same version in `python/pyproject.toml`, `python/msa_canvas/__init__.py` (`__version__`), `r/msacanvas/DESCRIPTION` (`Version:`) and `r/msacanvas/inst/htmlwidgets/msacanvas.yaml` (`version:` of the `msa-canvas` dependency). `scripts/sync-bindings.mjs` exits with status 1 and names each file that differs from `package.json`; `npm test` runs it, so `release:check` fails on a partial bump. The Python and R packages are not published by `release.yml`. Keep the file allowlist and third-party notices intact. Rebuild and rerun the checks against that exact version.
 
 Check the intended account and inspect the archive before the irreversible registry step:
 
