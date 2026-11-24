@@ -114,7 +114,7 @@ All dropdowns use viewer-themed menus with keyboard navigation (arrows, Home/End
 
 ### Themes
 
-`theme` takes `'light'` (default), `'dark'` or `'auto'`. `'auto'` follows the system setting through `prefers-color-scheme` and switches live when the system changes. The value is written to `data-theme` on `.ak-viewer`. The **Dark theme** button reports the resolved theme through `aria-pressed`. Clicking it sets an explicit `'light'` or `'dark'`, which ends `'auto'`.
+`theme` takes `'light'` (default), `'dark'` or `'auto'`. `'auto'` follows the system setting through `prefers-color-scheme` and switches live when the system changes. The value is written to `data-theme` on `.ak-viewer`. The **Dark theme** button reports the resolved theme through `aria-pressed`. Clicking it sets the opposite of the resolved theme as an explicit `'light'` or `'dark'`, which ends `'auto'`. The canvases (body, ruler, tracks, labels and overview) use the same resolved theme and redraw when the system setting changes under `'auto'`.
 
 ```ts
 createViewer(el, { theme: 'auto' });

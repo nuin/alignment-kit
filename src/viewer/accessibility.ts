@@ -39,10 +39,12 @@ export function syncTabs(v:Core):void {
   for(const tab of v.root.querySelectorAll<HTMLElement>('.ak-tabs [role=tab]')){const on=tab.dataset.tab===v.tab;tab.setAttribute('aria-selected',String(on));tab.tabIndex=on?0:-1;if(on)panel.setAttribute('aria-labelledby',tab.id);}
 }
 const darkQuery=(root:HTMLElement)=>root.ownerDocument.defaultView?.matchMedia?.('(prefers-color-scheme: dark)');
+/** Resolved theme: 'auto' reads prefers-color-scheme. The CSS shell, the canvas, the toggle and its pressed state all use this value. */
+export const isDark=(v:Core):boolean=>v.options.theme==='dark'||(v.options.theme==='auto'&&!!darkQuery(v.root)?.matches);
 /** Pressed state of the theme and inspector toggles, and the message role, follow the root attributes that setOptions and message() write, so API changes are reflected too. */
 function syncState(v:Core):void {
-  const theme=v.root.dataset.theme,message=$(v.root,'.ak-message');
-  $(v.root,'[data-action="theme"]').setAttribute('aria-pressed',String(theme==='dark'||(theme==='auto'&&!!darkQuery(v.root)?.matches)));
+  const message=$(v.root,'.ak-message');
+  $(v.root,'[data-action="theme"]').setAttribute('aria-pressed',String(isDark(v)));
   $(v.root,'[data-action="inspect"]').setAttribute('aria-pressed',String(v.root.dataset.inspector==='true'));
   message.setAttribute('role',message.dataset.error==='true'?'alert':'status');
 }
@@ -54,7 +56,7 @@ export function bindAccessibility(v:Core,on:On):void {
     observer.observe($(v.root,'.ak-message'),{attributes:true,attributeFilter:['data-error']});
     signal.addEventListener('abort',()=>observer.disconnect());
   }
-  darkQuery(v.root)?.addEventListener?.('change',sync,{signal});
+  darkQuery(v.root)?.addEventListener?.('change',()=>{sync();if(v.options.theme==='auto'){v.overviewDirty=true;v.schedule();}},{signal});
   on(v.root,'click',(event:MouseEvent)=>{
     const toggle=(event.target as Element|null)?.closest?.<HTMLElement>('.ak-more-toggle');if(!toggle)return;
     const panel=$(v.root,'.ak-more'),open=panel.hidden;panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));v.menus.close();
