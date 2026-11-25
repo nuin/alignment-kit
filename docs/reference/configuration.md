@@ -36,7 +36,7 @@ All flags default to `true`, except `logo`, `entropy` and `quality`, which defau
 | Column masking and marks | `columnMasking`, `columnMarks` |
 | Thresholds and row filters | `consensusThreshold`, `colorThreshold`, `minIdentity`, `minCoverage` |
 | Canvas layers | `residueLetters`, `annotationMarks`, `selectionOverlay`, `tree` |
-| Variants | `variantTrack` (track above the reference row), `variantNav` (Previous variant / Next variant buttons) |
+| Variants | `variantCards` (collapsible cards for mapped and unmapped variants), `variantTrack` (track above the reference row), `variantNav` (Previous variant / Next variant buttons) |
 | Hover cards | `tooltip` |
 | Inspector tabs | `positionTab`, `featuresTab`, `compareTab`, `colorsTab`, `hitsTab`, `summaryTab` |
 | Inspector controls | `pinReference`, `rowFeaturesToggle`, `featureType`, `featureConsequence`, `diseaseFilter`, `phenotypeFilter`, `featurePagination`, `calculateIdentity`, `clearRows` |
@@ -137,7 +137,7 @@ Every key of a JSON configuration is optional. The table states the value the vi
 | `urlSync` | boolean | | `false` |
 | `worker` | boolean | | `true` |
 | `workerUrl` | string | non-empty | the bundled `worker.js` |
-| `visibility` | object | 80 boolean keys | all `true` except `logo`, `entropy`, `quality` |
+| `visibility` | object | 81 boolean keys | all `true` except `logo`, `entropy`, `quality` |
 | `fasta` | object | `gaps`, `letterCase`, `lineWidth`, `header`, `orientation` | `keep`, `original`, `80`, `name`, `source` |
 | `export` | object | `columns`: `all`, `visible` | `all` |
 | `annotationLinks` | object | `http` or `https` templates with `{id}` | no links |

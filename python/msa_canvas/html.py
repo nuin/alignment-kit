@@ -15,9 +15,15 @@ PLACEHOLDER = "{{MSA_PAYLOAD_JSON}}"
 def static_text(name: str) -> str:
     """Text of a file copied into ``msa_canvas/static`` by ``scripts/sync-bindings.mjs``."""
     try:
-        return resources.files(__package__).joinpath("static", name).read_text(encoding="utf-8")
+        return (
+            resources.files(__package__)
+            .joinpath("static", name)
+            .read_text(encoding="utf-8")
+        )
     except FileNotFoundError:
-        raise FileNotFoundError(f"msa_canvas/static/{name} is missing. In a checkout, run \"npm run build\" and \"npm run sync:bindings\" first.") from None
+        raise FileNotFoundError(
+            f'msa_canvas/static/{name} is missing. In a checkout, run "npm run build" and "npm run sync:bindings" first.'
+        ) from None
 
 
 def escape_json(text: str) -> str:
@@ -33,7 +39,12 @@ def fill_template(template: str, doc: Any) -> str:
     """Replace the single placeholder of ``template`` with ``doc`` as escaped JSON."""
     if template.count(PLACEHOLDER) != 1:
         raise ValueError(f"The template must contain {PLACEHOLDER} exactly once.")
-    return template.replace(PLACEHOLDER, escape_json(json.dumps(doc, ensure_ascii=False, allow_nan=False, separators=(",", ":"))))
+    return template.replace(
+        PLACEHOLDER,
+        escape_json(
+            json.dumps(doc, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        ),
+    )
 
 
 def to_html(
@@ -60,7 +71,9 @@ def to_html(
         config["height"] = height
     if config:
         doc["config"] = config
-    html = fill_template(static_text("template.html") if template is None else template, doc)
+    html = fill_template(
+        static_text("template.html") if template is None else template, doc
+    )
     if path is not None:
         with open(path, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(html)

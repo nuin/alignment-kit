@@ -1,14 +1,14 @@
 {
   "index.js": 112640,
-  "react.js": 111616,
-  "svelte.js": 111616,
+  "react.js": 112640,
+  "svelte.js": 112640,
   "pavi.js": 12800,
   "element.js": 112640,
-  "vue.js": 111616,
+  "vue.js": 112640,
   "worker.js": 15360,
   "msa-canvas.global.js": 96256,
   "msa-canvas.worker.js": 10752,
-  "style.css": 7168,
+  "style.css": 7680,
   "style.inline.css": 143360,
   "template.html": 245760
 }

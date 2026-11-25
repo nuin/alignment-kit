@@ -41,7 +41,7 @@ export function rebuildRows(v:Core):void {
     });
   }
   v.rowPos=new Int32Array(a.rows.length).fill(-1);v.rows.forEach((row,p)=>{if(row>=0)v.rowPos[row]=p;});
-  v.noteTreeGroups();v.labelKey='';v.layout();
+  v.noteTreeGroups();v.labelKey='';v.inspectorDirty=true;v.layout();
   if(v.searchState&&!v.searchBusy)v.runSearch(v.searchState.pattern,v.searchState.options,true).catch(error=>v.error(error));
 }
 export function rowsChanged(v:Core):void {v.rebuildRows();v.inspectorDirty=true;if(v.options.statisticsScope==='filtered')void v.updateStats().catch(()=>{});v.emit('state',v.getState());}

@@ -45,7 +45,7 @@ export function mountViewer(element:HTMLElement,initial:IntegrationProps={}) {
     update(next:IntegrationProps) {
       props=next;
       // Equal options are skipped, so an inline object does not re-lay out on every parent render. A rejected object is kept as the baseline too, so it is not applied again until it changes; setOptions has already emitted its error.
-      if(!sameOptions(next.options,options)){options=next.options;try{viewer.setOptions(options??{});}catch{}}
+      if(!sameOptions(next.options,options)){options=next.options;try{viewer.setOptions(options??{});}catch{/* setOptions already delivered this failure through onError. */}}
       if(next.alignment!==alignment){alignment=next.alignment;if(alignment)void viewer.setAlignment(alignment).catch(()=>{});else viewer.clear();}
     },
     destroy(){viewer.destroy();}

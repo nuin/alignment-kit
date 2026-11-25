@@ -1,17 +1,28 @@
-import { type AnnotationFilter, type Annotation, type AnnotationImportOptions, type AnnotationImportResult } from '../types';
+import { type Alignment, type AnnotationFilter, type Annotation, type AnnotationImportOptions, type AnnotationImportResult } from '../types';
 import { importAnnotations as parseAnnotations } from '../annotation-import';
 import { AnnotationIndex, filterAnnotations } from '../annotations';
 import { type Core } from './core';
 export function setAnnotationFilter(v:Core, filter:AnnotationFilter):void {v.assertAlive();v.annotationFilter={...filter};v.featurePage=0;v.rebuildAnnotations();v.inspectorDirty=true;v.layout();}
-export function addAnnotations(v:Core, list:Annotation[]):void {
-  v.assertAlive();if(!v.a)throw new Error('Load an alignment before adding annotations.');
-  const ids=new Set(v.a.annotations.map(a=>a.id)),rows=new Set(v.a.rows.map(r=>r.id));
+function validateAnnotations(alignment:Alignment,list:Annotation[],ids:Set<string>):void {
+  const rows=new Set(alignment.rows.map(r=>r.id));
   for(const a of list){
     if(ids.has(a.id))throw new Error(`Duplicate annotation ID “${a.id}”.`);ids.add(a.id);
     if(a.rowId&&!rows.has(a.rowId))throw new Error(`Annotation “${a.id}” refers to unknown sequence “${a.rowId}”.`);
-    if(a.mapping==='mapped'&&(!Number.isInteger(a.start)||!Number.isInteger(a.end)||a.start!<1||a.end!<a.start!||a.end!>v.a.width))throw new Error(`Annotation “${a.id}” has invalid alignment coordinates.`);
+    if(a.mapping==='mapped'&&(!Number.isInteger(a.start)||!Number.isInteger(a.end)||a.start!<1||a.end!<a.start!||a.end!>alignment.width))throw new Error(`Annotation “${a.id}” has invalid alignment coordinates.`);
   }
+}
+export function addAnnotations(v:Core, list:Annotation[]):void {
+  v.assertAlive();if(!v.a)throw new Error('Load an alignment before adding annotations.');
+  validateAnnotations(v.a,list,new Set(v.a.annotations.map(a=>a.id)));
   v.a.annotations=[...v.a.annotations,...list.map(a=>({...a}))];v.refreshAnnotations();
+}
+export function updateAnnotations(v:Core,list:Annotation[]):void {
+  v.assertAlive();if(!v.a)throw new Error('Load an alignment before updating annotations.');
+  validateAnnotations(v.a,list,new Set());
+  const ids=new Set(v.a.annotations.map(a=>a.id));
+  for(const n of list)if(!ids.has(n.id))throw new Error(`Unknown annotation ID “${n.id}”.`);
+  const updates=new Map(list.map(n=>[n.id,n]));
+  v.a.annotations=v.a.annotations.map(n=>{const updated=updates.get(n.id);return updated?{...updated}:n;});v.refreshAnnotations();
 }
 export function removeAnnotations(v:Core, ids?:string[]):void {
   v.assertAlive();if(!v.a)return;const drop=ids&&new Set(ids);

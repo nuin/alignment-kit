@@ -43,7 +43,9 @@ def _parse_stockholm(text: str) -> tuple[list[dict[str, Any]], str | None]:
             terminated = True
             continue
         if terminated:
-            raise ValueError("Multiple Stockholm alignments in one file are not supported.")
+            raise ValueError(
+                "Multiple Stockholm alignments in one file are not supported."
+            )
         if line.startswith("#"):
             parts = line.split(None, 2)
             if len(parts) == 3 and parts[0] == "#=GF" and parts[1] == "ID":
@@ -52,7 +54,9 @@ def _parse_stockholm(text: str) -> tuple[list[dict[str, Any]], str | None]:
         parts = stripped.split()
         if len(parts) != 2:
             raise ValueError(f"Malformed Stockholm sequence at line {number}.")
-        rows.setdefault(parts[0], {"name": parts[0], "sequence": ""})["sequence"] += parts[1]
+        rows.setdefault(parts[0], {"name": parts[0], "sequence": ""})["sequence"] += (
+            parts[1]
+        )
     if not terminated:
         raise ValueError("Stockholm alignment is missing its // terminator.")
     for row in rows.values():
@@ -73,7 +77,10 @@ def read_alignment(path: str | os.PathLike[str]) -> tuple[list[dict[str, Any]], 
         data = handle.read()
     if data[:2] == b"\x1f\x8b":
         data = gzip.decompress(data)
-    return _parse_text(data.decode("utf-8"), re.sub(r"\.gz$", "", os.path.basename(os.fspath(path)), flags=re.I))
+    return _parse_text(
+        data.decode("utf-8"),
+        re.sub(r"\.gz$", "", os.path.basename(os.fspath(path)), flags=re.IGNORECASE),
+    )
 
 
 def _parse_text(text: str, fallback: str) -> tuple[list[dict[str, Any]], str]:
@@ -83,14 +90,18 @@ def _parse_text(text: str, fallback: str) -> tuple[list[dict[str, Any]], str]:
         return rows, name or fallback
     if text.startswith(">"):
         return _parse_fasta(text), fallback
-    raise ValueError("Unrecognized alignment format. to_wire reads aligned FASTA and Stockholm; convert other formats with the msa-canvas command.")
+    raise ValueError(
+        "Unrecognized alignment format. to_wire reads aligned FASTA and Stockholm; convert other formats with the msa-canvas command."
+    )
 
 
 def _row(record: Any, index: int) -> dict[str, Any]:
     if isinstance(record, Mapping):
         unknown = set(record) - {"id", "name", "sequence", "species", "metadata"}
         if unknown:
-            raise ValueError(f"Record {index + 1} has unknown keys: {', '.join(sorted(map(str, unknown)))}.")
+            raise ValueError(
+                f"Record {index + 1} has unknown keys: {', '.join(sorted(map(str, unknown)))}."
+            )
         row = {key: value for key, value in record.items() if value is not None}
     elif isinstance(record, (tuple, list)) and len(record) == 2:
         row = {"name": record[0], "sequence": record[1]}
@@ -101,7 +112,9 @@ def _row(record: Any, index: int) -> dict[str, Any]:
         if description and description not in ("<unknown description>", row["name"]):
             row["metadata"] = {"description": str(description)}
     else:
-        raise TypeError(f"Record {index + 1} must be a (name, sequence) pair, a mapping with name and sequence, or an object with id and seq.")
+        raise TypeError(
+            f"Record {index + 1} must be a (name, sequence) pair, a mapping with name and sequence, or an object with id and seq."
+        )
     for key in ("name", "sequence"):
         if not isinstance(row.get(key), str) or not row[key]:
             raise ValueError(f"Record {index + 1} needs a non-empty string {key}.")
@@ -122,13 +135,19 @@ def _rows(records: Iterable[Any]) -> list[dict[str, Any]]:
     for index, row in enumerate(rows):
         sequence = row["sequence"]
         if len(sequence) != width:
-            raise ValueError(f"Sequence \"{row['name']}\" has length {len(sequence)}; expected {width}. Supply aligned sequences of equal length.")
+            raise ValueError(
+                f'Sequence "{row["name"]}" has length {len(sequence)}; expected {width}. Supply aligned sequences of equal length.'
+            )
         if not _RESIDUES.fullmatch(sequence):
-            column = next(i for i, char in enumerate(sequence, 1) if not _RESIDUES.fullmatch(char))
-            raise ValueError(f"Invalid residue symbol in \"{row['name']}\", column {column}.")
+            column = next(
+                i for i, char in enumerate(sequence, 1) if not _RESIDUES.fullmatch(char)
+            )
+            raise ValueError(
+                f'Invalid residue symbol in "{row["name"]}", column {column}.'
+            )
         identifier = row.get("id", f"seq-{index + 1}")
         if identifier in ids:
-            raise ValueError(f"Duplicate sequence ID \"{identifier}\".")
+            raise ValueError(f'Duplicate sequence ID "{identifier}".')
         ids.add(identifier)
     return rows
 
@@ -155,13 +174,17 @@ def to_wire(
     """
     if isinstance(source, Mapping) and source.get("format") == WIRE_FORMAT:
         if source.get("version") != WIRE_VERSION:
-            raise ValueError(f"Wire version {source.get('version')!r} is not supported; this package writes version {WIRE_VERSION}.")
+            raise ValueError(
+                f"Wire version {source.get('version')!r} is not supported; this package writes version {WIRE_VERSION}."
+            )
         doc = {key: value for key, value in source.items()}
         doc["alignment"] = dict(source["alignment"])
         doc["alignment"]["rows"] = _rows(source["alignment"].get("rows", []))
     else:
         default = None
-        if isinstance(source, os.PathLike) or (isinstance(source, str) and "\n" not in source):
+        if isinstance(source, os.PathLike) or (
+            isinstance(source, str) and "\n" not in source
+        ):
             records, default = read_alignment(source)
         elif isinstance(source, str):
             records, default = _parse_text(source, "")
@@ -169,7 +192,11 @@ def to_wire(
             records = list(source.items())
         else:
             records = source
-        doc = {"format": WIRE_FORMAT, "version": WIRE_VERSION, "alignment": {"rows": _rows(records)}}
+        doc = {
+            "format": WIRE_FORMAT,
+            "version": WIRE_VERSION,
+            "alignment": {"rows": _rows(records)},
+        }
         if default:
             doc["alignment"]["name"] = default
     if name is not None:

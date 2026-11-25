@@ -4,7 +4,17 @@ from .html import PLACEHOLDER, escape_json, fill_template, to_html
 from .wire import WIRE_FORMAT, WIRE_VERSION, read_alignment, to_wire
 
 __version__ = "0.6.0"
-__all__ = ["MSAWidget", "PLACEHOLDER", "WIRE_FORMAT", "WIRE_VERSION", "escape_json", "fill_template", "read_alignment", "to_html", "to_wire"]
+__all__ = [
+    "PLACEHOLDER",
+    "WIRE_FORMAT",
+    "WIRE_VERSION",
+    "MSAWidget",
+    "escape_json",
+    "fill_template",
+    "read_alignment",
+    "to_html",
+    "to_wire",
+]
 
 
 def __getattr__(name):

@@ -33,11 +33,15 @@ Saved view states stay readable. `getState()` writes `version: 1`. `setState()` 
 - `VariantClass` gains `startstop` for `start_lost` and `stop_lost`. Code that switches over every class needs a new case.
 - `viewport` fires only when the visible range or row count changes. `mountViewer` skips `setOptions` when the new options object equals the last one.
 - `replace()` and `setAlignment()` emit `selection` when they clear a selection.
+- `fromPavi` includes coding and noncoding variants, with genomic context and evidence fields. Callers that expected coding variants only get more annotations.
 - The theme button is named Dark theme. Inspector tabs are a tablist and use `aria-selected`.
 - Exports use the `default` condition. `require()` works on Node 22.12 and later.
 
 ### Added
 
+- A collapsible variant-card strip with bounded paging, shared navigation and filters, and details for unmapped variants. `visibility.variantCards` turns it on or off.
+- `updateAnnotations(list)` replaces annotations by existing ID in one step. It keeps selection, filters and card focus, also inside a shadow root.
+- The Position inspector shows amino-acid names and chemical classes, supplied variant metadata, and a paged list of visible residues and positions.
 - `<msa-canvas>` custom element (`./element`). Its events carry an `msa-` prefix.
 - Vue 3 wrapper (`./vue`). `vue` is an optional peer dependency.
 - Script-tag bundle `dist/msa-canvas.global.js` (global `MsaCanvas`) with the worker inlined, plus `dist/style.inline.css` with fonts as data URLs.
@@ -66,6 +70,8 @@ Saved view states stay readable. `getState()` writes `version: 1`. `setState()` 
 - `escapeXml` drops XML-illegal control characters, which broke SVG output.
 - Glyphs stay sharp at a fractional `devicePixelRatio`. Re-registering a color scheme redraws its colors.
 - GFF3 export names the reason when it skips an annotation without a row.
+- The alignment stays scrollable when cards and annotation tracks exceed the viewer height.
+- Dark-theme input placeholders and headings have readable contrast.
 
 ### Accessibility
 

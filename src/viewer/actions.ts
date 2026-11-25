@@ -4,6 +4,7 @@ import { type Core } from './core';
 import { showWarnings } from './warnings';
 import { nextVariant } from './variants';
 import { isDark } from './accessibility';
+import { variantCardsAction } from './cards';
 const cell=(tag:'th'|'td',text:string,title?:string)=>{const node=document.createElement(tag);node.textContent=text;if(title)node.title=title;return node;};
 /** Pairwise identity table built from DOM nodes, so sequence names are never parsed as markup. */
 function identityMatrix(a:Alignment,rows:number[],matrix:Identity[][]):HTMLElement {
@@ -16,6 +17,7 @@ function identityMatrix(a:Alignment,rows:number[],matrix:Identity[][]):HTMLEleme
 }
 export async function action(v:Core, action:string):Promise<void> {
   try {
+    if(variantCardsAction(v,action))return;
     if(action==='close-fasta-options'){v.fastaPanel(false);return;}
     if(action==='alphabet-switch'){const next=v.pendingAlphabet;v.pendingAlphabet=undefined;v.message('');if(next&&v.a)v.applyAlphabet(next);return;}
     if(action==='alphabet-cancel'||action==='warnings-close'){v.message('');return;}

@@ -19,11 +19,12 @@ export function getSelectionSequences(v:Core, options:{gaps?:'keep'|'remove'}={}
   const {start,end,rows}=resolveRegion(a,{rowIds:v.copyRegion(a).rowIds,start:v.selection?.start,end:v.selection?.end});
   return rows.map(r=>{const row=a.rows[r],text=row.sequence.slice(start-1,end);return {id:row.id,name:row.name,sequence:options.gaps==='remove'?text.replace(/[-.]/g,''):text};});
 }
-export function getVisibleRows(v:Core):string[] {
+export function visibleRowIndexes(v:Core):number[] {
   v.assertAlive();const a=v.a;if(!a)return [];
-  const pinned=v.pinned&&!v.hidden.has(a.rows[v.reference].id)?[a.rows[v.reference].id]:[];
-  return [...pinned,...v.rows.filter(i=>i>=0).map(i=>a.rows[i].id)];
+  const pinned=v.pinned&&!v.hidden.has(a.rows[v.reference].id)?[v.reference]:[];
+  return [...pinned,...v.rows.filter(i=>i>=0)];
 }
+export function getVisibleRows(v:Core):string[] {return visibleRowIndexes(v).map(i=>v.a!.rows[i].id);}
 export function getVisibleColumns(v:Core):{start:number;end:number} {
   v.assertAlive();if(!v.a)return {start:0,end:0};
   const m=v.columns,last=Math.min(m.count,Math.ceil((v.scroll.scrollLeft+v.scroll.clientWidth-v.gutter)/v.options.cellWidth)),a=v.firstColumn()+1,b=(m.cols[Math.max(0,last-1)]??v.a.width-1)+1;

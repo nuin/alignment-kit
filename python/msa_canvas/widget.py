@@ -8,7 +8,9 @@ try:
     import anywidget
     import traitlets
 except ImportError as error:  # pragma: no cover
-    raise ImportError('MSAWidget needs anywidget. Install it with: pip install "msa-canvas[widget]"') from error
+    raise ImportError(
+        'MSAWidget needs anywidget. Install it with: pip install "msa-canvas[widget]"'
+    ) from error
 
 from .html import static_text
 from .wire import to_wire
@@ -34,7 +36,14 @@ class MSAWidget(anywidget.AnyWidget):
     selection = traitlets.Dict(allow_none=True, default_value=None).tag(sync=True)
     error = traitlets.Unicode("").tag(sync=True)
 
-    def __init__(self, source: Any = None, *, config: dict[str, Any] | None = None, state: dict[str, Any] | None = None, **parts: Any) -> None:
+    def __init__(
+        self,
+        source: Any = None,
+        *,
+        config: dict[str, Any] | None = None,
+        state: dict[str, Any] | None = None,
+        **parts: Any,
+    ) -> None:
         """``source`` and ``parts`` (``name``, ``alphabet``, ``annotations``, ``tree``) are those of ``to_wire``."""
         doc = None if source is None else to_wire(source, **parts)
         if doc is not None:

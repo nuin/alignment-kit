@@ -204,6 +204,8 @@ export class AlignmentViewer {
   private reveal(s:Selection):void {modSelection.reveal(this.core, s);}
   setAnnotationFilter(filter:AnnotationFilter):void {modNotes.setAnnotationFilter(this.core, filter);}
   addAnnotations(list:Annotation[]):void {modNotes.addAnnotations(this.core, list);}
+  /** Replace annotations by existing ID atomically, retaining selection, filters and unrelated annotations. */
+  updateAnnotations(list:Annotation[]):void {modNotes.updateAnnotations(this.core,list);}
   removeAnnotations(ids?:string[]):void {modNotes.removeAnnotations(this.core, ids);}
   importAnnotations(text:string,options:AnnotationImportOptions={}):AnnotationImportResult {return modNotes.importAnnotations(this.core, text, options);}
   /** Map variant records onto rows (see variantsToAnnotations) and add them as annotations. Warnings are returned and shown in the message area. Throws like addAnnotations for a duplicate ID. */
