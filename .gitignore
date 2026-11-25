@@ -20,3 +20,4 @@ __pycache__/
 /r/msacanvas/inst/htmlwidgets/lib/
 /r/msacanvas/inst/template/
 /r/*.tar.gz
+.idea/

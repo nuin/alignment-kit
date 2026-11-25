@@ -201,7 +201,7 @@ await viewer.setAlignment(alignment);
 invalidation.then(() => viewer.destroy());
 ```
 
-Add `<link rel="stylesheet" href="npm:@nuin/msa-canvas/style.inline.css">` to the page. `fromJson` is in releases after 0.5.2.
+Add `<link rel="stylesheet" href="npm:@nuin/msa-canvas/style.inline.css">` to the page. `fromJson` is in 0.6.0 and later.
 
 ## Rust, Julia and any other language
 
