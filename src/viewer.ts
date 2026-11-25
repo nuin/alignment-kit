@@ -43,7 +43,7 @@ export class AlignmentViewer {
   private selection:Selection|null=null;private selectedRows=new Set<string>();private annotationFilter:AnnotationFilter={};
   private filteredAnnotations:ReturnType<typeof filterAnnotations>={visible:[],unknown:0,excluded:0};private annotationIndex=new AnnotationIndex([]);
   private renderer=new Renderer();private controller=new AbortController();private resize:ResizeObserver;private menus:ThemedSelects;
-  private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private searcher:WorkerTask;private summaryTask:()=>WorkerTask;private summaryCache=new Map<string,SummaryEntry>();private summaryPage=0;private searchRun=0;private searchBusy=false;private request?:AbortController;
+  private parser:WorkerTask;private analysis:WorkerTask;private comparison:WorkerTask;private ranking:WorkerTask;private searcher:WorkerTask;private treeTask:WorkerTask;private summaryTask:()=>WorkerTask;private summaryCache=new Map<string,SummaryEntry>();private summaryPage=0;private searchRun=0;private searchBusy=false;private request?:AbortController;
   private listeners=new Map<ViewerEvent,Set<(event:any)=>void>>();
   private tip?:Core['tip'];private variantCache?:Core['variantCache'];private variantCursor?:string;private variantLanes=0;private variantNavKey?:unknown[];private frame=0;private disposed=false;private revision=0;private statsRevision=0;private loadRevision=0;
   private tab='position';private featurePage=0;private labelKey='';private overviewDirty=true;private inspectorDirty=true;
@@ -102,7 +102,7 @@ export class AlignmentViewer {
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
     this.options={height:740,theme:'light',colorScheme:'soft',colorMode:'all',matchDisplay:'letter',cellWidth:16,rowHeight:36,labelWidth:230,showLogo:false,showInspector:true,showToolbar:true,statisticsScope:'all',consensusThreshold:0,colorThreshold:0,minIdentity:0,minCoverage:0,rulerCoordinates:'alignment',logoMode:'frequency',conservationWindow:1,treeWidth:120,hideGapColumns:null,hideAllGapColumns:false,dragToPan:true,reverseComplement:false,tooltips:true,focusFirstVariant:false,textView:false,...options,annotationLinks:{},fasta:{},export:{}};
-    this.summaryTask=()=>new WorkerTask(options.workerUrl,options.worker!==false);this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);
+    this.summaryTask=()=>new WorkerTask(options.workerUrl,options.worker!==false);this.parser=new WorkerTask(options.workerUrl,options.worker!==false);this.analysis=new WorkerTask(options.workerUrl,options.worker!==false);this.comparison=new WorkerTask(options.workerUrl,options.worker!==false);this.ranking=new WorkerTask(options.workerUrl,options.worker!==false);this.searcher=new WorkerTask(options.workerUrl,options.worker!==false);this.treeTask=new WorkerTask(options.workerUrl,options.worker!==false);
     buildShell(this.root);this.scroll=$(this.root,'.ak-scroll');this.labels=$(this.root,'.ak-labels');this.inspector=$(this.root,'.ak-inspector-content');
     this.menus=new ThemedSelects(this.root);
     if(options.urlSync&&typeof location!=='undefined'){
@@ -182,6 +182,8 @@ export class AlignmentViewer {
   toggleGroup(name:string,collapsed?:boolean):void {modRows.toggleGroup(this.core, name, collapsed);}
   /** Show a Newick tree left of the labels and order rows by it. Pass null to remove it. Leaves match rows by ID, then by name; mismatches are reported in a message. */
   setTree(newick:string|null):void {modGrouping.setTree(this.core, newick);}
+  /** Build a neighbor-joining guide tree from p-distances over every row, show it with setTree and resolve with its Newick text. Runs in the worker; limited to 1,000 sequences. */
+  buildTree():Promise<string> {return modGrouping.buildTree(this.core);}
   private clearTreeNote():void {modGrouping.clearTreeNote(this.core);}
   private readonly treeGroupNote='The tree column is hidden while rows are grouped. Clear the groups to show it.';private treeGroupShown=false;
   private noteTreeGroups():void {modGrouping.noteTreeGroups(this.core);}
@@ -258,6 +260,6 @@ export class AlignmentViewer {
   private export(kind:string):Promise<void> {return modOutput.exportKind(this.core, kind);}
   private bind():void {modBind.bind(this.core);}
   clear():void {modLoad.clear(this.core);}
-  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.searcher.cancel();modSummary.cancelSummaries(this.core);this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);clearTimeout(this.linkTimer);this.listeners.clear();this.root.remove();}
+  destroy() {if(this.disposed)return;this.disposed=true;this.loadRevision++;this.statsRevision++;this.request?.abort();this.parser.cancel();this.analysis.cancel();this.comparison.cancel();this.ranking.cancel();this.searcher.cancel();this.treeTask.cancel();modSummary.cancelSummaries(this.core);this.controller.abort();this.menus.destroy();this.resize.disconnect();cancelAnimationFrame(this.frame);clearTimeout(this.linkTimer);this.listeners.clear();this.root.remove();}
 }
 export const createViewer=(element:HTMLElement,options:ViewerOptions={})=>new AlignmentViewer(element,options);

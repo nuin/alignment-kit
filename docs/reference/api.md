@@ -61,6 +61,7 @@ The tables in this section hold `AlignmentViewer` members only. `viewer.element`
 | `setGroups(map \| null)` | Group rows by an ID-to-name map; `null` falls back to the `groupBy` option |
 | `toggleGroup(name, collapsed?)` | Collapse or expand a group; omit `collapsed` to toggle |
 | `setTree(newick \| null)` | Show a Newick tree and order rows by it; `null` removes it |
+| `buildTree()` | Build a neighbor-joining guide tree from p-distances over every row and show it with `setTree`. Runs in the worker, limited to 1,000 rows. Resolves with the Newick text |
 | `getSelectedRowIds()` | IDs of the checked rows |
 | `getVisibleRows()` | Row IDs shown in the grid in display order: the pinned reference first, then rows that are not hidden, filtered out or collapsed |
 | `scrollToRow(rowId)` | Scroll the row to the top without changing the selection; `false` for an unknown, hidden, filtered or collapsed row |

@@ -142,7 +142,7 @@ npm run screenshots    # capture docs images from a running local demo
 npm run release:check  # package preparation checks; does not publish
 ```
 
-Install the test browsers with `npx playwright install chromium webkit` before running browser tests. Development tooling requires Node 22.20 or later; CI uses Node 22. Browser tests cover both frameworks, workers, exports, keyboard navigation, accessibility checks and narrow layouts. The [performance report](docs/performance.md) records the benchmark method and native screen-reader audit limits. Aligning sequences, gene retrieval, clinical interpretation, editing alignments, structure viewers and tree inference are outside this library's scope.
+Install the test browsers with `npx playwright install chromium webkit` before running browser tests. Development tooling requires Node 22.20 or later; CI uses Node 22. Browser tests cover both frameworks, workers, exports, keyboard navigation, accessibility checks and narrow layouts. The [performance report](docs/performance.md) records the benchmark method and native screen-reader audit limits. Aligning sequences, gene retrieval, clinical interpretation, editing alignments, structure viewers and model-based tree inference are outside this library's scope. The built-in neighbor-joining tree is a p-distance guide tree for exploration.
 
 ## Citation
 

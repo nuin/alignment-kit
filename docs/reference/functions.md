@@ -151,6 +151,10 @@ The viewer method `importAnnotations(text, options?)` also adds the result to th
 |---|---|
 | `parseNewick(text)` | Parse one Newick tree into a `TreeNode` |
 | `leafOrder(root)` | Leaf names from top to bottom |
+| `pDistances(alignment, rows)` | p-distance matrix (`Float64Array`, rows × rows): 1 minus identity over canonical residues both rows hold. `NaN` where a pair shares none |
+| `neighborJoining(distances, names)` | Unrooted neighbor-joining tree from an n × n matrix, as Newick with quoted names. Negative branch lengths become 0 |
+| `neighborJoiningTree(alignment, rows?)` | `NjTree` from p-distances over `rows` (default all), leaves named by row ID. Pairs with nothing to compare get the largest observed distance |
+| `MAX_NJ_ROWS` | 1000, the row limit of `neighborJoiningTree` |
 | `validateTrack(input, json?)` | Check one `CustomTrack` definition and return a shallow copy. `json: true` rejects functions and typed arrays |
 
 ## Search (`search.ts`)
@@ -310,6 +314,7 @@ Every type is exported from `@nuin/msa-canvas` as a type-only export. `src/types
 | `ColumnMap` | Display to original column map: `width`, `count`, `mask`, `cols`, `before`, `edges`, `reversed` |
 | `MaskOptions` | `{ gapFraction?, allGap?, hidden? }` |
 | `TreeNode` | `{ name, length, support, children }` |
+| `NjTree` | `{ newick, rows, missing }`; `missing` counts row pairs with no comparable residue |
 
 ### Export and variants
 

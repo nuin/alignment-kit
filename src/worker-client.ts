@@ -2,6 +2,7 @@ import { parseAlignment } from './parsers';
 import { calculateStats, pairwiseIdentity, pairwiseMatrix } from './analysis';
 import { findHits, MAX_SEARCH_MS } from './search';
 import { analyzeColumns, type ColumnAnalysis } from './summary';
+import { neighborJoiningTree, MAX_NJ_ROWS, type NjTree } from './nj';
 import type { Alignment, AlignmentStats, ColumnScope, ParseOptions, Identity, SearchOptions, SearchResult, WorkerSource } from './types';
 /** Grace after the in-worker 2 s budget for worker start-up and transfer; past it a regex stuck in one exec call is terminated. */
 export const SEARCH_TIMEOUT_MS=MAX_SEARCH_MS+500;
@@ -59,6 +60,12 @@ export class WorkerTask {
   summary(a:Alignment,scope:ColumnScope):Promise<ColumnAnalysis> {
     const compact={codes:a.codes,width:a.width,alphabet:a.alphabet,rows:a.rows.map(r=>({id:r.id,name:r.name,metadata:{start:r.metadata?.start}}))};
     return this.run({kind:'summary',alignment:compact,scope},()=>analyzeColumns(a,scope));
+  }
+  /** Neighbor-joining guide tree over `rows`, computed off the main thread. */
+  nj(a:Alignment,rows:number[]):Promise<NjTree> {
+    if(rows.length>MAX_NJ_ROWS)return Promise.reject(new Error(`A neighbor-joining tree is limited to ${MAX_NJ_ROWS} sequences; this view has ${rows.length}.`));
+    const compact={codes:a.codes,width:a.width,alphabet:a.alphabet,rows:a.rows.map(r=>({id:r.id}))};
+    return this.run({kind:'nj',alignment:compact,rows},()=>neighborJoiningTree(a,rows));
   }
   /** Run findHits off the main thread; a pattern still running after SEARCH_TIMEOUT_MS is terminated with a TimeoutError. */
   search(a:Alignment,pattern:string,options:SearchOptions):Promise<SearchResult> {

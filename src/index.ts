@@ -18,6 +18,8 @@ export { defaultVisibility } from './visibility';
 export type { MarkRange } from './marks';
 export { validateTrack } from './tracks';
 export { parseNewick, leafOrder } from './tree';
+export { neighborJoining, neighborJoiningTree, pDistances, MAX_NJ_ROWS } from './nj';
+export type { NjTree } from './nj';
 export type { TreeNode } from './tree';
 export { validateAnnotationLinks } from './tooltip';
 export type { AnnotationLinks } from './tooltip';
