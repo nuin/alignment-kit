@@ -9,6 +9,7 @@ import { syncWarnings } from './warnings';
 import { cancelSummaries } from './summary';
 import { nextVariant } from './variants';
 import { syncAccessibleCell } from './accessibility';
+import { closeTreeView } from './treeview';
 export async function loadInput(v:Core, input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {
   v.assertAlive();v.parser.cancel();v.request?.abort();const token=++v.loadRevision;v.loading=true;
   v.message('Reading alignment…');
@@ -35,7 +36,7 @@ export async function loadUrl(v:Core, url:string,options:ParseOptions={}):Promis
 }
 /** `quiet` skips the `warnings` event for edits of an already loaded alignment (row removal, alphabet switch). */
 export async function replace(v:Core, alignment:Alignment,carry?:Carry,quiet=false):Promise<void> {
-  v.assertAlive();v.tip?.hide();++v.loadRevision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();v.treeTask.cancel();cancelSummaries(v);const revision=++v.revision;
+  v.assertAlive();v.tip?.hide();closeTreeView(v);++v.loadRevision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();v.treeTask.cancel();cancelSummaries(v);const revision=++v.revision;
   if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length){v.loading=false;throw v.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));}
   v.sourceUrl=v.nextSource;v.nextSource=undefined;v.loading=true;
   const index=new Map(alignment.rows.map((r,i)=>[r.id,i])),known=(id:string)=>index.has(id),was=v.selection;
@@ -90,7 +91,7 @@ export async function openFile(v:Core, file:File):Promise<void> {
   await v.load(file,{name:file.name}).catch(()=>{});
 }
 export function clear(v:Core):void {
-  v.assertAlive();v.tip?.hide();++v.loadRevision;++v.statsRevision;++v.revision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();v.treeTask.cancel();cancelSummaries(v);
+  v.assertAlive();closeTreeView(v);v.tip?.hide();++v.loadRevision;++v.statsRevision;++v.revision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();v.treeTask.cancel();cancelSummaries(v);
   v.loading=false;v.pendingLink=undefined;v.identityJob=undefined;v.identities=undefined;v.identityDetails=undefined;
   v.a=undefined;v.variantCursor=undefined;v.detected=undefined;v.stats=undefined;v.fullStats=undefined;v.rows=[];v.filteredRows=[];v.selection=null;v.dropSearch();v.selectedRows.clear();v.labelKey='';v.annotationFilter={};v.hidden.clear();v.manualHidden=[];v.columnMarks=[];v.colMap=undefined;v.rowStrands.clear();v.manualOrder=null;v.collapsed.clear();v.groupMap=null;v.groupList=[];v.tree=undefined;v.treeHits=[];v.rowPos=new Int32Array(0);if(v.sort==='tree'||v.sort==='manual'||v.sort==='residue'){v.sort='input';$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value='input';}
   v.rebuildAnnotations();v.labels.replaceChildren();v.inspector.replaceChildren();syncAccessibleCell(v);

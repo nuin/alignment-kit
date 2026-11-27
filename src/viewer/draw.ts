@@ -10,16 +10,17 @@ import { variantLayout, drawnLanes, syncVariantNav } from './variants';
 import { syncText } from './textview';
 import { syncAccessibleCell, isDark } from './accessibility';
 import { syncVariantCards } from './cards';
+import { closeTreeView, drawTreeViewNow } from './treeview';
 /** Last emitted viewport per viewer, so a redraw of an unchanged viewport emits nothing. */
 const sent=new WeakMap<Core,string>();
 export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:isDark(v),selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,marks:v.columnMarks,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,variants:v.visibility.variantTrack?variantLayout(v):undefined,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
 export function layout(v:Core):void {
-  if(v.disposed)return;const rh=v.options.rowHeight,gutter=v.gutter;
+  if(v.disposed)return;if(!v.visibility.tree)closeTreeView(v);const rh=v.options.rowHeight,gutter=v.gutter;
   const extra=v.drawnTracks(),lanes=drawnLanes(v),tracks=trackLayout(v.visibility,rh,extra.map(t=>({height:trackHeight(t)})),v.a?.alphabet,lanes);v.variantLanes=lanes;
   const showColumns=$(v.root,'[data-action="show-columns"]'),hiddenColumns=v.columns.width-v.columns.count;
   showColumns.dataset.empty=String(!hiddenColumns);showColumns.textContent=`Show all columns (${hiddenColumns.toLocaleString()} hidden)`;
   const showHidden=$(v.root,'[data-action="show-hidden"]');showHidden.dataset.empty=String(!v.hidden.size);showHidden.textContent=`Show hidden (${v.hidden.size})`;
-  $(v.root,'.ak-tree-canvas').dataset.empty=String(!v.treeW);$<HTMLOptionElement>(v.root,'select[aria-label="Sequence order"] option[value="tree"]').hidden=!v.tree;
+  $(v.root,'[data-action="tree-view"]').dataset.empty=String(!v.tree);$(v.root,'.ak-tree-canvas').dataset.empty=String(!v.treeW);$<HTMLOptionElement>(v.root,'select[aria-label="Sequence order"] option[value="tree"]').hidden=!v.tree;
   syncVariantNav(v);syncVariantCards(v);v.menus.sync();applyVisibility(v.root,v.visibility);
   v.root.style.setProperty('--ak-tree',v.treeW+'px');v.root.style.setProperty('--ak-gutter',gutter+'px');v.root.style.setProperty('--ak-row-height',rh+'px');
   v.root.style.setProperty('--ak-workspace-min-height',((v.options.textView?0:tracks.height)+(v.visibility.alignment?3*rh+16:0))+'px');
@@ -50,6 +51,7 @@ export function render(v:Core):void {
   const win=$(overview,'.ak-overview-window');const visible=Math.max(1,(width-v.gutter)/rv.cw),count=v.columns.count,left=rv.x/rv.cw/count;
   win.style.left=Math.min(1,left)*100+'%';win.style.width=Math.min(1,visible/count)*100+'%';overview.setAttribute('aria-valuemax',String(count));overview.setAttribute('aria-valuenow',String(Math.floor(rv.x/rv.cw)+1));
   v.treeHits=v.tree&&v.treeW?v.renderer.tree($(v.root,'.ak-tree-canvas'),rv,v.tree.layout,v.tree.leafRow,v.rowPos,v.treeW,height):[];
+  if(v.treeView)drawTreeViewNow(v);
   const ref=$(v.root,'.ak-reference-label');ref.textContent=v.a.rows[v.reference]?.name??'Reference';ref.title='Pinned reference: '+ref.textContent;
   const first=Math.max(0,Math.floor(rv.y/rv.rh)),last=Math.min(v.rows.length,Math.ceil((rv.y+height)/rv.rh));
   // Row checks and strand flags are not in the key: every site that changes them clears labelKey.

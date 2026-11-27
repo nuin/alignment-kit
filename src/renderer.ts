@@ -49,7 +49,7 @@ const referenceNumbers=(a:Alignment,row:number,first:number):Int32Array=>{
 const drawTable=(v:RenderView,row:number,comp:Uint8Array|undefined):Uint8Array=>comp&&!!v.reverse!==!!v.strands?.has(v.a.rows[row].id)?comp:identityCodes;
 /** Complement of a consensus or logo symbol in the reverse-complement view. */
 const viewSymbol=(v:RenderView,symbol:string):string=>v.reverse&&v.a.alphabet!=='protein'&&symbol.length===1&&symbol.charCodeAt(0)<128?String.fromCharCode(complementTable(v.a.alphabet)[symbol.charCodeAt(0)]):symbol;
-function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
+export function prepareCanvas(canvas:HTMLCanvasElement,w:number,h:number):CanvasRenderingContext2D {
   const dpr=pixelRatio();
   w=Math.max(1,Math.round(w));h=Math.max(1,Math.round(h));
   if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)) {canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';}

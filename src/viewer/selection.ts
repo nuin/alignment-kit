@@ -3,6 +3,7 @@ import { columnToResidue, residueToColumn } from '../model';
 import { $ } from '../controls';
 import { columnSpan } from '../mask';
 import { type Core } from './core';
+import { followSelection } from './treeview';
 export function setReference(v:Core, id:string):void {
   v.assertAlive();if(!v.a)return;const row=v.a.rows.findIndex(r=>r.id===id);if(row<0)throw new Error('Unknown reference sequence.');
   v.reference=row;v.identityJob=undefined;v.identities=undefined;v.identityDetails=undefined;v.rebuildRows();v.inspectorDirty=true;v.schedule();if(v.sort==='identity')void v.setSort('identity');v.emit('state',v.getState());
@@ -13,7 +14,7 @@ export function setSelection(v:Core, selection:Selection|null,scrollIntoView=tru
   const before=v.drawnTracks();
   v.selection=selection?{...selection}:null;if(v.drawnTracks()!==before)v.layout();if(!keepTab&&v.tab!=='summary')v.tab='position';v.ensureTab();v.inspectorDirty=true;
   if(selection){$<HTMLInputElement>(v.root,'[aria-label="Go to alignment column"]').value=v.goToText(selection.start);if(scrollIntoView)v.reveal(selection);$(v.root,'.ak-live').textContent=`Column ${selection.start}${selection.end!==selection.start?` through ${selection.end}`:''}${selection.rowId?`, ${v.a.rows.find(r=>r.id===selection.rowId)?.name}`:''}`;}
-  v.schedule();v.emit('selection',v.selection);v.emit('state',v.getState());
+  followSelection(v);v.schedule();v.emit('selection',v.selection);v.emit('state',v.getState());
 }
 export function goToText(v:Core, column:number):string {
   if(v.options.rulerCoordinates!=='reference'||!v.a)return String(column);

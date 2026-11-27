@@ -7,6 +7,7 @@ import { bindTooltip } from './tooltip';
 import { bindHints } from './hints';
 import { $ } from '../controls';
 import { selectVariantCard } from './cards';
+import { bindTreeView } from './treeview';
 
 export function bind(v:Core):void {
   const signal=v.controller.signal,on:On=(target,event,handler)=>target.addEventListener(event,handler,{signal});
@@ -29,7 +30,7 @@ export function bind(v:Core):void {
     if(button.dataset.row)v.setSelection({start:v.selection?.start??1,end:v.selection?.end??1,rowId:button.dataset.row},false);
     if(button.dataset.feature){const feature=v.filteredAnnotations.visible[Number(button.dataset.feature)];if(feature){if(feature.mapping==='mapped')v.setSelection({start:feature.start!,end:feature.end!,rowId:feature.rowId});v.emit('annotation',feature);v.message(`${feature.label}: ${feature.mapping==='mapped'?`alignment columns ${feature.start}–${feature.end}`:'no protein mapping'}. ${JSON.stringify(feature.metadata??{})}`);}}
   });
-  bindTooltip(v,on);bindHints(v,on);bindPointer(v,on);bindLabels(v,on);bindForms(v,on);bindKeys(v,on);
+  bindTooltip(v,on);bindHints(v,on);bindPointer(v,on);bindLabels(v,on);bindForms(v,on);bindKeys(v,on);bindTreeView(v,on);
   const full=()=>{const on=document.fullscreenElement===v.root,b=$(v.root,'[data-action="fullscreen"]');b.setAttribute('aria-pressed',String(on));b.lastElementChild!.textContent=on?'Exit full screen':'Full screen';};
   on(document,'fullscreenchange',full);
   on(v.root,'keydown',(event:KeyboardEvent)=>{
