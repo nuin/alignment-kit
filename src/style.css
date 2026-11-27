@@ -147,6 +147,15 @@
 .ak-viewer[data-panning=true] .ak-scroll{cursor:grabbing;user-select:none}
 .ak-body-canvas{position:absolute;left:0;top:0;pointer-events:none}
 .ak-tree-canvas{position:absolute;left:0;top:0;cursor:pointer}
+.ak-tree-view{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;background:var(--ak-bg);color:var(--ak-ink)}
+.ak-tree-view[hidden]{display:none}
+.ak-tree-view>header{display:flex;align-items:center;gap:12px;padding:6px 12px;border-bottom:1px solid var(--ak-line);background:var(--ak-panel)}
+.ak-tree-view>header label{display:flex;align-items:center;gap:6px;color:var(--ak-muted);font-size:var(--ak-text-sm)}
+.ak-tree-view>header input{width:84px}
+.ak-tree-view>header button{margin-left:auto}
+.ak-tree-view-scroll{position:relative;flex:1;min-height:0;overflow:auto;scrollbar-color:var(--ak-scrollbar) transparent;scrollbar-width:thin}
+.ak-tree-view-spacer{position:absolute;top:0;left:0;width:1px;pointer-events:none}
+.ak-tree-view-scroll canvas{position:sticky;top:0;display:block;width:100%;cursor:pointer}
 /* Tree column sits left of the labels; --ak-tree is its width and --ak-gutter covers both. */
 .ak-labels{position:absolute;top:0;bottom:0;left:var(--ak-tree,0px);width:calc(var(--ak-gutter) - var(--ak-tree,0px));overflow:hidden;pointer-events:none}
 .ak-row-label{position:absolute;left:0;top:0;right:1px;height:var(--ak-row-height);display:flex;align-items:center;padding:0 5px 0 12px;gap:8px;border-bottom:1px solid var(--ak-line);pointer-events:auto;background:var(--ak-bg)}

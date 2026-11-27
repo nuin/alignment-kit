@@ -9,6 +9,7 @@ import { syncWarnings } from './warnings';
 import { cancelSummaries } from './summary';
 import { nextVariant } from './variants';
 import { syncAccessibleCell } from './accessibility';
+import { closeTreeView } from './treeview';
 export async function loadInput(v:Core, input:string|Blob|ArrayBuffer,options:ParseOptions,source?:string):Promise<void> {
   v.assertAlive();v.parser.cancel();v.request?.abort();const token=++v.loadRevision;v.loading=true;
   v.message('Reading alignment…');
@@ -35,7 +36,7 @@ export async function loadUrl(v:Core, url:string,options:ParseOptions={}):Promis
 }
 /** `quiet` skips the `warnings` event for edits of an already loaded alignment (row removal, alphabet switch). */
 export async function replace(v:Core, alignment:Alignment,carry?:Carry,quiet=false):Promise<void> {
-  v.assertAlive();v.tip?.hide();++v.loadRevision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();v.treeTask.cancel();cancelSummaries(v);const revision=++v.revision;
+  v.assertAlive();v.tip?.hide();closeTreeView(v);++v.loadRevision;v.request?.abort();v.parser.cancel();v.analysis.cancel();v.comparison.cancel();v.ranking.cancel();v.searcher.cancel();v.treeTask.cancel();cancelSummaries(v);const revision=++v.revision;
   if(!alignment.rows.length||alignment.width<1||alignment.codes.length!==alignment.width*alignment.rows.length){v.loading=false;throw v.error(new Error('Invalid alignment model. Use createAlignment or parseAlignment.'));}
   v.sourceUrl=v.nextSource;v.nextSource=undefined;v.loading=true;
   const index=new Map(alignment.rows.map((r,i)=>[r.id,i])),known=(id:string)=>index.has(id),was=v.selection;

@@ -1,7 +1,7 @@
 import {treeSpans,type TreeLayout} from './tree.js';
 import {prepareCanvas} from './renderer.js';
 import {textColor} from './colors.js';
-export const TREE_LEAF_H=22,TREE_LABEL_W=260;
+const TREE_LEAF_H=22,TREE_LABEL_W=260;
 /** Content-space geometry of the full-size tree: `leaves` are node indexes in tree order, `y/lo/hi` pixel centres and bar spans per node. */
 export interface TreeViewGeometry { leaves:number[]; y:Float64Array; lo:Float64Array; hi:Float64Array; height:number }
 

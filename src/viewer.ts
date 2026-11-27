@@ -30,6 +30,8 @@ import * as modActions from './viewer/actions';
 import * as modBind from './viewer/bind';
 import * as modData from './viewer/data';
 import * as modWarnings from './viewer/warnings';
+import * as modTreeView from './viewer/treeview';
+import { type TreeViewGeometry } from './tree-view';
 import * as modVariants from './viewer/variants';
 import type { VariantInput, VariantOptions, VariantResult } from './variants';
 import type { Core, Carry, BoundTree, SearchState, SummaryEntry, ViewerSettings } from './viewer/core';
@@ -97,7 +99,7 @@ export class AlignmentViewer {
   /** Registered tracks in drawing order (copies). Tracks derived from Stockholm lines are not listed. */
   getTracks():CustomTrack[]{return this.customTracks.map(t=>({...t}));}
   private hidden=new Set<string>();private manualOrder:string[]|null=null;private collapsed=new Set<string>();private groupBy='';private groupMap:Map<string,string>|null=null;
-  private groupList:GroupInfo[]=[];private rowPos=new Int32Array(0);private rowGroup=new Int32Array(0);private tree?:BoundTree;private treeHits:TreeHit[]=[];private dragId?:string;private focusRow?:string;
+  private groupList:GroupInfo[]=[];private rowPos=new Int32Array(0);private rowGroup=new Int32Array(0);private tree?:BoundTree;private treeView?:{column:number;opener?:HTMLElement;geometry:TreeViewGeometry};private treeHits:TreeHit[]=[];private dragId?:string;private focusRow?:string;
   private sourceUrl?:string;private nextSource?:string;private urlSync=false;private pendingLink?:ViewLink;private linkTimer?:ReturnType<typeof setTimeout>;private lastHash='';private loading=false;
   constructor(element:HTMLElement,options:ViewerOptions={}) {
     this.element=element;this.root=document.createElement('section');element.append(this.root);
@@ -184,6 +186,10 @@ export class AlignmentViewer {
   setTree(newick:string|null):void {modGrouping.setTree(this.core, newick);}
   /** Build a neighbor-joining guide tree from p-distances over every row, show it with setTree and resolve with its Newick text. Runs in the worker; limited to 1,000 sequences. */
   buildTree():Promise<string> {return modGrouping.buildTree(this.core);}
+  /** Open the tree full size with the residue of one alignment column beside each sequence (default: the selected column, else 1). The column box follows the selection. Throws without a tree; loading an alignment or removing the tree closes it. */
+  openTreeView(column?:number):void {modTreeView.openTreeView(this.core, column);}
+  /** Close the full-size tree view and return focus to the control that opened it. */
+  closeTreeView():void {modTreeView.closeTreeView(this.core);}
   private clearTreeNote():void {modGrouping.clearTreeNote(this.core);}
   private readonly treeGroupNote='The tree column is hidden while rows are grouped. Clear the groups to show it.';private treeGroupShown=false;
   private noteTreeGroups():void {modGrouping.noteTreeGroups(this.core);}

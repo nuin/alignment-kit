@@ -7,6 +7,7 @@ import type { WorkerTask } from '../worker-client';
 import type { ViewLink } from '../link';
 import type { ColumnMap, ColumnRange, MaskOptions } from '../mask';
 import type { TreeLayout } from '../tree';
+import type { TreeViewGeometry } from '../tree-view';
 import type { MarkRange } from '../marks';
 import type { ColumnAnalysis } from '../summary';
 import type { VariantLayout } from './variants';
@@ -39,7 +40,7 @@ export interface Core {
   searchState?:SearchState;
   customTracks:CustomTrack[]; drawn?:{a:Alignment;row:number;flag:boolean;user:CustomTrack[];list:CustomTrack[]}; trackKey:string; trackErrors:Set<string>;
   hidden:Set<string>; manualOrder:string[]|null; collapsed:Set<string>; groupBy:string; groupMap:Map<string,string>|null;
-  groupList:GroupInfo[]; rowPos:Int32Array; rowGroup:Int32Array; tree?:BoundTree; treeHits:TreeHit[]; dragId?:string; focusRow?:string;
+  groupList:GroupInfo[]; rowPos:Int32Array; rowGroup:Int32Array; tree?:BoundTree; treeView?:{column:number;opener?:HTMLElement;geometry:TreeViewGeometry}; treeHits:TreeHit[]; dragId?:string; focusRow?:string;
   sourceUrl?:string; nextSource?:string; urlSync:boolean; pendingLink?:ViewLink; linkTimer?:ReturnType<typeof setTimeout>; lastHash:string; loading:boolean;
   detected?:{alphabet:Alphabet;other:number}; pendingAlphabet?:Alphabet;
   readonly treeGroupNote:string; treeGroupShown:boolean;

@@ -2,6 +2,7 @@ import { $ } from '../controls';
 import { parseNewick, layoutTree, matchLeaves, leavesUnder, type TreeLayout } from '../tree';
 import { type Core, type BoundTree } from './core';
 import type { NjTree } from '../nj';
+import { syncGeometry, closeTreeView } from './treeview';
 export function setTree(v:Core, newick:string|null):void {
   v.assertAlive();
   v.clearTreeNote();
@@ -11,7 +12,7 @@ export function setTree(v:Core, newick:string|null):void {
     let layout:TreeLayout;try{layout=layoutTree(parseNewick(newick));}catch(error){throw v.error(error);}
     v.tree=v.bindTree(layout);v.sort='tree';
   }
-  $<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=v.sort;v.rebuildRows();v.emit('state',v.getState());
+  $<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=v.sort;v.rebuildRows();if(v.tree)syncGeometry(v);else closeTreeView(v);v.emit('state',v.getState());
 }
 /** Compute a neighbor-joining tree in the worker and apply it. A newer load or a destroy rejects with an AbortError. */
 export async function buildTree(v:Core):Promise<string> {
