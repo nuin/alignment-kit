@@ -17,6 +17,12 @@ function identityMatrix(a:Alignment,rows:number[],matrix:Identity[][]):HTMLEleme
   rows.forEach((row,i)=>body.insertRow().append(cell('th',a.rows[row].name),...matrix[i].map(c=>cell('td',c.identity===null?'NA':(c.identity*100).toFixed(1)+'%',`${c.matches} matches / ${c.compared} compared`))));
   wrap.append(table);return wrap;
 }
+const treeWidths=new WeakMap<Core,number>();
+/** Tree button: build an NJ tree when none is loaded, otherwise hide or restore the tree column. */
+async function toggleTree(v:Core):Promise<void> {
+  const w=v.options.treeWidth;if(v.tree&&w){treeWidths.set(v,w);v.setOptions({treeWidth:0});return;}
+  if(!w)v.setOptions({treeWidth:treeWidths.get(v)??120});if(!v.tree)await buildTree(v).catch(()=>{});
+}
 export async function action(v:Core, action:string):Promise<void> {
   try {
     if(variantCardsAction(v,action))return;
@@ -41,7 +47,7 @@ export async function action(v:Core, action:string):Promise<void> {
     if(action==='summary-next'){v.summaryPage++;v.inspectorDirty=true;v.schedule();}
     if(action==='export-variants')await v.export('variants');
     if(action==='variant-next'||action==='variant-prev')nextVariant(v,action==='variant-next'?1:-1);
-    if(action==='build-tree'){await buildTree(v).catch(()=>{});return;}
+    if(action==='tree'){await toggleTree(v);return;}
     if(action==='tree-view'){v.treeView?closeTreeView(v):openTreeView(v);return;}
     if(action==='tree-view-close'){closeTreeView(v);return;}
     if(action==='show-hidden')v.showRows();

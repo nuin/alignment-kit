@@ -91,13 +91,13 @@ it('restores the column box on empty input',async()=>{
   const {viewer,box}=await make();viewer.setTree(NEWICK);viewer.setSelection({start:3,end:3});viewer.openTreeView();
   box().value='';box().dispatchEvent(new Event('change'));expect(box().value).toBe('3');
 });
-it('hides and restores the small tree with the checkbox',async()=>{
-  const {viewer,el}=await make();const box=el.querySelector<HTMLInputElement>('[aria-label="Show tree beside names"]')!,canvas=el.querySelector<HTMLElement>('.ak-tree-canvas')!;
-  expect(box.closest('label')!.hidden).toBe(true);
-  viewer.setTree(NEWICK);(viewer as any).render();expect(box.closest('label')!.hidden).toBe(false);expect(box.checked).toBe(true);expect(canvas.hidden).toBe(false);
-  viewer.setOptions({treeWidth:200});box.checked=false;box.dispatchEvent(new Event('change',{bubbles:true}));(viewer as any).render();
-  expect(canvas.hidden).toBe(true);expect((viewer as any).options.treeWidth).toBe(0);
+it('the Tree button builds a tree, then hides and restores the column',async()=>{
+  const {viewer,el}=await make();const btn=el.querySelector<HTMLButtonElement>('[data-action="tree"]')!,canvas=el.querySelector<HTMLElement>('.ak-tree-canvas')!,v=viewer as any;
+  const press=async()=>{btn.click();await new Promise(r=>setTimeout(r,20));v.render();};
+  expect(btn.getAttribute('aria-pressed')).toBe('false');
+  await press();expect(v.tree).toBeTruthy();expect(canvas.hidden).toBe(false);expect(btn.getAttribute('aria-pressed')).toBe('true');
+  const tree=v.tree;viewer.setOptions({treeWidth:200});v.render();
+  await press();expect(canvas.hidden).toBe(true);expect(v.options.treeWidth).toBe(0);expect(btn.getAttribute('aria-pressed')).toBe('false');
   viewer.openTreeView();expect(el.querySelector<HTMLElement>('.ak-tree-view')!.hidden).toBe(false);viewer.closeTreeView();
-  box.checked=true;box.dispatchEvent(new Event('change',{bubbles:true}));(viewer as any).render();
-  expect(canvas.hidden).toBe(false);expect((viewer as any).options.treeWidth).toBe(200);
+  await press();expect(canvas.hidden).toBe(false);expect(v.options.treeWidth).toBe(200);expect(v.tree).toBe(tree);
 });
