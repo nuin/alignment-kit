@@ -73,3 +73,21 @@ it('closes on Esc dispatched on the root and keeps the selection',async()=>{
   el.querySelector<HTMLElement>('.ak-viewer')!.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
   expect(overlay().hidden).toBe(true);expect(viewer.getState().selection).toMatchObject({start:3,end:3});
 });
+it('closes on clear()',async()=>{
+  const {viewer,overlay}=await make();viewer.setTree(NEWICK);viewer.openTreeView();expect(overlay().hidden).toBe(false);
+  viewer.clear();expect(overlay().hidden).toBe(true);expect(()=>viewer.openTreeView()).toThrow();
+});
+it('ignores Esc that was already handled',async()=>{
+  const {viewer,el,overlay}=await make();viewer.setTree(NEWICK);viewer.openTreeView();
+  const root=el.querySelector<HTMLElement>('.ak-viewer')!;root.addEventListener('keydown',e=>e.preventDefault(),true);
+  root.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+  expect(overlay().hidden).toBe(false);
+});
+it('closes when the tree is hidden by visibility',async()=>{
+  const {viewer,overlay}=await make();viewer.setTree(NEWICK);viewer.openTreeView();
+  viewer.setOptions({visibility:{tree:false}});expect(overlay().hidden).toBe(true);
+});
+it('restores the column box on empty input',async()=>{
+  const {viewer,box}=await make();viewer.setTree(NEWICK);viewer.setSelection({start:3,end:3});viewer.openTreeView();
+  box().value='';box().dispatchEvent(new Event('change'));expect(box().value).toBe('3');
+});

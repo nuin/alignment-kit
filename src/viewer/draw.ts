@@ -10,12 +10,12 @@ import { variantLayout, drawnLanes, syncVariantNav } from './variants';
 import { syncText } from './textview';
 import { syncAccessibleCell, isDark } from './accessibility';
 import { syncVariantCards } from './cards';
-import { drawTreeViewNow } from './treeview';
+import { closeTreeView, drawTreeViewNow } from './treeview';
 /** Last emitted viewport per viewer, so a redraw of an unchanged viewport emits nothing. */
 const sent=new WeakMap<Core,string>();
 export function view(v:Core):RenderView {return {a:v.a!,stats:v.stats,rows:v.rows,reference:v.reference,x:v.scroll.scrollLeft,y:v.scroll.scrollTop,cw:v.options.cellWidth,rh:v.options.rowHeight,gutter:v.gutter,scheme:v.options.colorScheme,mode:v.options.colorMode,matchDots:v.matchDots,dark:isDark(v),selection:v.selection,annotations:v.annotationIndex,logo:v.options.showLogo,visibility:v.visibility,threshold:v.options.consensusThreshold,colorThreshold:v.options.colorThreshold,ruler:v.options.rulerCoordinates,hits:v.searchState?.byRow,activeHit:v.searchState?.result.hits[v.searchState.cursor],columns:v.columns,marks:v.columnMarks,reverse:v.reversed,strands:v.rowStrands,tracks:v.drawnTracks(),logoMode:v.options.logoMode,window:v.options.conservationWindow,groups:v.groupList,variants:v.visibility.variantTrack?variantLayout(v):undefined,trackError:(id,error)=>{if(!v.trackErrors.has(id)){v.trackErrors.add(id);v.error(new Error(`Track ${id}: render failed: ${error.message}`));}}};}
 export function layout(v:Core):void {
-  if(v.disposed)return;const rh=v.options.rowHeight,gutter=v.gutter;
+  if(v.disposed)return;if(!v.visibility.tree)closeTreeView(v);const rh=v.options.rowHeight,gutter=v.gutter;
   const extra=v.drawnTracks(),lanes=drawnLanes(v),tracks=trackLayout(v.visibility,rh,extra.map(t=>({height:trackHeight(t)})),v.a?.alphabet,lanes);v.variantLanes=lanes;
   const showColumns=$(v.root,'[data-action="show-columns"]'),hiddenColumns=v.columns.width-v.columns.count;
   showColumns.dataset.empty=String(!hiddenColumns);showColumns.textContent=`Show all columns (${hiddenColumns.toLocaleString()} hidden)`;

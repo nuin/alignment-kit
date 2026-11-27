@@ -42,8 +42,8 @@ export function followSelection(v:Core):void {
 export function bindTreeView(v:Core, on:On):void {
   let frame=0;const redraw=()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;drawTreeViewNow(v);});};
   on(scroller(v),'scroll',redraw);
-  on(box(v),'change',()=>{setColumn(v,box(v).valueAsNumber);drawTreeViewNow(v);});
-  on(v.root,'keydown',(event:KeyboardEvent)=>{if(event.key==='Escape'&&v.treeView){event.stopPropagation();closeTreeView(v);}});
+  on(box(v),'change',()=>{const n=box(v).valueAsNumber;if(Number.isFinite(n))setColumn(v,n);else if(v.treeView)box(v).value=String(v.treeView.column);drawTreeViewNow(v);});
+  on(v.root,'keydown',(event:KeyboardEvent)=>{if(event.key==='Escape'&&v.treeView&&!event.defaultPrevented){event.stopPropagation();closeTreeView(v);}});
   on($(v.root,'.ak-tree-view canvas'),'click',(event:MouseEvent)=>{
     const tv=v.treeView,tree=v.tree;if(!tv||!tree)return;
     const canvas=event.currentTarget as HTMLElement,rect=canvas.getBoundingClientRect(),node=hitBranch(tree.layout,tv.geometry,size(v).width,event.clientX-rect.left,event.clientY-rect.top+scroller(v).scrollTop);
