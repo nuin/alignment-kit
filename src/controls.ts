@@ -32,6 +32,7 @@ export function buildShell(root:HTMLElement) {
       <label>Order <select aria-label="Sequence order"><option value="input">As loaded</option><option value="name">Name</option><option value="identity">Identity to reference</option><option value="gaps">Fewest gaps</option><option value="length">Longest sequence</option><option value="residue">Residue at selected column</option><option value="annotations">Most annotations</option><option value="manual">Manual</option><option value="tree">Tree</option></select></label>
       <button type="button" data-action="build-tree" title="Neighbor-joining guide tree from p-distances, for quick exploration">NJ tree</button>
       <button type="button" data-action="tree-view" data-empty="true" hidden title="Open the tree full size with the residue of one column beside each sequence">Tree view</button>
+      <label data-empty="true" hidden title="Show or hide the small tree beside the sequence names"><input type="checkbox" aria-label="Show tree beside names" checked> Tree beside names</label>
       <button type="button" data-action="show-hidden" data-empty="true" hidden>Show hidden (0)</button>
     </div>
     <div class="ak-toolgroup" role="group" aria-label="Columns">

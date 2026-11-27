@@ -119,6 +119,8 @@ Tree: `setTree(newick)` parses one Newick tree, orders rows by it (`sort: 'tree'
 
 Computed tree: the **NJ tree** button in the secondary toolbar, or `buildTree()`, builds a neighbor-joining tree (Saitou and Nei 1987) over every row and passes it to `setTree`. Distances are p-distances: 1 minus the identity over positions where both rows hold a canonical residue (ACGT, ACGU or the 20 amino acids). No distance correction is applied and there is no bootstrap, so treat the result as a guide tree for exploring the alignment. A pair with no comparable position gets the largest observed distance and a message gives the count. The work runs in the worker; the limit is 1,000 rows because joining costs rows³. `neighborJoiningTree`, `neighborJoining` and `pDistances` are exported for use without a viewer.
 
+The **Tree beside names** checkbox hides the small tree next to the names and shows it again. It sets `treeWidth` to 0 and back, so tree order and the tree view keep working. The checkbox appears once a tree is loaded.
+
 Tree view: the **Tree view** button next to **NJ tree**, or `openTreeView(column?)`, opens the tree full size over the viewer. Each leaf shows its row name and a chip with the residue at one column, colored by the active scheme. A leaf with no row shows its Newick name in muted text. The Column box follows the selected column and accepts a number. The chip reads the stored alignment column, so hidden columns and reverse complement do not change it. Click a branch point to select the rows under it, and Shift-click to add them. A clade click skips the pinned reference and rows hidden by the filter. Esc or **Close** (or `closeTreeView()`) closes the view and returns focus to the control that opened it.
 
 ```ts

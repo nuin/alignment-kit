@@ -53,7 +53,7 @@ export function setOptions(v:Core, options:ViewerOptions):void {
   range('Consensus threshold',v.options.consensusThreshold);range('Color threshold',v.options.colorThreshold).disabled=!thresholdSchemes.has(v.options.colorScheme);
   $<HTMLInputElement>(v.root,'[aria-label="Minimum identity to reference"]').value=v.options.minIdentity?String(v.options.minIdentity):'';
   $<HTMLInputElement>(v.root,'[aria-label="Minimum coverage"]').value=v.options.minCoverage?String(v.options.minCoverage):'';
-  $<HTMLInputElement>(v.root,'[aria-label="Show frequency logo"]').checked=v.options.showLogo;
+  $<HTMLInputElement>(v.root,'[aria-label="Show frequency logo"]').checked=v.options.showLogo;$<HTMLInputElement>(v.root,'[aria-label="Show tree beside names"]').checked=v.options.treeWidth>0;
   $<HTMLInputElement>(v.root,'[aria-label="Dots for matches"]').checked=v.options.matchDisplay==='dot';
   $<HTMLSelectElement>(v.root,'[aria-label="FASTA orientation"]').value=v.options.fasta.orientation??'source';
   const f=v.options.fasta,width=$<HTMLSelectElement>(v.root,'[aria-label="FASTA line width"]'),lineWidth=String(f.lineWidth??80);
