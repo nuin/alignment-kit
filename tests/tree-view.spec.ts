@@ -9,7 +9,7 @@ test('the tree view selects a clade by branch click and closes on Escape',async(
     const {viewer}=(window as unknown as W).alignmentDemo;
     await viewer.load('>h1\nAAAAAAAAAA\n>m1\nGGGGGAAAAA\n>h2\nAAAAAAAAAC\n>m2\nGGGGGAAAAT\n',{alphabet:'dna'});
   });
-  await page.locator('[data-action="build-tree"]').click();
+  await page.locator('[data-action="tree"]').click();
   await expect(page.locator('.ak-tree-canvas')).toBeVisible();
   const open=page.locator('[data-action="tree-view"]');
   await open.click();
