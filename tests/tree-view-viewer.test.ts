@@ -101,3 +101,9 @@ it('the Tree button builds a tree, then hides and restores the column',async()=>
   viewer.openTreeView();expect(el.querySelector<HTMLElement>('.ak-tree-view')!.hidden).toBe(false);viewer.closeTreeView();
   await press();expect(canvas.hidden).toBe(false);expect(v.options.treeWidth).toBe(200);expect(v.tree).toBe(tree);
 });
+it('the Tree view button sits in the main toolbar and shows its pressed state',async()=>{
+  const {viewer,el}=await make();viewer.setTree(NEWICK);const btn=el.querySelector<HTMLButtonElement>('.ak-toolbar [data-action="tree-view"]')!;
+  expect(btn.getAttribute('aria-pressed')).toBe('false');
+  btn.click();await new Promise(r=>setTimeout(r,0));expect(btn.getAttribute('aria-pressed')).toBe('true');
+  btn.click();await new Promise(r=>setTimeout(r,0));expect(btn.getAttribute('aria-pressed')).toBe('false');
+});
