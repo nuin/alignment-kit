@@ -61,3 +61,15 @@ it('draws chips for a column and selects a clade on click',async()=>{
   canvas.dispatchEvent(new MouseEvent('click',{clientX:x,clientY:y,bubbles:true}));
   expect(viewer.getSelectedRowIds().sort()).toEqual(['a','b','c','d']);
 });
+it('returns focus to the Tree view button after Esc when nothing was focused at open',async()=>{
+  const {viewer,el,overlay}=await make();viewer.setTree(NEWICK);
+  const btn=el.querySelector<HTMLElement>('[data-action="tree-view"]')!;btn.hidden=false;
+  viewer.openTreeView();expect(el.contains(document.activeElement)).toBe(true);
+  overlay().dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  expect(overlay().hidden).toBe(true);expect(document.activeElement).toBe(btn);
+});
+it('closes on Esc dispatched on the root and keeps the selection',async()=>{
+  const {viewer,el,overlay}=await make();viewer.setTree(NEWICK);viewer.setSelection({start:3,end:3});viewer.openTreeView();
+  el.querySelector<HTMLElement>('.ak-viewer')!.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  expect(overlay().hidden).toBe(true);expect(viewer.getState().selection).toMatchObject({start:3,end:3});
+});

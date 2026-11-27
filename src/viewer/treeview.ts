@@ -8,8 +8,8 @@ const size=(v:Core)=>{const s=scroller(v);return {width:Math.max(1,s.clientWidth
 /** Open the full-size tree at an alignment column (default: the selected column, else 1). Needs a tree. */
 export function openTreeView(v:Core, column?:number):void {
   v.assertAlive();if(!v.tree||!v.a)throw v.error(new Error('Set or build a tree before opening the tree view.'));
-  const focused=document.activeElement;
-  v.treeView={column:1,opener:focused instanceof HTMLElement&&v.root.contains(focused)?focused:undefined,geometry:treeViewGeometry(v.tree.layout)};
+  const focused=(v.root.getRootNode() as Document|ShadowRoot).activeElement;
+  v.treeView={column:1,opener:focused instanceof HTMLElement&&v.root.contains(focused)&&focused!==v.root?focused:$<HTMLElement>(v.root,'[data-action="tree-view"]'),geometry:treeViewGeometry(v.tree.layout)};
   setColumn(v,column??v.selection?.start??1);overlay(v).hidden=false;syncGeometry(v);box(v).focus();
 }
 export function closeTreeView(v:Core):void {
@@ -43,7 +43,7 @@ export function bindTreeView(v:Core, on:On):void {
   let frame=0;const redraw=()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;drawTreeViewNow(v);});};
   on(scroller(v),'scroll',redraw);
   on(box(v),'change',()=>{setColumn(v,box(v).valueAsNumber);drawTreeViewNow(v);});
-  on(overlay(v),'keydown',(event:KeyboardEvent)=>{if(event.key==='Escape'){event.stopPropagation();closeTreeView(v);}});
+  on(v.root,'keydown',(event:KeyboardEvent)=>{if(event.key==='Escape'&&v.treeView){event.stopPropagation();closeTreeView(v);}});
   on($(v.root,'.ak-tree-view canvas'),'click',(event:MouseEvent)=>{
     const tv=v.treeView,tree=v.tree;if(!tv||!tree)return;
     const canvas=event.currentTarget as HTMLElement,rect=canvas.getBoundingClientRect(),node=hitBranch(tree.layout,tv.geometry,size(v).width,event.clientX-rect.left,event.clientY-rect.top+scroller(v).scrollTop);
