@@ -31,7 +31,7 @@ export interface Core {
   selection:Selection|null; selectedRows:Set<string>; annotationFilter:AnnotationFilter;
   filteredAnnotations:ReturnType<typeof filterAnnotations>; annotationIndex:AnnotationIndex;
   renderer:Renderer; controller:AbortController; menus:ThemedSelects;
-  parser:WorkerTask; analysis:WorkerTask; comparison:WorkerTask; ranking:WorkerTask; searcher:WorkerTask; summaryTask:()=>WorkerTask; summaryCache:Map<string,SummaryEntry>; summaryPage:number; searchRun:number; searchBusy:boolean; request?:AbortController;
+  parser:WorkerTask; analysis:WorkerTask; comparison:WorkerTask; ranking:WorkerTask; searcher:WorkerTask; treeTask:WorkerTask; summaryTask:()=>WorkerTask; summaryCache:Map<string,SummaryEntry>; summaryPage:number; searchRun:number; searchBusy:boolean; request?:AbortController;
   disposed:boolean; revision:number; statsRevision:number; loadRevision:number;
   tab:string; featurePage:number; labelKey:string; overviewDirty:boolean; inspectorDirty:boolean;
   visibility:Required<ViewerVisibility>;

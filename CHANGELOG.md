@@ -25,6 +25,13 @@ Saved view states stay readable. `getState()` writes `version: 1`. `setState()` 
 
 `removeRows()` gives the alignment a new ID, so a state saved before the removal no longer applies.
 
+## Unreleased
+
+### Added
+
+- `buildTree()` and an **NJ tree** toolbar button build a neighbor-joining guide tree from p-distances over every row, in the worker, up to 1,000 rows. The tree goes through `setTree`, so rows sort by it.
+- `neighborJoiningTree`, `neighborJoining`, `pDistances`, `MAX_NJ_ROWS` and the `NjTree` type.
+
 ## 0.6.0 (2026-11-24)
 
 ### Changes that can affect existing code

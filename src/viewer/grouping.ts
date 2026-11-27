@@ -1,6 +1,7 @@
 import { $ } from '../controls';
 import { parseNewick, layoutTree, matchLeaves, leavesUnder, type TreeLayout } from '../tree';
 import { type Core, type BoundTree } from './core';
+import type { NjTree } from '../nj';
 export function setTree(v:Core, newick:string|null):void {
   v.assertAlive();
   v.clearTreeNote();
@@ -11,6 +12,17 @@ export function setTree(v:Core, newick:string|null):void {
     v.tree=v.bindTree(layout);v.sort='tree';
   }
   $<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=v.sort;v.rebuildRows();v.emit('state',v.getState());
+}
+/** Compute a neighbor-joining tree in the worker and apply it. A newer load or a destroy rejects with an AbortError. */
+export async function buildTree(v:Core):Promise<string> {
+  v.assertAlive();
+  if(!v.a)throw v.error(new Error('Load an alignment before building a tree.'));
+  const a=v.a,revision=v.revision;v.message('Building neighbor-joining tree…');
+  let tree:NjTree;try{tree=await v.treeTask.nj(a,a.rows.map((_,i)=>i));}catch(error){throw v.error(error);}
+  if(v.disposed||v.revision!==revision||v.a!==a)throw new DOMException('Operation cancelled','AbortError');
+  v.message('');setTree(v,tree.newick);
+  if(tree.missing)v.message(`Tree: ${tree.missing} sequence pairs share no comparable residue and use the largest distance.`);
+  return tree.newick;
 }
 /** Clear the message area when it still shows a warning about the tree being removed or replaced. */
 export function clearTreeNote(v:Core):void {const text=$(v.root,'.ak-message').textContent;if(text&&(text===v.tree?.note||text===v.treeGroupNote))v.message('');}

@@ -2,6 +2,7 @@ import { parseAlignment } from './parsers';
 import { calculateStats, pairwiseIdentity, pairwiseMatrix } from './analysis';
 import { findHits } from './search';
 import { analyzeColumns } from './summary';
+import { neighborJoiningTree } from './nj';
 self.onmessage = ({data}) => {
   try {
     let result;
@@ -10,6 +11,7 @@ self.onmessage = ({data}) => {
     else if(data.kind==='pairwise') result=pairwiseMatrix(data.alignment,data.rows);
     else if(data.kind==='identity') result=data.rows.map(row=>pairwiseIdentity(data.alignment,data.reference,row));
     else if(data.kind==='summary') result=analyzeColumns(data.alignment,data.scope);
+    else if(data.kind==='nj') result=neighborJoiningTree(data.alignment,data.rows);
     else if(data.kind==='search') result=findHits(data.alignment,data.pattern,data.options);
     else throw new Error('Unknown worker request.');
     const transfer=[];
