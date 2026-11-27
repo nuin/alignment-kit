@@ -20,7 +20,7 @@ export function layout(v:Core):void {
   const showColumns=$(v.root,'[data-action="show-columns"]'),hiddenColumns=v.columns.width-v.columns.count;
   showColumns.dataset.empty=String(!hiddenColumns);showColumns.textContent=`Show all columns (${hiddenColumns.toLocaleString()} hidden)`;
   const showHidden=$(v.root,'[data-action="show-hidden"]');showHidden.dataset.empty=String(!v.hidden.size);showHidden.textContent=`Show hidden (${v.hidden.size})`;
-  $(v.root,'[data-action="tree-view"]').dataset.empty=String(!v.tree);$(v.root,'.ak-tree-canvas').dataset.empty=String(!v.treeW);$<HTMLOptionElement>(v.root,'select[aria-label="Sequence order"] option[value="tree"]').hidden=!v.tree;
+  $(v.root,'[data-action="tree-view"]').dataset.empty=String(!v.tree);$(v.root,'[aria-label="Show tree beside names"]').closest('label')!.dataset.empty=String(!v.tree||v.grouped);$(v.root,'.ak-tree-canvas').dataset.empty=String(!v.treeW);$<HTMLOptionElement>(v.root,'select[aria-label="Sequence order"] option[value="tree"]').hidden=!v.tree;
   syncVariantNav(v);syncVariantCards(v);v.menus.sync();applyVisibility(v.root,v.visibility);
   v.root.style.setProperty('--ak-tree',v.treeW+'px');v.root.style.setProperty('--ak-gutter',gutter+'px');v.root.style.setProperty('--ak-row-height',rh+'px');
   v.root.style.setProperty('--ak-workspace-min-height',((v.options.textView?0:tracks.height)+(v.visibility.alignment?3*rh+16:0))+'px');

@@ -3,6 +3,7 @@ import { $ } from '../controls';
 
 import type { Core, On } from './core';
 export function bindForms(v:Core,on:On):void {
+  let treeWidth=v.options.treeWidth||120;
   on(v.root,'change',(event:Event)=>{
     const target=event.target as HTMLInputElement,aria=target.getAttribute('aria-label');
     if(target.dataset.selectRow){if(target.checked)v.selectedRows.add(target.dataset.selectRow);else v.selectedRows.delete(target.dataset.selectRow);v.inspectorDirty=true;v.labelKey='';v.schedule();}
@@ -15,6 +16,7 @@ export function bindForms(v:Core,on:On):void {
     if(aria==='Dots for matches')v.setOptions({matchDisplay:target.checked?'dot':'letter'});
     if(aria==='Ruler coordinates'){v.setOptions({rulerCoordinates:target.value as RulerCoordinates});v.emit('state',v.getState());}
     if(aria==='Reverse complement')v.setReverseComplement(target.checked);
+    if(aria==='Show tree beside names'){if(!target.checked&&v.options.treeWidth)treeWidth=v.options.treeWidth;v.setOptions({treeWidth:target.checked?treeWidth:0});}
     if(aria==='Show frequency logo')v.setOptions({showLogo:target.checked});
     if(aria==='Sequence order')v.setSort(target.value as SortKey).catch(error=>{v.error(error);$<HTMLSelectElement>(v.root,'[aria-label="Sequence order"]').value=v.sort;v.menus.sync();});
     if(aria==='Export alignment'){if(target.value==='fasta-options')v.fastaPanel(true);else void v.export(target.value);target.value='';}

@@ -91,3 +91,13 @@ it('restores the column box on empty input',async()=>{
   const {viewer,box}=await make();viewer.setTree(NEWICK);viewer.setSelection({start:3,end:3});viewer.openTreeView();
   box().value='';box().dispatchEvent(new Event('change'));expect(box().value).toBe('3');
 });
+it('hides and restores the small tree with the checkbox',async()=>{
+  const {viewer,el}=await make();const box=el.querySelector<HTMLInputElement>('[aria-label="Show tree beside names"]')!,canvas=el.querySelector<HTMLElement>('.ak-tree-canvas')!;
+  expect(box.closest('label')!.hidden).toBe(true);
+  viewer.setTree(NEWICK);(viewer as any).render();expect(box.closest('label')!.hidden).toBe(false);expect(box.checked).toBe(true);expect(canvas.hidden).toBe(false);
+  viewer.setOptions({treeWidth:200});box.checked=false;box.dispatchEvent(new Event('change',{bubbles:true}));(viewer as any).render();
+  expect(canvas.hidden).toBe(true);expect((viewer as any).options.treeWidth).toBe(0);
+  viewer.openTreeView();expect(el.querySelector<HTMLElement>('.ak-tree-view')!.hidden).toBe(false);viewer.closeTreeView();
+  box.checked=true;box.dispatchEvent(new Event('change',{bubbles:true}));(viewer as any).render();
+  expect(canvas.hidden).toBe(false);expect((viewer as any).options.treeWidth).toBe(200);
+});
