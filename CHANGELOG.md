@@ -31,7 +31,7 @@ Saved view states stay readable. `getState()` writes `version: 1`. `setState()` 
 
 - `buildTree()` and a **Tree** toolbar button build a neighbor-joining guide tree from p-distances over every row, in the worker, up to 1,000 rows. The tree goes through `setTree`, so rows sort by it.
 - `neighborJoiningTree`, `neighborJoining`, `pDistances`, `MAX_NJ_ROWS` and the `NjTree` type.
-- The **Tree** button is an on/off toggle next to **Text**. The first press builds the tree; later presses hide and show the tree column. **Tree view** sits next to it as an on/off button for the full-size tree.
+- The **Tree** button is an on/off toggle next to **Text**. The first press builds the tree; later presses hide and show the tree column. **Tree view** sits next to it as an on/off button for the full-size tree, which covers the whole viewer.
 - A full-size tree view: a **Tree view** button, `openTreeView(column?)` and `closeTreeView()`. It shows every leaf with the residue at a chosen alignment column, and a branch click selects the clade.
 
 ## 0.6.0 (2026-11-24)
