@@ -126,24 +126,32 @@ export class Renderer {
     ctx.fillStyle=v.dark?'#e3ecf5':'#243447';ctx.font='600 12px "Alignment Sans", system-ui, sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
     ctx.fillText(`${group.collapsed?'▸':'▾'} ${group.name} (${group.count.toLocaleString()})`,v.gutter+12,y+v.rh/2);
   }
-  /** Draw the tree column. Leaves sit at the display position of their row, so scrolling and filtering keep it aligned. Returns the internal nodes drawn, for hit testing. */
-  tree(canvas:HTMLCanvasElement,v:RenderView,layout:TreeLayout,leafRow:Int32Array,rowPos:Int32Array,width:number,height:number):TreeHit[] {
-    const ctx=prepareCanvas(canvas,width,height),hits:TreeHit[]=[];
-    ctx.fillStyle=v.dark?'#172333':'#f9fbfc';ctx.fillRect(0,0,width,height);
+  /** Draw the tree column. Leaves sit at the display position of their row, so scrolling and filtering keep it aligned. A pinned reference (`refRow`) gets its leaf in the reference track of `refCanvas`, whose last `v.rh` pixels sit directly above the body. Returns the internal nodes drawn, for hit testing. */
+  tree(canvas:HTMLCanvasElement,v:RenderView,layout:TreeLayout,leafRow:Int32Array,rowPos:Int32Array,width:number,height:number,refRow=-1,refCanvas?:HTMLCanvasElement):TreeHit[] {
+    const ctx=prepareCanvas(canvas,width,height),hits:TreeHit[]=[],bg=v.dark?'#172333':'#f9fbfc';
+    ctx.fillStyle=bg;ctx.fillRect(0,0,width,height);
     const leafY=new Float64Array(layout.nodes.length).fill(NaN);
-    for(let k=0;k<leafY.length;k++){const r=leafRow[k];if(r>=0&&rowPos[r]>=0)leafY[k]=rowPos[r]*v.rh-v.y+v.rh/2;}
-    const {y,lo,hi}=treeSpans(layout,leafY),span=Math.max(1,width-14),px=(k:number)=>4+layout.x[k]*span;
-    ctx.strokeStyle=v.dark?'#8ea4ba':'#6b7f93';ctx.fillStyle=v.dark?'#b7c8d9':'#3f5870';ctx.lineWidth=1;ctx.beginPath();
+    for(let k=0;k<leafY.length;k++){const r=leafRow[k];if(r>=0&&rowPos[r]>=0)leafY[k]=rowPos[r]*v.rh-v.y+v.rh/2;else if(r>=0&&r===refRow)leafY[k]=-v.rh/2;}
+    const spans=treeSpans(layout,leafY);this.treeLines(ctx,layout,spans,width,0,height,hits,!!v.dark);
+    if(refRow>=0&&refCanvas){
+      const rc=refCanvas.getContext('2d')!,top=parseFloat(refCanvas.style.height)-v.rh;
+      rc.save();rc.fillStyle=bg;rc.fillRect(0,0,width,top+v.rh);rc.beginPath();rc.rect(0,top,width,v.rh);rc.clip();rc.translate(0,top+v.rh);this.treeLines(rc,layout,spans,width,-v.rh,0,null,!!v.dark);rc.restore();
+    }
+    ctx.fillStyle=v.dark?'#b7c8d9':'#3f5870';for(const hit of hits)ctx.fillRect(hit.x-2,hit.y-2,4,4);
+    return hits;
+  }
+  /** Stroke the branches whose vertical extent meets `top`..`bottom`; collect internal nodes inside it into `hits`. */
+  private treeLines(ctx:CanvasRenderingContext2D,layout:TreeLayout,{y,lo,hi}:{y:Float64Array;lo:Float64Array;hi:Float64Array},width:number,top:number,bottom:number,hits:TreeHit[]|null,dark:boolean) {
+    const span=Math.max(1,width-14),px=(k:number)=>4+layout.x[k]*span;
+    ctx.strokeStyle=dark?'#8ea4ba':'#6b7f93';ctx.lineWidth=1;ctx.beginPath();
     for(let k=0;k<y.length;k++) {
       if(Number.isNaN(y[k]))continue;
-      const internal=layout.kids[k].length>0,top=internal?lo[k]:y[k],bottom=internal?hi[k]:y[k];
-      if(bottom<-2||top>height+2)continue;
+      const internal=layout.kids[k].length>0,a=internal?lo[k]:y[k],b=internal?hi[k]:y[k];
+      if(b<top-2||a>bottom+2)continue;
       if(k>0){const yy=Math.round(y[k])+.5;ctx.moveTo(px(layout.parent[k]),yy);ctx.lineTo(px(k),yy);}
-      if(internal){const xx=Math.round(px(k))+.5;ctx.moveTo(xx,top);ctx.lineTo(xx,bottom);if(y[k]>=0&&y[k]<=height)hits.push({node:k,x:px(k),y:y[k]});}
+      if(internal){const xx=Math.round(px(k))+.5;ctx.moveTo(xx,a);ctx.lineTo(xx,b);if(hits&&y[k]>=top&&y[k]<=bottom)hits.push({node:k,x:px(k),y:y[k]});}
     }
     ctx.stroke();
-    for(const hit of hits)ctx.fillRect(hit.x-2,hit.y-2,4,4);
-    return hits;
   }
   body(canvas:HTMLCanvasElement,v:RenderView,width:number,height:number) {
     const ctx=prepareCanvas(canvas,width,height);ctx.fillStyle=v.dark?'#172333':'#ffffff';ctx.fillRect(0,0,width,height);
