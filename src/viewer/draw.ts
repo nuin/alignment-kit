@@ -50,7 +50,7 @@ export function render(v:Core):void {
   const overview=$(v.root,'.ak-overview');if(v.overviewDirty&&v.visibility.overview){v.renderer.overview($(overview,'canvas'),rv,overview.clientWidth);v.overviewDirty=false;}
   const win=$(overview,'.ak-overview-window');const visible=Math.max(1,(width-v.gutter)/rv.cw),count=v.columns.count,left=rv.x/rv.cw/count;
   win.style.left=Math.min(1,left)*100+'%';win.style.width=Math.min(1,visible/count)*100+'%';overview.setAttribute('aria-valuemax',String(count));overview.setAttribute('aria-valuenow',String(Math.floor(rv.x/rv.cw)+1));
-  v.treeHits=v.tree&&v.treeW?v.renderer.tree($(v.root,'.ak-tree-canvas'),rv,v.tree.layout,v.tree.leafRow,v.rowPos,v.treeW,height):[];
+  v.treeHits=v.tree&&v.treeW?v.renderer.tree($(v.root,'.ak-tree-canvas'),rv,v.tree.layout,v.tree.leafRow,v.rowPos,v.treeW,height,v.pinned?v.reference:-1,$<HTMLCanvasElement>(v.root,'.ak-tracks canvas')):[];
   if(v.treeView)drawTreeViewNow(v);
   const ref=$(v.root,'.ak-reference-label');ref.textContent=v.a.rows[v.reference]?.name??'Reference';ref.title='Pinned reference: '+ref.textContent;
   const first=Math.max(0,Math.floor(rv.y/rv.rh)),last=Math.min(v.rows.length,Math.ceil((rv.y+height)/rv.rh));
