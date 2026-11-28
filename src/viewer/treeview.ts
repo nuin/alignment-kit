@@ -6,14 +6,15 @@ import { type Core, type On } from './core';
 const overlay=(v:Core)=>$(v.root,'.ak-tree-view'),scroller=(v:Core)=>$(v.root,'.ak-tree-view-scroll'),box=(v:Core)=>$<HTMLInputElement>(v.root,'.ak-tree-view input');
 const size=(v:Core)=>{const s=scroller(v);return {width:Math.max(1,s.clientWidth),height:Math.max(1,s.clientHeight)};};
 /** Open the full-size tree at an alignment column (default: the selected column, else 1). Needs a tree. */
+const pressed=(v:Core,on:boolean)=>$(v.root,'[data-action="tree-view"]').setAttribute('aria-pressed',String(on));
 export function openTreeView(v:Core, column?:number):void {
   v.assertAlive();if(!v.tree||!v.a)throw v.error(new Error('Set or build a tree before opening the tree view.'));
   const focused=(v.root.getRootNode() as Document|ShadowRoot).activeElement;
   v.treeView={column:1,opener:focused instanceof HTMLElement&&v.root.contains(focused)&&focused!==v.root?focused:$<HTMLElement>(v.root,'[data-action="tree-view"]'),geometry:treeViewGeometry(v.tree.layout)};
-  setColumn(v,column??v.selection?.start??1);overlay(v).hidden=false;syncGeometry(v);box(v).focus();
+  setColumn(v,column??v.selection?.start??1);overlay(v).hidden=false;pressed(v,true);syncGeometry(v);box(v).focus();
 }
 export function closeTreeView(v:Core):void {
-  const tv=v.treeView;if(!tv)return;v.treeView=undefined;overlay(v).hidden=true;
+  const tv=v.treeView;if(!tv)return;v.treeView=undefined;overlay(v).hidden=true;pressed(v,false);
   if(tv.opener?.isConnected)tv.opener.focus();
 }
 function setColumn(v:Core, column:number):void {
